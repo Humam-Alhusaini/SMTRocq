@@ -686,7 +686,7 @@ let warn_discarding_lemma =
         str "Discarding the following lemma (unsupported):" ++ spc() ++
         str (SmtMisc.string_coq_constr clemma))
 
-let of_coq_lemma rt ro ra_quant rf_quant env sigma solver_logic clemma =
+let of_coq_lemma rt ro ra_quant rf_quant env sigma solver_logic clemma : Form.t option =
   let warn () =
     warn_discarding_lemma clemma;
     None
@@ -698,25 +698,27 @@ let of_coq_lemma rt ro ra_quant rf_quant env sigma solver_logic clemma =
 
   let env_lemma = Environ.push_rel_context rel_context env in
   let f, args = CoqInterface.decompose_app_list qf_lemma in
+  let _ = Feedback.msg_notice (Printer.pr_context_unlimited env_lemma sigma) in
+  let _ = Feedback.msg_notice (Printer.pr_constr_env env_lemma sigma qf_lemma) in
   let core_f =
     if CoqInterface.eq_constr f (Lazy.force cis_true) then
       match args with
       | [a] -> Some a
-      | _ -> warn ()
+      | _ -> Pp.str "Does not have is_true _ structure" |> Feedback.msg_notice; warn ()
     else if CoqInterface.eq_constr f (Lazy.force ceq) then
       match args with
       | [ty; arg1; arg2] when CoqInterface.eq_constr ty (Lazy.force cbool) &&
                                 CoqInterface.eq_constr arg2 (Lazy.force ctrue) ->
          Some arg1
-      | _ -> warn ()
-    else warn () in
+      | _ -> Pp.str "Does not have (_ =? _ = true) structure" |> Feedback.msg_notice; warn ()
+    else let _ = Pp.str "has neither" |> Feedback.msg_notice in warn () in
   let core_smt =
     match core_f with
       | Some core_f ->
          (try
             Some (Form.of_coq (Atom.of_coq ~eqsym:true rt ro ra_quant solver_logic env_lemma sigma) rf_quant core_f)
           with
-            | Atom.UnknownUnderForall -> warn ()
+          | Atom.UnknownUnderForall ->Pp.str "unkown atom" |> Feedback.msg_notice; warn ()
          )
       | None -> None
   in
@@ -811,6 +813,28 @@ let tactic call_solver i solver_logic rt ro ra rf ra_quant rf_quant vm_cast lcpl
   CoqInterface.tclTHEN
     Tactics.intros
     (CoqInterface.mk_tactic (core_tactic call_solver i solver_logic rt ro ra rf ra_quant rf_quant vm_cast lcpl lcepl))
+
+let rearrange_of_coq_lemma rt ro ra_quant rf_quant solver_logic env sigma clemma : unit Proofview.tactic = 
+  let opt = of_coq_lemma rt ro ra_quant rf_quant env sigma solver_logic clemma in
+  match opt with
+  | None -> warn_discarding_lemma clemma; Proofview.tclUNIT ();
+  | Some form -> 
+  let oc = open_out "form.smt2" in
+  let fmt = Format.formatter_of_out_channel oc in
+  Format.fprintf fmt "%a\n" (Form.to_smt ~debug:true) form;
+  Format.pp_print_flush fmt ();
+  close_out oc;
+  Proofview.tclUNIT ();;
+
+let cvc4_logic = 
+  SL.of_list [LUF; LLia; LBitvectors; LArrays]
+
+let tac_to_print () =
+  let rt = SmtBtype.create () in
+  let ro = Op.create () in
+  let ra = Tosmtcoq.ra in
+  let rf = Tosmtcoq.rf in
+  CoqInterface.mk_tactic (rearrange_of_coq_lemma rt ro ra rf cvc4_logic);;
 
 
 (**********************************************)

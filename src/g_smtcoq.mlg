@@ -126,3 +126,7 @@ TACTIC EXTEND Tactic_cvc4
 | [ "cvc4_bool_no_check" ] -> { Lfsc.tactic_no_check () }
 | [ "cvc5_bool_abduct" int_or_var(i) constr(lpl) ] -> { Lfsc.tactic_abduct i lpl (get_lemmas ()) }
 END
+
+TACTIC EXTEND Reify
+| [ "reify" ] -> { SmtCommands.tac_to_print () }
+END

@@ -87,7 +87,7 @@ let hs := get_hyps () in Message.print (Message.of_constr hs).
 Abort.
 End Test.  *)
 
-
+Tactic Notation "reify" := prop2bool; reify.
 
 (** Tactics in bool *)
 
@@ -111,7 +111,7 @@ Tactic Notation "verit_bool_no_check" constr(h) :=
   let tac :=
   ltac2:(h |- get_hyps_cont_ltac1 (ltac1:(h hs |-
   match hs with
-  | Some ?hs => verit_bool_no_check_base_auto (Some (h, hs))
+| Some ?hs => verit_bool_no_check_base_auto (Some (h, hs))
   | None => verit_bool_no_check_base_auto (Some h)
   end;
   vauto) h)) in tac h.
