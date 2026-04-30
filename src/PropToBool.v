@@ -10,7 +10,7 @@
 (**************************************************************************)
 
 
-From Stdlib Require Import Bool ZArith Logic.
+From Stdlib Require Import Bool ZArith NArith Logic.
 Require Import BVList FArray SMT_classes SMT_classes_instances ReflectFacts.
 Import BVList.BITVECTOR_LIST.
 
@@ -109,11 +109,17 @@ Tactic Notation "add_compdecs"           := add_compdecs_names_and_goal (@None n
 
 (* Auxiliary lemma *)
 
-Lemma geb_ge (n m : Z) : (n >=? m)%Z = true <-> (n >= m)%Z.
+Lemma Zgeb_ge (n m : Z) : (n >=? m)%Z = true <-> (n >= m)%Z.
 Proof.
   now rewrite Z.geb_le, Z.ge_le_iff.
 Qed.
 
+Check Zgt_is_gt_bool.
+
+Lemma Ngt_is_gt_bool (n m : N) : (n > m)%N <-> (m <? n)%N = true.
+Proof.
+  now rewrite N.gt_lt_iff, N.ltb_lt. 
+Qed.
 
 (* Conversion from bool to Prop *)
 
@@ -131,7 +137,7 @@ Ltac bool2prop_true :=
     | [ |- context[ Z.ltb _ _ = true ] ] => rewrite Z.ltb_lt
     | [ |- context[ Z.gtb _ _ ] ] => rewrite <- Zgt_is_gt_bool
     | [ |- context[ Z.leb _ _ = true ] ] => rewrite Z.leb_le
-    | [ |- context[ Z.geb _ _ ] ] => rewrite geb_ge
+    | [ |- context[ Z.geb _ _ ] ] => rewrite Zgeb_ge
     | [ |- context[ Z.eqb _ _ = true ] ] => rewrite Z.eqb_eq
 
     |  [ |- context[ Bool.eqb _ _ = true ] ] => rewrite eqb_true_iff
@@ -165,7 +171,6 @@ Ltac bool2prop_true :=
 
 Ltac bool2prop := unfold is_true; bool2prop_true.
 
-
 (* Conversion from Prop to bool, all CompDecs being in the context *)
 
 Ltac prop2bool :=
@@ -186,14 +191,20 @@ Ltac prop2bool :=
     | [ |- context[ Z.lt _ _ ] ] => rewrite <- Z.ltb_lt
     | [ |- context[ Z.gt _ _ ] ] => rewrite Zgt_is_gt_bool
     | [ |- context[ Z.le _ _ ] ] => rewrite <- Z.leb_le
-    | [ |- context[ Z.ge _ _ ] ] => rewrite <- geb_ge
+    | [ |- context[ Z.ge _ _ ] ] => rewrite <- Zgeb_ge
     | [ |- context[ Z.eq _ _ ] ] => rewrite <- Z.eqb_eq
 
-    | [ |- context[ @Logic.eq ?t ?x ?y ] ] =>
+    | [ |- context[ N.lt _ _ ] ] => rewrite <- N.ltb_lt
+    | [ |- context[ N.gt _ _ ] ] => rewrite Ngt_is_gt_bool
+    | [ |- context[ N.le _ _ ] ] => rewrite <- N.leb_le
+    | [ |- context[ N.eq _ _ ] ] => rewrite <- N.eqb_eq
+
+  | [ |- context[ @Logic.eq ?t ?x ?y ] ] =>
       lazymatch t with
       | bitvector _ => rewrite <- bv_eq_reflect
       | farray _ _ => rewrite <- equal_iff_eq
       | Z => rewrite <- Z.eqb_eq
+      | N => rewrite <- N.eqb_eq
       | bool =>
         lazymatch y with
         | true => fail
