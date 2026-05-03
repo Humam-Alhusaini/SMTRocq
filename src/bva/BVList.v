@@ -119,6 +119,7 @@ Parameter bitOf      : nat -> bitvector -> bool.
 
 (* Constants *)
 Parameter zeros      : N -> bitvector.
+Parameter ones       : N -> bitvector.
 
 (*equality*)
 Parameter bv_eq      : bitvector -> bitvector -> bool.
@@ -155,6 +156,7 @@ Axiom bits_size      : forall bv, List.length (bits bv) = N.to_nat (size bv).
 Axiom of_bits_size   : forall l, N.to_nat (size (of_bits l)) = List.length l.
 Axiom _of_bits_size  : forall l s,(size (_of_bits l s)) = s.
 Axiom zeros_size     : forall n, size (zeros n) = n.
+Axiom ones_size     : forall n, size (ones n) = n.
 Axiom bv_concat_size : forall n m a b, size a = n -> size b = m -> size (bv_concat a b) = n + m.
 Axiom bv_and_size    : forall n a b, size a = n -> size b = n -> size (bv_and a b) = n.
 Axiom bv_or_size     : forall n a b, size a = n -> size b = n -> size (bv_or a b) = n.
@@ -235,6 +237,9 @@ Module RAW2BITVECTOR (M:RAWBITVECTOR) <: BITVECTOR.
 
   Definition zeros (n:N) : bitvector n :=
     @MkBitvector _ (M.zeros n) (M.zeros_size n).
+  
+  Definition ones (n:N) : bitvector n :=
+    @MkBitvector _ (M.ones n) (M.ones_size n).
 
   Definition bv_eq n (bv1 bv2:bitvector n) := M.bv_eq bv1 bv2.
 
@@ -480,6 +485,10 @@ Module RAW2BITVECTOR (M:RAWBITVECTOR) <: BITVECTOR.
     forall (size : N),
     _N_to_bits 0 size = zeros size.
  
+  Axiom n_ones_bv:
+    forall (size : N),
+    _N_to_bits (N.ones size) size = ones size.
+
   Axiom n_double_bv:
     forall (n size : N),
     _N_to_bits (N.double n) size = bv_shl (_N_to_bits n size) (_N_to_bits 1 size).
@@ -492,13 +501,6 @@ Module RAW2BITVECTOR (M:RAWBITVECTOR) <: BITVECTOR.
     forall (n m sizen sizem : N),
     _N_to_bits (N.lor (N.shiftl n sizem) m) (sizen + sizem) = 
     bv_concat (_N_to_bits n sizen) (_N_to_bits m sizem).
-
-  (*
-     No zeros yet
-  Axiom n_ones_bv:
-    forall (size : N),
-    _N_to_bits (N.ones size) size = ones size.
-   *) 
 
   (*Done*)
 End RAW2BITVECTOR.
@@ -607,6 +609,8 @@ Fixpoint mk_list_false (t: nat) : list bool :=
   end.
 
 Definition zeros (n : N) : bitvector := mk_list_false (N.to_nat n).
+
+Definition ones (n : N) : bitvector := mk_list_true (N.to_nat n).
 
 End Fold_left2.
 
@@ -830,6 +834,9 @@ Qed.
 
 Lemma zeros_size (n : N) : size (zeros n) = n.
 Proof. unfold size, zeros. now rewrite length_mk_list_false, N2Nat.id. Qed. 
+
+Lemma ones_size (n : N) : size (ones n) = n.
+Proof. unfold size, ones. now rewrite length_mk_list_true, N2Nat.id. Qed. 
 
 Lemma List_eq : forall (l m: list bool), beq_list l m = true <-> l = m.
 Proof.
