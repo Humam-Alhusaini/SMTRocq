@@ -8,6 +8,11 @@ Require Import SMTCoq.SMTCoq.
 
 Import BVList.BITVECTOR_LIST.
 
+Open Scope Z.
+
+Goal 2 + 3 = 5.
+Proof. reify. Admitted.
+
 Local Open Scope positive.
 Local Open Scope N.
 Local Open Scope bool.
@@ -19,14 +24,6 @@ Goal forall
     (f: N -> N),
     x = (y + 1)%N -> f y = f (x - 1)%N.
 Proof. reify. Admitted.
-
-Goal forall
-    (x y: Z)
-    (f: Z -> Z),
-    x = (y + 1)%Z -> f y = f (x - 1)%Z.
-Proof.
-  reify.
-Qed.
 
 Goal 2 + 3 = 5.
 Proof. reify. Admitted.

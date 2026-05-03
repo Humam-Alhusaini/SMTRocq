@@ -486,8 +486,8 @@ Module RAW2BITVECTOR (M:RAWBITVECTOR) <: BITVECTOR.
     _N_to_bits 0 size = zeros size.
  
   Axiom n_ones_bv:
-    forall (size : N),
-    _N_to_bits (N.ones size) size = ones size.
+    forall (len size : N),
+    _N_to_bits (N.ones len) size = ones size.
 
   Axiom n_double_bv:
     forall (n size : N),

@@ -31,17 +31,21 @@ Ltac2 rewrite_n_bv () :=
     | rewrite n_ult_bv
     | rewrite n_bv_size
     | rewrite n_zero_bv
-    (* n_eq_bv last — it's an ↔, use the → direction to push N eq → bv eq *)
-    | rewrite -> n_eq_bv
+    | rewrite n_ones_bv
     | rewrite n_test_bv
+    | rewrite -> n_eq_bv
     ]
-  ).
+  ); try reflexivity.
 
+Local Open Scope N_scope.
   (* n_ult_bv *)
   Lemma test_ult (n m s : N) :
-    N.ltb n m = bv_ult (_N_to_bits n s) (_N_to_bits m s).
+    bv_ult (_N_to_bits n s) (_N_to_bits m s) = N.ltb n m.
   Proof. rewrite_n_bv (). Admitted.
-Local Open Scope N_scope.
+  
+  Lemma test_ones (n : N) :
+    _N_to_bits (N.ones n) n = ones n.
+  Proof. now rewrite_n_bv (). Qed.
 
   (* n_ult_bv *)
   Lemma test_mod (n m s : N) :

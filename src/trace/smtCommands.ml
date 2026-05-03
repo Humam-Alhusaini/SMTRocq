@@ -767,6 +767,7 @@ let core_tactic call_solver i solver_logic rt ro ra rf ra_quant rf_quant vm_cast
              with Not_found ->
                let oc = open_out "/tmp/find_lemma.log" in
                let fmt = Format.formatter_of_out_channel oc in
+                let _ = Format.fprintf fmt "(set-logic UFLIA)@." in
                List.iter (fun u -> Format.fprintf fmt "%a\n" (Form.to_smt ~debug:true) u) lsmt;
                Format.fprintf fmt "\n%a\n" (Form.to_smt ~debug:true) hl;
                flush oc; close_out oc; failwith "find_lemma"
@@ -814,20 +815,52 @@ let tactic call_solver i solver_logic rt ro ra rf ra_quant rf_quant vm_cast lcpl
     Tactics.intros
     (CoqInterface.mk_tactic (core_tactic call_solver i solver_logic rt ro ra rf ra_quant rf_quant vm_cast lcpl lcepl))
 
+let string_logic l =
+    Printf.sprintf "QF_%s%s%s%s"
+    (if SL.mem LArrays l then "A" else "")
+    (if SL.mem LUF l || SL.mem LLia l then "UF" else "")
+    (if SL.mem LBitvectors l then "BV" else "")
+    (if SL.mem LLia l then "LIA" else "");;
+
+let cvc4_logic = 
+  SL.of_list [LUF; LLia; LBitvectors; LArrays];;
+
+  open Format
+
+let export out_channel rt ro l =
+  let fmt = Format.formatter_of_out_channel out_channel in
+  Format.fprintf fmt "(set-logic %s)@." (string_logic cvc4_logic);
+
+  List.iter (fun (i,t) ->
+    let s = "Tindex_"^(string_of_int i) in
+    SmtMaps.add_btype s (SmtBtype.Tindex t);
+    fprintf fmt "(declare-sort %s 0)@." s
+  ) (SmtBtype.to_list rt);
+
+  List.iter (fun (i,cod,dom,op) ->
+    let s = "op_"^(string_of_int i) in
+    SmtMaps.add_fun s op;
+    fprintf fmt "(declare-fun %s (" s;
+    let is_first = ref true in
+    Array.iter (fun t ->
+        if !is_first then is_first := false
+        else fprintf fmt " "; SmtBtype.to_smt fmt t
+      ) cod;
+    fprintf fmt ") %a)@." SmtBtype.to_smt dom;
+  ) (Op.to_list ro);
+
+  fprintf fmt "(assert %a)@\n(check-sat)@\n(exit)@."
+    (Form.to_smt ~debug:false) l
+
 let rearrange_of_coq_lemma rt ro ra_quant rf_quant solver_logic env sigma clemma : unit Proofview.tactic = 
   let opt = of_coq_lemma rt ro ra_quant rf_quant env sigma solver_logic clemma in
   match opt with
   | None -> warn_discarding_lemma clemma; Proofview.tclUNIT ();
   | Some form -> 
   let oc = open_out "form.smt2" in
-  let fmt = Format.formatter_of_out_channel oc in
-  Format.fprintf fmt "%a\n" (Form.to_smt ~debug:true) form;
-  Format.pp_print_flush fmt ();
+    export oc rt ro form;
   close_out oc;
   Proofview.tclUNIT ();;
-
-let cvc4_logic = 
-  SL.of_list [LUF; LLia; LBitvectors; LArrays]
 
 let tac_to_print () =
   let rt = SmtBtype.create () in
