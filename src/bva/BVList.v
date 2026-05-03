@@ -221,14 +221,15 @@ Module RAW2BITVECTOR (M:RAWBITVECTOR) <: BITVECTOR.
   Lemma of_bits_size l : M.size (M.of_bits l) = N.of_nat (List.length l).
   Proof. now rewrite <- M.of_bits_size, N2Nat.id. Qed.
 
-  Lemma _of_bits_size l s: M.size (M._of_bits l s) = s.
-  Proof. apply (M._of_bits_size l s). Qed. 
-
   Definition of_bits (l:list bool) : bitvector (N.of_nat (List.length l)) :=
     @MkBitvector _ (M.of_bits l) (of_bits_size l).
 
+  Lemma _of_bits_size l s: M.size (M._of_bits l s) = s.
+  Proof. apply (M._of_bits_size l s). Qed. 
+
   Definition _of_bits (l: list bool) (s : N): bitvector s :=
   @MkBitvector _ (M._of_bits l s) (_of_bits_size l s).
+
 
   Definition bitOf n p (bv:bitvector n) : bool := M.bitOf p bv.
 
@@ -400,6 +401,78 @@ Module RAW2BITVECTOR (M:RAWBITVECTOR) <: BITVECTOR.
   Qed.
 
 
+  (*Adding N support to bitvectors*)
+  Fixpoint pos_to_bools (p : positive) : list bool :=
+    match p with
+    | xH => true :: nil
+    | xO p' => false :: pos_to_bools p'
+    | xI p' => true :: pos_to_bools p'
+  end.
+
+  Definition N_to_bools (n : N) : list bool :=
+    match n with
+    | N0 => nil
+    | Npos p => pos_to_bools p end.
+ 
+
+  (*These 2 feel kind of useless for now*)
+  Lemma N_to_bits_size n : M.size (of_bits (N_to_bools n)) = N.size n.
+  Proof. Admitted.
+
+  Definition N_to_bits (n : N) : bitvector (N.size n) :=
+    @MkBitvector _ (of_bits (N_to_bools n)) (N_to_bits_size n).
+  (*We'll see about that*)
+
+  Lemma _N_to_bits_size n s : M.size (_of_bits (N_to_bools n) s) = s.
+  Proof. Admitted.
+
+  Definition _N_to_bits (n size : N) : bitvector size :=
+    @MkBitvector _ (_of_bits (N_to_bools n) size) (_N_to_bits_size n size).
+
+  Axiom n_eq_bv:
+    forall (n m size : N), n = m <-> _N_to_bits n size = _N_to_bits m size.
+  
+  Axiom n_add_bv:
+    forall (n m size : N),
+    _N_to_bits (n + m) size = bv_add (_N_to_bits n size) (_N_to_bits m size).
+
+  Axiom n_sub_bv:
+    forall (n m size : N),
+    _N_to_bits (n - m) size = bv_subt (_N_to_bits n size) (_N_to_bits m size).
+
+  Axiom n_mul_bv:
+    forall (n m size : N),
+    _N_to_bits (n * m) size = bv_mult (_N_to_bits n size) (_N_to_bits m size).
+
+  Axiom n_and_bv:
+    forall (n m size : N),
+    _N_to_bits (N.land n m) size = bv_and (_N_to_bits n size) (_N_to_bits m size).
+
+  Axiom n_or_bv:
+    forall (n m size : N),
+    _N_to_bits (N.lor n m) size = bv_or (_N_to_bits n size) (_N_to_bits m size).
+
+  Axiom n_xor_bv:
+    forall (n m size : N),
+    _N_to_bits (N.lxor n m) size = bv_xor (_N_to_bits n size) (_N_to_bits m size).
+
+  Axiom n_shiftl_bv:
+    forall (n m size : N),
+    _N_to_bits (N.shiftl n m) size = bv_shl (_N_to_bits n size) (_N_to_bits m size).
+
+  Axiom n_shiftr_bv:
+    forall (n m size : N),
+    _N_to_bits (N.shiftr n m) size = bv_shr (_N_to_bits n size) (_N_to_bits m size).
+
+  Axiom n_ult_bv:
+    forall (n m size : N),
+    N.ltb n m = bv_ult (_N_to_bits n size) (_N_to_bits m size).
+
+  Axiom n_ultP_bv:
+    forall (n m size : N),
+    (n < m)%N <-> bv_ultP (_N_to_bits n size) (_N_to_bits m size).
+  
+  (*Done*)
 End RAW2BITVECTOR.
 
 Module RAWBITVECTOR_LIST <: RAWBITVECTOR.
