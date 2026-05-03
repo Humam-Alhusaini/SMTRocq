@@ -14,6 +14,49 @@ From Stdlib Require Import Bool ZArith NArith Logic.
 Require Import BVList FArray SMT_classes SMT_classes_instances ReflectFacts.
 Import BVList.BITVECTOR_LIST.
 
+From Ltac2 Require Import Ltac2.
+
+Ltac2 rewrite_n_bv () :=
+  repeat (
+    first [
+      rewrite n_add_bv
+    | rewrite <- N.land_ones
+    | rewrite n_sub_bv
+    | rewrite n_mul_bv
+    | rewrite n_and_bv
+    | rewrite n_or_bv
+    | rewrite n_xor_bv
+    | rewrite n_shiftl_bv
+    | rewrite n_shiftr_bv
+    | rewrite n_ult_bv
+    | rewrite n_bv_size
+    | rewrite n_zero_bv
+    (* n_eq_bv last — it's an ↔, use the → direction to push N eq → bv eq *)
+    | rewrite -> n_eq_bv
+    | rewrite n_test_bv
+    ]
+  ).
+
+  (* n_ult_bv *)
+  Lemma test_ult (n m s : N) :
+    N.ltb n m = bv_ult (_N_to_bits n s) (_N_to_bits m s).
+  Proof. rewrite_n_bv (). Admitted.
+Local Open Scope N_scope.
+
+  (* n_ult_bv *)
+  Lemma test_mod (n m s : N) :
+   _N_to_bits (n mod 2 ^ m) s = bv_and (_N_to_bits n s) (_N_to_bits (N.ones m) s).
+  Proof. now rewrite_n_bv (). Qed.
+  
+  Set Ltac2 Backtrace.
+
+Lemma test_test :
+  forall (n index size : N),
+  N.testbit (n mod 2 ^ size) index = bitOf (N.to_nat index) (_N_to_bits n size).
+Proof. 
+  intros. 
+  now rewrite_n_bv ().
+Qed.
 
 (* List of interpreted types *)
 
