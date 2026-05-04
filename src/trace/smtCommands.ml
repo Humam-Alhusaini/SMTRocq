@@ -849,7 +849,7 @@ let export out_channel rt ro l =
     fprintf fmt ") %a)@." SmtBtype.to_smt dom;
   ) (Op.to_list ro);
 
-  fprintf fmt "(assert %a)@\n(check-sat)@\n(exit)@."
+  fprintf fmt "(assert (not %a))@\n(check-sat)@\n(exit)@."
     (Form.to_smt ~debug:false) l
 
 let rearrange_of_coq_lemma rt ro ra_quant rf_quant solver_logic env sigma clemma : unit Proofview.tactic = 
