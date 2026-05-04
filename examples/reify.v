@@ -6,11 +6,15 @@ Require Import Bool.
 
 Require Import SMTCoq.SMTCoq.
 
-Import BVList.BITVECTOR_LIST.
-
-Open Scope Z.
+Open Scope N.
 
 Goal 2 + 3 = 5.
+Proof. picinae. Admitted.
+
+Goal forall
+    (x y: Z)
+    (f: Z -> Z),
+    x = y + 1 -> f y = f (x - 1).
 Proof. reify. Admitted.
 
 Local Open Scope positive.
@@ -18,12 +22,6 @@ Local Open Scope N.
 Local Open Scope bool.
 Local Open Scope list_scope.
 Local Open Scope bv_scope.
-
-Goal forall
-    (x y: N)
-    (f: N -> N),
-    x = (y + 1)%N -> f y = f (x - 1)%N.
-Proof. reify. Admitted.
 
 Goal 2 + 3 = 5.
 Proof. reify. Admitted.

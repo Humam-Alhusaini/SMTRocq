@@ -435,7 +435,8 @@ Module RAW2BITVECTOR (M:RAWBITVECTOR) <: BITVECTOR.
     @MkBitvector _ (_of_bits (N_to_bools n) size) (_N_to_bits_size n size).
 
   Axiom n_eq_bv:
-    forall (n m size : N), n = m <-> _N_to_bits n size = _N_to_bits m size.
+    forall (n m len : N), 
+    n mod 2 ^ len = m mod 2 ^ len <-> _N_to_bits n len = _N_to_bits m len.
   
   Axiom n_add_bv:
     forall (n m size : N),
@@ -501,6 +502,11 @@ Module RAW2BITVECTOR (M:RAWBITVECTOR) <: BITVECTOR.
     forall (n m sizen sizem : N),
     _N_to_bits (N.lor (N.shiftl n sizem) m) (sizen + sizem) = 
     bv_concat (_N_to_bits n sizen) (_N_to_bits m sizem).
+
+  Axiom n_bv_size:
+    forall (n sz : N),
+    M.size (_N_to_bits n sz) = sz.
+
 
   (*Done*)
 End RAW2BITVECTOR.
@@ -2648,13 +2654,6 @@ Module BITVECTOR_LIST <: BITVECTOR.
   Notation "v @ p" := (bitOf p v) (at level 1, format "v @ p ") : bv_scope.
 
 End BITVECTOR_LIST.
-
-
-Import BITVECTOR_LIST RAWBITVECTOR_LIST.
-
-  Axiom n_bv_size:
-    forall (n sz : N),
-    size (_N_to_bits n sz) = sz.
 
 
 (* Register constants for OCaml access *)

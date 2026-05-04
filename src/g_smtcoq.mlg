@@ -128,5 +128,5 @@ TACTIC EXTEND Tactic_cvc4
 END
 
 TACTIC EXTEND Reify
-| [ "reify" ] -> { SmtCommands.tac_to_print () }
+| [ "reify" ] -> { SmtCommands.reify () }
 END

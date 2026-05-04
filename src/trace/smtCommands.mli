@@ -61,7 +61,7 @@ val tactic :
   CoqInterface.constr list ->
   CoqInterface.constr_expr list -> CoqInterface.tactic
 
-val tac_to_print : unit -> CoqInterface.tactic
+val reify : unit -> CoqInterface.tactic
 
 val model_string : Environ.env -> SmtBtype.reify_tbl -> 'a -> 'b -> 'c -> SExpr.t -> string
 

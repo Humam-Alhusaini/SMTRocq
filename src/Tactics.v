@@ -89,6 +89,44 @@ End Test.  *)
 
 Tactic Notation "reify" := prop2bool; reify.
 
+Import BVList.BITVECTOR_LIST.
+
+Ltac2 rewrite_n_bv () :=
+  repeat (
+    first [
+      rewrite n_add_bv
+    | rewrite n_sub_bv
+    | rewrite n_mul_bv
+    | rewrite n_and_bv
+    | rewrite n_or_bv
+    | rewrite n_xor_bv
+    | rewrite n_shiftl_bv
+    | rewrite n_shiftr_bv
+    | rewrite n_ult_bv
+    | rewrite n_bv_size
+    | rewrite n_zero_bv
+    | rewrite n_ones_bv
+    | rewrite n_test_bv
+    | rewrite -> n_eq_bv
+    | rewrite <- N.land_ones
+    ]
+  ).
+
+  (* n_ult_bv *)
+  Lemma test_ult (n m s : N) :
+    bv_ult (_N_to_bits n s) (_N_to_bits m s) = N.ltb n m.
+  Proof. rewrite_n_bv (). Admitted.
+  
+Ltac2 Notation "picinae" := 
+  rewrite_n_bv (); 
+  ltac1:(prop2bool); 
+  ltac1:(reify).
+
+
+Open Scope N.
+
+Goal (2 + 3) mod 2 ^ 5 = 5 mod 2 ^ 5.
+Proof. rewrite_n_bv (). Admitted.
 (** Tactics in bool *)
 
 Tactic Notation "verit_bool_base_auto" constr(h) := verit_bool_base h; try (exact _).

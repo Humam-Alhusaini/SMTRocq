@@ -862,7 +862,7 @@ let rearrange_of_coq_lemma rt ro ra_quant rf_quant solver_logic env sigma clemma
   close_out oc;
   Proofview.tclUNIT ();;
 
-let tac_to_print () =
+let reify () =
   let rt = SmtBtype.create () in
   let ro = Op.create () in
   let ra = Tosmtcoq.ra in
