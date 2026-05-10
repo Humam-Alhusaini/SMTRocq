@@ -441,7 +441,8 @@ Module RAW2BITVECTOR (M:RAWBITVECTOR) <: BITVECTOR.
 
   Axiom n_eq_bv:
     forall (n m len : N), 
-    n mod 2 ^ len = m mod 2 ^ len <-> _N_to_bits n len = _N_to_bits m len.
+    n mod 2 ^ len =? m mod 2 ^ len = bv_eq (_N_to_bits n len) (_N_to_bits m len).
+  
   
   Axiom n_add_bv:
     forall (n m size : N),
