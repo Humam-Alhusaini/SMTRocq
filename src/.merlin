@@ -1,3 +1,5 @@
+# Place this as a .merlin file in src
+
 S .
 S trace
 S lfsc
