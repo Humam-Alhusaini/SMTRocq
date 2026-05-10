@@ -706,6 +706,17 @@ module Atom =
       | false :: bv -> Format.fprintf fmt "%a0" bv_to_smt bv
       | [] -> ()
 
+  let n_to_bool_list (n : int) : bool list =
+    let rec go n acc =
+      if n = 0 then acc
+      else go (n lsr 1) ((n land 1 = 1) :: acc)
+    in
+    if n = 0 then [false]
+    else go (abs n) [] 
+
+  let to_size (bl : bool list) (sz : int) : bool list =
+    let padding = List.init sz (fun _ -> false) in
+    List.filteri (fun i _ -> i < sz) (bl @ padding);;
 
     let to_smt_named ?(debug=false) ?pi:(pi=false) (fmt:Format.formatter) h =
       let rec to_smt fmt h =
@@ -719,6 +730,10 @@ module Atom =
         | Abop (op,h1,h2) -> to_smt_bop op h1 h2
         | Atop (op,h1,h2,h3) -> to_smt_top op h1 h2 h3
         | Anop (op,a) -> to_smt_nop op a
+        | Aapp ((_, op), a) when CoqInterface.eq_constr op.op_val (Lazy.force c_N_to_bits) ->
+          let _ = match op.tres with SmtBtype.TBV n -> n | _ -> assert false in
+          let bv = to_size (n_to_bool_list (compute_hint a.(0))) (compute_hint a.(1)) in
+          Format.fprintf fmt "#b%a" bv_to_smt bv
         | Aapp ((i,op),a) ->
            let op_smt () =
              (match i with
