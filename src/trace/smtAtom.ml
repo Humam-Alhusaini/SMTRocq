@@ -364,7 +364,7 @@ module Op =
       { count = 0;
 	tbl =  Hashtbl.create 17 }
 
-    let declare reify op tparams tres os =
+    let deeclare reify op tparams tres os =
       assert (not (Hashtbl.mem reify.tbl op));
       let opa = { tparams = tparams; tres = tres; op_val = op } in
       match os with
@@ -690,8 +690,10 @@ module Atom =
           | UO_Zopp | UO_BVbitOf _
           | UO_BVnot _ | UO_BVneg _
           | UO_BVextr _ | UO_BVzextn _ | UO_BVsextn _ -> assert false)
+        (*Interpret N stuff*)
       | Aapp ((_, op), [||]) when CoqInterface.eq_constr op.op_val (Lazy.force cN0) -> 0
       | Aapp ((_, op), [|h|]) when CoqInterface.eq_constr op.op_val (Lazy.force cNpos) -> compute_hint h
+        (*Interpret N stuff*)
       | _ -> assert false
 
     and compute_hint h = compute_int (atom h)
@@ -732,10 +734,16 @@ module Atom =
         | Abop (op,h1,h2) -> to_smt_bop op h1 h2
         | Atop (op,h1,h2,h3) -> to_smt_top op h1 h2 h3
         | Anop (op,a) -> to_smt_nop op a
+      (*Case for N_to_bits*)
         | Aapp ((_, op), a) when CoqInterface.eq_constr op.op_val (Lazy.force c_N_to_bits) ->
           let _ = match op.tres with SmtBtype.TBV n -> n | _ -> assert false in
-          let bv = to_size (n_to_bool_list (compute_hint a.(0))) (compute_hint a.(1)) in
-          Format.fprintf fmt "#b%a" bv_to_smt bv
+          (match atom a.(0) with
+          (*I know the issue, SMTCoq doesn't take N as a quantifier*)
+           | Aapp ((Rel_name name, _), [||]) -> Format.fprintf fmt "%s" name
+           | _ ->
+             let bv = to_size (n_to_bool_list (compute_hint a.(0))) (compute_hint a.(1)) in
+             Format.fprintf fmt "#b%a" bv_to_smt bv)
+      (*Case for N_to_bits*)
         | Aapp ((i,op),a) ->
            let op_smt () =
              (match i with
@@ -1169,7 +1177,7 @@ module Atom =
         | CCselect -> mk_bop_select args
         | CCdiff -> mk_bop_diff args
         | CCstore -> mk_top_store args
-	| CCunknown -> mk_unknown c args (CoqInterface.retyping_get_type_of env sigma h)
+	      | CCunknown -> mk_unknown c args (CoqInterface.retyping_get_type_of env sigma h)
         | CCunknown_deps gobble ->
           mk_unknown_deps c args (CoqInterface.retyping_get_type_of env sigma h) gobble
 
@@ -1400,7 +1408,7 @@ module Atom =
                         *)
                        raise UnknownUnderForall
             in
-            Op.declare ro c targs tres os
+            Op.deeclare ro c targs tres os
         in
         (try
            let (i, _) = destruct "" op in

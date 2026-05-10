@@ -76,7 +76,7 @@ module Op :
 
     val create : unit -> reify_tbl
 
-    val declare : reify_tbl -> CoqInterface.constr -> btype array ->
+    val deeclare : reify_tbl -> CoqInterface.constr -> btype array ->
                   btype -> string option -> indexed_op
 
     val of_coq : reify_tbl -> CoqInterface.constr -> indexed_op

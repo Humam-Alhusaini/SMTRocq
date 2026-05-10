@@ -117,11 +117,13 @@ Ltac2 Notation "picinae" :=
 
 Open Scope N.
 
-Goal 0 mod 2 ^ 2 = 0 mod 2 ^ 2.
+Goal (1 + 1) mod 2 ^ 2 = 2 mod 2 ^ 2.
 Proof.
-  ltac1:(prop2bool).
-  rewrite_n_bv ().
-  ltac1:(reify).
+  picinae.
+Admitted.
+
+Goal forall x, x mod 2 ^ 2 = x mod 2 ^ 2.
+Proof.
   picinae.
 Admitted.
 
