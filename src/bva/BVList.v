@@ -440,9 +440,8 @@ Module RAW2BITVECTOR (M:RAWBITVECTOR) <: BITVECTOR.
     @MkBitvector _ (_of_bits (_N_to_bools n size) size) (_N_to_bits_size n size).
 
   Axiom n_eq_bv:
-    forall (n m len : N), 
-    n mod 2 ^ len =? m mod 2 ^ len = bv_eq (_N_to_bits n len) (_N_to_bits m len).
-  
+    forall (n m : N), 
+    n =? m = bv_eq (_N_to_bits n 32) (_N_to_bits m 32). 
   
   Axiom n_add_bv:
     forall (n m size : N),
