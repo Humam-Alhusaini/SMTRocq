@@ -488,14 +488,6 @@ Module RAW2BITVECTOR (M:RAWBITVECTOR) <: BITVECTOR.
     forall (n index size : N),
     N.testbit (N.land n (N.ones size)) index = bitOf (N.to_nat index) (_N_to_bits n size).
 
-  Axiom n_zero_bv:
-    forall (size : N),
-    _N_to_bits 0 size = zeros size.
- 
-  Axiom n_ones_bv:
-    forall (len size : N),
-    _N_to_bits (N.ones len) size = ones size.
-
   Axiom n_double_bv:
     forall (n size : N),
     _N_to_bits (N.double n) size = bv_shl (_N_to_bits n size) (_N_to_bits 1 size).

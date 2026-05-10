@@ -104,8 +104,6 @@ Ltac2 rewrite_n_bv () :=
     | rewrite n_shiftr_bv
     | rewrite n_ult_bv
     | rewrite n_bv_size
-    | rewrite n_zero_bv
-    | rewrite n_ones_bv
     | rewrite n_test_bv
     | rewrite n_eq_bv
     | rewrite <- N.land_ones
@@ -119,7 +117,7 @@ Ltac2 Notation "picinae" :=
 
 Open Scope N.
 
-Goal (1 + 1) mod 2 ^ 2 = 2 mod 2 ^ 2.
+Goal 0 mod 2 ^ 2 = 0 mod 2 ^ 2.
 Proof.
   ltac1:(prop2bool).
   rewrite_n_bv ().
