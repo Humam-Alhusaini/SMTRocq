@@ -137,6 +137,7 @@ let micromega_coq_proofTerm = micromega_gc "ZArithProof"
 (* Bit vectors *)
 let bv_prefix = "SMTCoq.bva.BVList.BITVECTOR_LIST"
 let bv_gc = gc bv_prefix
+let c_N_to_bits = bv_gc "_N_to_bits"
 let cbitvector = bv_gc "bitvector"
 let cof_bits = bv_gc "of_bits"
 let cbitOf = bv_gc "bitOf"

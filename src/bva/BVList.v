@@ -409,16 +409,21 @@ Module RAW2BITVECTOR (M:RAWBITVECTOR) <: BITVECTOR.
   (*Adding N support to bitvectors*)
   Fixpoint pos_to_bools (p : positive) : list bool :=
     match p with
-    | xH => true :: nil
     | xO p' => false :: pos_to_bools p'
     | xI p' => true :: pos_to_bools p'
+    | xH => true :: nil
   end.
 
   Definition N_to_bools (n : N) : list bool :=
     match n with
     | N0 => nil
     | Npos p => pos_to_bools p end.
- 
+  
+  Definition to_size (bl : list bool) (sz : nat) : list bool :=
+    List.firstn sz (bl ++ List.repeat false sz).
+
+  Definition _N_to_bools (n sz : N) :=
+    to_size (N_to_bools n) (N.to_nat sz).
 
   (*These 2 feel kind of useless for now*)
   Lemma N_to_bits_size n : M.size (of_bits (N_to_bools n)) = N.size n.
@@ -428,11 +433,11 @@ Module RAW2BITVECTOR (M:RAWBITVECTOR) <: BITVECTOR.
     @MkBitvector _ (of_bits (N_to_bools n)) (N_to_bits_size n).
   (*We'll see about that*)
 
-  Lemma _N_to_bits_size n s : M.size (_of_bits (N_to_bools n) s) = s.
+  Lemma _N_to_bits_size n s : M.size (_of_bits (_N_to_bools n s) s) = s.
   Proof. Admitted.
 
   Definition _N_to_bits (n size : N) : bitvector size :=
-    @MkBitvector _ (_of_bits (N_to_bools n) size) (_N_to_bits_size n size).
+    @MkBitvector _ (_of_bits (_N_to_bools n size) size) (_N_to_bits_size n size).
 
   Axiom n_eq_bv:
     forall (n m len : N), 
@@ -2657,6 +2662,7 @@ End BITVECTOR_LIST.
 
 
 (* Register constants for OCaml access *)
+Register BITVECTOR_LIST._N_to_bits as SMTCoq.bva.BVList.BITVECTOR_LIST._N_to_bits.
 Register BITVECTOR_LIST.bitvector as SMTCoq.bva.BVList.BITVECTOR_LIST.bitvector.
 Register BITVECTOR_LIST.of_bits as SMTCoq.bva.BVList.BITVECTOR_LIST.of_bits.
 Register BITVECTOR_LIST.bitOf as SMTCoq.bva.BVList.BITVECTOR_LIST.bitOf.

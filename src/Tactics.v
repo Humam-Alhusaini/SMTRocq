@@ -107,20 +107,25 @@ Ltac2 rewrite_n_bv () :=
     | rewrite n_zero_bv
     | rewrite n_ones_bv
     | rewrite n_test_bv
-    | rewrite -> n_eq_bv
+    | rewrite n_eq_bv
     | rewrite <- N.land_ones
     ]
   ).
 
-  (* n_ult_bv *)
-  Lemma test_ult (n m s : N) :
-    bv_ult (_N_to_bits n s) (_N_to_bits m s) = N.ltb n m.
-  Proof. rewrite_n_bv (). Admitted.
-  
 Ltac2 Notation "picinae" := 
-  rewrite_n_bv (); 
   ltac1:(prop2bool); 
+  rewrite_n_bv ();
   ltac1:(reify).
+
+Open Scope N.
+
+Goal forall n, (n + 1) mod 2 ^ 1 = n mod 2 ^ 1.
+Proof.
+  ltac1:(prop2bool).
+  rewrite_n_bv ().
+  ltac1:(reify).
+  picinae.
+Admitted.
 
 
 Open Scope N.

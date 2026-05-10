@@ -827,39 +827,36 @@ let cvc4_logic =
 
   open Format
 
-let export out_channel rt ro l =
-  let fmt = Format.formatter_of_out_channel out_channel in
+let export_to_string rt ro l =
+  let buf = Buffer.create 1024 in
+  let fmt = Format.formatter_of_buffer buf in
   Format.fprintf fmt "(set-logic %s)@." (string_logic cvc4_logic);
-
   List.iter (fun (i,t) ->
     let s = "Tindex_"^(string_of_int i) in
     SmtMaps.add_btype s (SmtBtype.Tindex t);
-    fprintf fmt "(declare-sort %s 0)@." s
+    Format.fprintf fmt "(declare-sort %s 0)@." s
   ) (SmtBtype.to_list rt);
-
   List.iter (fun (i,cod,dom,op) ->
     let s = "op_"^(string_of_int i) in
     SmtMaps.add_fun s op;
-    fprintf fmt "(declare-fun %s (" s;
+    Format.fprintf fmt "(declare-fun %s (" s;
     let is_first = ref true in
     Array.iter (fun t ->
         if !is_first then is_first := false
-        else fprintf fmt " "; SmtBtype.to_smt fmt t
+        else Format.fprintf fmt " "; SmtBtype.to_smt fmt t
       ) cod;
-    fprintf fmt ") %a)@." SmtBtype.to_smt dom;
+    Format.fprintf fmt ") %a)@." SmtBtype.to_smt dom;
   ) (Op.to_list ro);
-
-  fprintf fmt "(assert (not %a))@\n(check-sat)@\n(exit)@."
-    (Form.to_smt ~debug:false) l
+  Format.fprintf fmt "(assert (not %a))@\n(check-sat)@\n(exit)@."
+    (Form.to_smt ~debug:true) l;
+  Format.pp_print_flush fmt ();
+  Buffer.contents buf;;
 
 let rearrange_of_coq_lemma rt ro ra_quant rf_quant solver_logic env sigma clemma : unit Proofview.tactic = 
   let opt = of_coq_lemma rt ro ra_quant rf_quant env sigma solver_logic clemma in
   match opt with
   | None -> warn_discarding_lemma clemma; Proofview.tclUNIT ();
-  | Some form -> 
-  let oc = open_out "form.smt2" in
-    export oc rt ro form;
-  close_out oc;
+  | Some form -> export_to_string rt ro form |> Pp.str |> Feedback.msg_notice;
   Proofview.tclUNIT ();;
 
 let reify () =
@@ -870,6 +867,7 @@ let reify () =
   CoqInterface.mk_tactic (rearrange_of_coq_lemma rt ro ra rf cvc4_logic);;
 
 
+
 (**********************************************)
 (* Show solver models as Coq counter-examples *)
 (**********************************************)
@@ -877,7 +875,7 @@ let reify () =
 
 open SExpr
 open Smtlib2_genConstr
-open Format
+(*open Format*)
 
 
 let string_index_of_constr env i cf =
