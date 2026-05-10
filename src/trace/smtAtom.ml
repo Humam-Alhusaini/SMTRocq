@@ -690,6 +690,8 @@ module Atom =
           | UO_Zopp | UO_BVbitOf _
           | UO_BVnot _ | UO_BVneg _
           | UO_BVextr _ | UO_BVzextn _ | UO_BVsextn _ -> assert false)
+      | Aapp ((_, op), [||]) when CoqInterface.eq_constr op.op_val (Lazy.force cN0) -> 0
+      | Aapp ((_, op), [|h|]) when CoqInterface.eq_constr op.op_val (Lazy.force cNpos) -> compute_hint h
       | _ -> assert false
 
     and compute_hint h = compute_int (atom h)
@@ -707,16 +709,16 @@ module Atom =
       | [] -> ()
 
   let n_to_bool_list (n : int) : bool list =
-    let rec go n acc =
-      if n = 0 then acc
-      else go (n lsr 1) ((n land 1 = 1) :: acc)
+    let rec go n =
+      if n = 0 then []
+      else (n land 1 = 1) :: go (n lsr 1)
     in
     if n = 0 then [false]
-    else go (abs n) [] 
+    else go (abs n)
 
   let to_size (bl : bool list) (sz : int) : bool list =
     let padding = List.init sz (fun _ -> false) in
-    List.filteri (fun i _ -> i < sz) (bl @ padding);;
+    List.filteri (fun i _ -> i < sz) (bl @ padding)
 
     let to_smt_named ?(debug=false) ?pi:(pi=false) (fmt:Format.formatter) h =
       let rec to_smt fmt h =

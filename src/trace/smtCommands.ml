@@ -848,7 +848,7 @@ let export_to_string rt ro l =
     Format.fprintf fmt ") %a)@." SmtBtype.to_smt dom;
   ) (Op.to_list ro);
   Format.fprintf fmt "(assert (not %a))@\n(check-sat)@\n(exit)@."
-    (Form.to_smt ~debug:true) l;
+    (Form.to_smt ~debug:false) l;
   Format.pp_print_flush fmt ();
   Buffer.contents buf;;
 
