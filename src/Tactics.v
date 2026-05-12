@@ -90,6 +90,7 @@ End Test.  *)
 Tactic Notation "reify" := prop2bool; reify.
 
 Import BVList.BITVECTOR_LIST.
+Open Scope N.
 
 Ltac2 rewrite_n_bv () :=
   repeat (
@@ -104,8 +105,8 @@ Ltac2 rewrite_n_bv () :=
     | rewrite n_shiftr_bv
     | rewrite n_ult_bv
     | rewrite n_bv_size
-    | rewrite n_test_bv
     | rewrite n_eq_bv
+    | rewrite testbit_spec_
     | rewrite <- N.land_ones
     ]
   ).
@@ -115,21 +116,6 @@ Ltac2 Notation "picinae" :=
   rewrite_n_bv ();
   ltac1:(reify).
 
-Open Scope N.
-
-Goal forall (x : N), x = x.
-Proof.
-  picinae.
-Admitted.
-
-Goal 1 + 1 = 2.
-Proof.
-  picinae.
-Admitted.
-
-
-Goal (2 + 3) mod 2 ^ 5 = 5 mod 2 ^ 5.
-Proof. picinae. Admitted.
 (** Tactics in bool *)
 
 Tactic Notation "verit_bool_base_auto" constr(h) := verit_bool_base h; try (exact _).

@@ -115,8 +115,6 @@ Proof.
   now rewrite Z.geb_le, Z.ge_le_iff.
 Qed.
 
-Check Zgt_is_gt_bool.
-
 Lemma Ngt_is_gt_bool (n m : N) : (n > m)%N <-> (m <? n)%N = true.
 Proof.
   now rewrite N.gt_lt_iff, N.ltb_lt. 

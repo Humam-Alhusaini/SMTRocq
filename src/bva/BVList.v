@@ -483,10 +483,6 @@ Module RAW2BITVECTOR (M:RAWBITVECTOR) <: BITVECTOR.
     forall (n m size : N),
     (n < m)%N <-> bv_ultP (_N_to_bits n size) (_N_to_bits m size).
  
-  Axiom n_test_bv:
-    forall (n index : N),
-    N.testbit n index = bitOf (N.to_nat index) (_N_to_bits n 32).
-
   Axiom n_double_bv:
     forall (n size : N),
     _N_to_bits (N.double n) size = bv_shl (_N_to_bits n size) (_N_to_bits 1 size).
@@ -503,6 +499,11 @@ Module RAW2BITVECTOR (M:RAWBITVECTOR) <: BITVECTOR.
   Axiom n_bv_size:
     forall (n sz : N),
     M.size (_N_to_bits n sz) = sz.
+
+  Lemma testbit_spec_ : 
+    forall x y, N.testbit x y = (N.land (N.shiftr x y) 1 =? 1).
+  Proof.
+  Admitted.
 
 
   (*Done*)

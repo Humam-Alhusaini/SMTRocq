@@ -258,12 +258,16 @@ Proof. picinae. Admitted.
 (* ------------------------------------------------------------------ *)
 (*  testbit                            *)
 (* ------------------------------------------------------------------ *)
+Search (N.testbit _ _ = _).
 
-(*
 Goal N.testbit 5 1 = N.testbit 5 1.
-Proof. ltac1:(prop2bool). rewrite_n_bv (). ltac1:(reify). picinae. Admitted.
- *)
+Proof. picinae. Admitted.
 
+Goal forall x, N.testbit x 1 = N.testbit x 1.
+Proof. picinae. Admitted.
+
+Goal forall x y, N.testbit x y = (N.land (N.shiftr x y) 1 =? 1).
+Proof. picinae. Admitted.
 (* ------------------------------------------------------------------ *)
 (* False goals: exercise type-correct SMT generation for variables   *)
 (* ------------------------------------------------------------------ *)
