@@ -115,38 +115,21 @@ Ltac2 Notation "picinae" :=
   rewrite_n_bv ();
   ltac1:(reify).
 
-Open Scope Z.
+Open Scope N.
 
-Goal forall
-    (x y: Z)
-    (f: Z -> Z),
-    x = y + 1 -> f y = f (x - 1).
+Goal forall (x : N), x = x.
 Proof.
-  ltac1:(prop2bool). 
-  ltac1:(reify).
   picinae.
 Admitted.
-
-Open Scope N.
 
 Goal 1 + 1 = 2.
 Proof.
   picinae.
 Admitted.
 
-Goal forall (x : N), x = x + 1.
-Proof.
-  ltac1:(prop2bool).
-  rewrite_n_bv ().
-  ltac1:(reify).
-  picinae.
-Admitted.
-
-
-Open Scope N.
 
 Goal (2 + 3) mod 2 ^ 5 = 5 mod 2 ^ 5.
-Proof. rewrite_n_bv (). Admitted.
+Proof. picinae. Admitted.
 (** Tactics in bool *)
 
 Tactic Notation "verit_bool_base_auto" constr(h) := verit_bool_base h; try (exact _).

@@ -735,15 +735,27 @@ module Atom =
         | Atop (op,h1,h2,h3) -> to_smt_top op h1 h2 h3
         | Anop (op,a) -> to_smt_nop op a
       (*Case for _N_to_bits*)
-        | Aapp ((_, op), a) when CoqInterface.eq_constr op.op_val (Lazy.force c_N_to_bits) ->
+        | Aapp ((nbop, op), a) when CoqInterface.eq_constr op.op_val (Lazy.force c_N_to_bits) ->
           let _ = match op.tres with SmtBtype.TBV n -> n | _ -> assert false in
-          (match atom a.(0) with
-          (*I know the issue, SMTCoq doesn't take N as a quantifier*)
-           | Aapp ((Index index, _), [||]) -> (Format.fprintf fmt "op_%i" index;
-                    if debug then Format.fprintf fmt " (aka %s)" (Pp.string_of_ppcmds (CoqInterface.pr_constr op.op_val));)
-           | _ ->
-             let bv = to_size (n_to_bool_list (compute_hint a.(0))) (compute_hint a.(1)) in
-             Format.fprintf fmt "#b%a" bv_to_smt bv)
+          (match (try Some (compute_hint a.(0), compute_hint a.(1)) with _ -> None) with
+           | Some (n_val, sz_val) ->
+             let bv = to_size (n_to_bool_list n_val) sz_val in
+             Format.fprintf fmt "#b%a" bv_to_smt bv
+           | None ->
+             (* Non-concrete first argument: emit _N_to_bits as an uninterpreted
+                function application returning BitVec n, so the SMT term is well-typed *)
+             let op_smt () =
+               (match nbop with
+                | Index idx ->
+                  (Format.fprintf fmt "op_%i" idx;
+                   if debug then Format.fprintf fmt " (aka %s)" (Pp.string_of_ppcmds (CoqInterface.pr_constr op.op_val)))
+                | Rel_name name -> Format.fprintf fmt "%s" name);
+               if pi then to_smt_op op
+             in
+             Format.fprintf fmt "(";
+             op_smt ();
+             Array.iter (fun h -> Format.fprintf fmt " "; to_smt fmt h) a;
+             Format.fprintf fmt ")")
       (*Case for _N_to_bits*)
         | Aapp ((i,op),a) ->
            let op_smt () =
