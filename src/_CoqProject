@@ -131,9 +131,7 @@ spl/Syntactic.v
 spl/Arithmetic.v
 spl/Operators.v
 
-Conversion_tactics.v
 Misc.v
-SMTCoq.v
 ReflectFacts.v
 PropToBool.v
 QInst.v
