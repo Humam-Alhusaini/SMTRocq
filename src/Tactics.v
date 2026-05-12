@@ -115,15 +115,30 @@ Ltac2 Notation "picinae" :=
   rewrite_n_bv ();
   ltac1:(reify).
 
+Open Scope Z.
+
+Goal forall
+    (x y: Z)
+    (f: Z -> Z),
+    x = y + 1 -> f y = f (x - 1).
+Proof.
+  ltac1:(prop2bool). 
+  ltac1:(reify).
+  picinae.
+Admitted.
+
 Open Scope N.
 
-Goal (1 + 1) mod 2 ^ 2 = 2 mod 2 ^ 2.
+Goal 1 + 1 = 2.
 Proof.
   picinae.
 Admitted.
 
-Goal forall x, x mod 2 ^ 2 = x mod 2 ^ 2.
+Goal forall (x : N), x = x + 1.
 Proof.
+  ltac1:(prop2bool).
+  rewrite_n_bv ().
+  ltac1:(reify).
   picinae.
 Admitted.
 

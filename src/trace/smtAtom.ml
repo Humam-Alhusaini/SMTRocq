@@ -734,16 +734,17 @@ module Atom =
         | Abop (op,h1,h2) -> to_smt_bop op h1 h2
         | Atop (op,h1,h2,h3) -> to_smt_top op h1 h2 h3
         | Anop (op,a) -> to_smt_nop op a
-      (*Case for N_to_bits*)
+      (*Case for _N_to_bits*)
         | Aapp ((_, op), a) when CoqInterface.eq_constr op.op_val (Lazy.force c_N_to_bits) ->
           let _ = match op.tres with SmtBtype.TBV n -> n | _ -> assert false in
           (match atom a.(0) with
           (*I know the issue, SMTCoq doesn't take N as a quantifier*)
-           | Aapp ((Rel_name name, _), [||]) -> Format.fprintf fmt "%s" name
+           | Aapp ((Index index, _), [||]) -> (Format.fprintf fmt "op_%i" index;
+                    if debug then Format.fprintf fmt " (aka %s)" (Pp.string_of_ppcmds (CoqInterface.pr_constr op.op_val));)
            | _ ->
              let bv = to_size (n_to_bool_list (compute_hint a.(0))) (compute_hint a.(1)) in
              Format.fprintf fmt "#b%a" bv_to_smt bv)
-      (*Case for N_to_bits*)
+      (*Case for _N_to_bits*)
         | Aapp ((i,op),a) ->
            let op_smt () =
              (match i with

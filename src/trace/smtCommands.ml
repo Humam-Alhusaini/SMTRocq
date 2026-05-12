@@ -698,8 +698,8 @@ let of_coq_lemma rt ro ra_quant rf_quant env sigma solver_logic clemma : Form.t 
 
   let env_lemma = Environ.push_rel_context rel_context env in
   let f, args = CoqInterface.decompose_app_list qf_lemma in
-  let _ = Feedback.msg_notice (Printer.pr_context_unlimited env_lemma sigma) in
   let _ = Feedback.msg_notice (Printer.pr_constr_env env_lemma sigma qf_lemma) in
+  let _ = Feedback.msg_notice (Printer.pr_context_unlimited env_lemma sigma) in
   let core_f =
     if CoqInterface.eq_constr f (Lazy.force cis_true) then
       match args with
@@ -864,6 +864,8 @@ let reify () =
   let ro = Op.create () in
   let ra = Tosmtcoq.ra in
   let rf = Tosmtcoq.rf in
+  Atom.clear ra;   (* ← add this *)
+  Form.clear rf;   (* ← add this *)
   CoqInterface.mk_tactic (rearrange_of_coq_lemma rt ro ra rf cvc4_logic);;
 
 

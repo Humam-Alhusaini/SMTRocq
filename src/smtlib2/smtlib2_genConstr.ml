@@ -113,7 +113,7 @@ let declare_fun_from_name rt ro s tyl ty =
       CoqInterface.mkArrow (interp_to_coq rt typ) c)
       tyl (interp_to_coq rt ty) in
   let cons_v = CoqInterface.declare_new_variable (CoqInterface.mkId ("Smt_var_"^s)) coqTy in
-  let op = Op.declare ro cons_v (Array.of_list tyl) ty None in
+  let op = Op.deeclare ro cons_v (Array.of_list tyl) ty None in
   SmtMaps.add_fun s op;
   op
 

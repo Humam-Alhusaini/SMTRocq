@@ -484,8 +484,8 @@ Module RAW2BITVECTOR (M:RAWBITVECTOR) <: BITVECTOR.
     (n < m)%N <-> bv_ultP (_N_to_bits n size) (_N_to_bits m size).
  
   Axiom n_test_bv:
-    forall (n index size : N),
-    N.testbit (N.land n (N.ones size)) index = bitOf (N.to_nat index) (_N_to_bits n size).
+    forall (n index : N),
+    N.testbit n index = bitOf (N.to_nat index) (_N_to_bits n 32).
 
   Axiom n_double_bv:
     forall (n size : N),
