@@ -2,6 +2,7 @@
 Require Import NArith.
 From SMTCoq Require Import Tactics.
 From SMTCoq Require Import PropToBool.
+From SMTCoq Require Import SMT_terms.
 From Ltac2 Require Import Ltac2.
 
 Import BVList.BITVECTOR_LIST.
@@ -13,7 +14,7 @@ Open Scope N.
 (* ------------------------------------------------------------------ *)
 
 Goal 2 + 3 = 5.
-Proof. ltac1:(prop2bool). ltac1:(reify). picinae. Admitted.
+Proof. picinae. Admitted.
 
 Goal 0 + 7 = 7.
 Proof. picinae. Admitted.
@@ -259,7 +260,6 @@ Proof. picinae. Admitted.
 (* ------------------------------------------------------------------ *)
 (*  testbit                            *)
 (* ------------------------------------------------------------------ *)
-Search (N.testbit _ _ = _).
 
 Goal N.testbit 5 1 = N.testbit 5 1.
 Proof. picinae. Admitted.

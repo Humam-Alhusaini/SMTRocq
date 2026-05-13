@@ -2655,26 +2655,26 @@ End BITVECTOR_LIST.
 
 
 (* Register constants for OCaml access *)
-Register BITVECTOR_LIST._N_to_bits as SMTCoq.bva.BVList.BITVECTOR_LIST._N_to_bits.
-Register BITVECTOR_LIST.bitvector as SMTCoq.bva.BVList.BITVECTOR_LIST.bitvector.
-Register BITVECTOR_LIST.of_bits as SMTCoq.bva.BVList.BITVECTOR_LIST.of_bits.
-Register BITVECTOR_LIST.bitOf as SMTCoq.bva.BVList.BITVECTOR_LIST.bitOf.
-Register BITVECTOR_LIST.bv_eq as SMTCoq.bva.BVList.BITVECTOR_LIST.bv_eq.
-Register BITVECTOR_LIST.bv_not as SMTCoq.bva.BVList.BITVECTOR_LIST.bv_not.
-Register BITVECTOR_LIST.bv_neg as SMTCoq.bva.BVList.BITVECTOR_LIST.bv_neg.
-Register BITVECTOR_LIST.bv_and as SMTCoq.bva.BVList.BITVECTOR_LIST.bv_and.
-Register BITVECTOR_LIST.bv_or as SMTCoq.bva.BVList.BITVECTOR_LIST.bv_or.
-Register BITVECTOR_LIST.bv_xor as SMTCoq.bva.BVList.BITVECTOR_LIST.bv_xor.
-Register BITVECTOR_LIST.bv_add as SMTCoq.bva.BVList.BITVECTOR_LIST.bv_add.
-Register BITVECTOR_LIST.bv_mult as SMTCoq.bva.BVList.BITVECTOR_LIST.bv_mult.
-Register BITVECTOR_LIST.bv_ult as SMTCoq.bva.BVList.BITVECTOR_LIST.bv_ult.
-Register BITVECTOR_LIST.bv_slt as SMTCoq.bva.BVList.BITVECTOR_LIST.bv_slt.
-Register BITVECTOR_LIST.bv_concat as SMTCoq.bva.BVList.BITVECTOR_LIST.bv_concat.
-Register BITVECTOR_LIST.bv_extr as SMTCoq.bva.BVList.BITVECTOR_LIST.bv_extr.
-Register BITVECTOR_LIST.bv_zextn as SMTCoq.bva.BVList.BITVECTOR_LIST.bv_zextn.
-Register BITVECTOR_LIST.bv_sextn as SMTCoq.bva.BVList.BITVECTOR_LIST.bv_sextn.
-Register BITVECTOR_LIST.bv_shl as SMTCoq.bva.BVList.BITVECTOR_LIST.bv_shl.
-Register BITVECTOR_LIST.bv_shr as SMTCoq.bva.BVList.BITVECTOR_LIST.bv_shr.
+Register BITVECTOR_LIST._N_to_bits as SMTCoq.BVList.BITVECTOR_LIST._N_to_bits.
+Register BITVECTOR_LIST.bitvector as SMTCoq.BVList.BITVECTOR_LIST.bitvector.
+Register BITVECTOR_LIST.of_bits as SMTCoq.BVList.BITVECTOR_LIST.of_bits.
+Register BITVECTOR_LIST.bitOf as SMTCoq.BVList.BITVECTOR_LIST.bitOf.
+Register BITVECTOR_LIST.bv_eq as SMTCoq.BVList.BITVECTOR_LIST.bv_eq.
+Register BITVECTOR_LIST.bv_not as SMTCoq.BVList.BITVECTOR_LIST.bv_not.
+Register BITVECTOR_LIST.bv_neg as SMTCoq.BVList.BITVECTOR_LIST.bv_neg.
+Register BITVECTOR_LIST.bv_and as SMTCoq.BVList.BITVECTOR_LIST.bv_and.
+Register BITVECTOR_LIST.bv_or as SMTCoq.BVList.BITVECTOR_LIST.bv_or.
+Register BITVECTOR_LIST.bv_xor as SMTCoq.BVList.BITVECTOR_LIST.bv_xor.
+Register BITVECTOR_LIST.bv_add as SMTCoq.BVList.BITVECTOR_LIST.bv_add.
+Register BITVECTOR_LIST.bv_mult as SMTCoq.BVList.BITVECTOR_LIST.bv_mult.
+Register BITVECTOR_LIST.bv_ult as SMTCoq.BVList.BITVECTOR_LIST.bv_ult.
+Register BITVECTOR_LIST.bv_slt as SMTCoq.BVList.BITVECTOR_LIST.bv_slt.
+Register BITVECTOR_LIST.bv_concat as SMTCoq.BVList.BITVECTOR_LIST.bv_concat.
+Register BITVECTOR_LIST.bv_extr as SMTCoq.BVList.BITVECTOR_LIST.bv_extr.
+Register BITVECTOR_LIST.bv_zextn as SMTCoq.BVList.BITVECTOR_LIST.bv_zextn.
+Register BITVECTOR_LIST.bv_sextn as SMTCoq.BVList.BITVECTOR_LIST.bv_sextn.
+Register BITVECTOR_LIST.bv_shl as SMTCoq.BVList.BITVECTOR_LIST.bv_shl.
+Register BITVECTOR_LIST.bv_shr as SMTCoq.BVList.BITVECTOR_LIST.bv_shr.
 
 
 (* 

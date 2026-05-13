@@ -1863,11 +1863,11 @@ Notation "a '[' i '<-' v ']'" := (store a i v)
 
 
 (* Register constants for OCaml access *)
-Register FArray.farray as SMTCoq.array.FArray.farray.
-Register select as SMTCoq.array.FArray.select.
-Register store as SMTCoq.array.FArray.store.
-Register diff as SMTCoq.array.FArray.diff.
-Register FArray.equal as SMTCoq.array.FArray.equal.
+Register FArray.farray as SMTCoq.FArray.farray.
+Register select as SMTCoq.FArray.select.
+Register store as SMTCoq.FArray.store.
+Register diff as SMTCoq.FArray.diff.
+Register FArray.equal as SMTCoq.FArray.equal.
 
 
 

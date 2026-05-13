@@ -11,16 +11,14 @@
 
 
 Require Import PropToBool.
-From Stdlib Require Import Uint63 List Bool ZArith.
-Require Import PArray SMTCoq.State SMTCoq.SMT_terms SMTCoq.Trace SMT_classes_instances QInst.
+From Stdlib Require Import NArith.
 From Ltac2 Require Import Ltac2.
 
 Declare ML Module "coq-smtcoq.smtcoq".
 
-Tactic Notation "reify" := prop2bool; reify.
+Tactic Notation "reify" := reify.
 
 Import BVList.BITVECTOR_LIST.
-Open Scope N.
 
 Ltac2 rewrite_n_bv () :=
   repeat (

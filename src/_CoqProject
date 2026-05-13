@@ -14,13 +14,11 @@ META.coq-smtcoq
 PArray.v
 
 BVList.v
-Bva_checker.v
 
 SMT_classes.v
 SMT_classes_instances.v
 
 FArray.v
-Array_checker.v
 
 trace/coqTerms.ml
 trace/coqTerms.mli
@@ -47,25 +45,12 @@ trace/smtTrace.mli
 trace/coqInterface.ml
 trace/coqInterface.mli
 
-Cnf.v
-
-Euf.v
-
-Lia.v
-
-Assumptions.v
-Syntactic.v
-Arithmetic.v
-Operators.v
-
 Misc.v
 ReflectFacts.v
 PropToBool.v
-QInst.v
 Tactics.v
 SMT_terms.v
 State.v
-Trace.v
 
 g_smtcoq.mlg
 smtcoq_plugin.mlpack
