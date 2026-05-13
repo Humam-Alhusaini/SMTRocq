@@ -1,6 +1,6 @@
 
 Require Import NArith.
-Require Import SMTCoq.SMTCoq.
+From SMTCoq Require Import Tactics.
 From Ltac2 Require Import Ltac2.
 
 Import BVList.BITVECTOR_LIST.
