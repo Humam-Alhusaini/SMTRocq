@@ -1,6 +1,0 @@
-(set-logic QF_LIA)
-(declare-fun x () Int)
-(declare-fun y () Int)
-(assert (not (=> (> x y) (<= (+ y 1) x))))
-(check-sat)
-(exit)
