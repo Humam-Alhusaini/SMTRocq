@@ -1,6 +1,7 @@
 
 Require Import NArith.
 From SMTCoq Require Import Tactics.
+From SMTCoq Require Import PropToBool.
 From Ltac2 Require Import Ltac2.
 
 Import BVList.BITVECTOR_LIST.
@@ -12,7 +13,7 @@ Open Scope N.
 (* ------------------------------------------------------------------ *)
 
 Goal 2 + 3 = 5.
-Proof. picinae. Admitted.
+Proof. ltac1:(prop2bool). ltac1:(reify). picinae. Admitted.
 
 Goal 0 + 7 = 7.
 Proof. picinae. Admitted.
