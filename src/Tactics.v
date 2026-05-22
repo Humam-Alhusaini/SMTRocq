@@ -36,6 +36,9 @@ Ltac2 rewrite_n_bv () :=
     | rewrite n_eq_bv
     | rewrite testbit_spec_
     | rewrite <- N.land_ones
+    | rewrite n_double_bv
+    | rewrite n_succ_bv
+    | rewrite n_concat_bv
     ]
   ).
 

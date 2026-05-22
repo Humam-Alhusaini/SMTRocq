@@ -439,9 +439,14 @@ Module RAW2BITVECTOR (M:RAWBITVECTOR) <: BITVECTOR.
   Definition _N_to_bits (n size : N) : bitvector size :=
     @MkBitvector _ (_of_bits (_N_to_bools n size) size) (_N_to_bits_size n size).
 
+
+  Axiom dec_size:
+    forall (n size : N),
+    n < 2 ^ size <-> n = n mod 2 ^ size.
+
   Axiom n_eq_bv:
-    forall (n m : N), 
-    n =? m = bv_eq (_N_to_bits n 32) (_N_to_bits m 32). 
+    forall (n m sz : N), 
+    n mod 2 ^ sz =? m mod 2 ^ sz = bv_eq (_N_to_bits n sz) (_N_to_bits m sz). 
   
   Axiom n_add_bv:
     forall (n m size : N),
@@ -476,13 +481,9 @@ Module RAW2BITVECTOR (M:RAWBITVECTOR) <: BITVECTOR.
     _N_to_bits (N.shiftr n m) size = bv_shr (_N_to_bits n size) (_N_to_bits m size).
 
   Axiom n_ult_bv:
-    forall (n m size : N),
-    N.ltb n m = bv_ult (_N_to_bits n size) (_N_to_bits m size).
+    forall (n m sz : N),
+    n mod 2 ^ sz <? m mod 2 ^ sz = bv_ult (_N_to_bits n sz) (_N_to_bits m sz).
 
-  Axiom n_ultP_bv:
-    forall (n m size : N),
-    (n < m)%N <-> bv_ultP (_N_to_bits n size) (_N_to_bits m size).
- 
   Axiom n_double_bv:
     forall (n size : N),
     _N_to_bits (N.double n) size = bv_shl (_N_to_bits n size) (_N_to_bits 1 size).

@@ -734,27 +734,28 @@ module Atom =
         | Abop (op,h1,h2) -> to_smt_bop op h1 h2
         | Atop (op,h1,h2,h3) -> to_smt_top op h1 h2 h3
         | Anop (op,a) -> to_smt_nop op a
-      (*Case for _N_to_bits*)
-        | Aapp ((nbop, op), a) when CoqInterface.eq_constr op.op_val (Lazy.force c_N_to_bits) ->
-          let _ = match op.tres with SmtBtype.TBV n -> n | _ -> assert false in
-          (match (try Some (compute_hint a.(0), compute_hint a.(1)) with _ -> None) with
-           | Some (n_val, sz_val) ->
+      (*Case for _N_to_bits (per-size unary)*)
+        | Aapp ((nbop, op), a)
+            when (let c, args = CoqInterface.decompose_app_list op.op_val in
+                  CoqInterface.eq_constr c (Lazy.force c_N_to_bits) && args <> []) ->
+          let sz_val = match op.tres with SmtBtype.TBV n -> n | _ -> assert false in
+          (match (try Some (compute_hint a.(0)) with _ -> None) with
+           | Some n_val ->
              let bv = to_size (n_to_bool_list n_val) sz_val in
              Format.fprintf fmt "#b%a" bv_to_smt bv
            | None ->
-             (* Non-concrete first argument: emit _N_to_bits as an uninterpreted
-                function application returning BitVec n, so the SMT term is well-typed *)
              let op_smt () =
                (match nbop with
                 | Index idx ->
                   (Format.fprintf fmt "op_%i" idx;
-                   if debug then Format.fprintf fmt " (aka %s)" (Pp.string_of_ppcmds (CoqInterface.pr_constr op.op_val)))
+                   if debug then Format.fprintf fmt " (aka _N_to_bits_%i)" sz_val)
                 | Rel_name name -> Format.fprintf fmt "%s" name);
                if pi then to_smt_op op
              in
              Format.fprintf fmt "(";
              op_smt ();
-             Array.iter (fun h -> Format.fprintf fmt " "; to_smt fmt h) a;
+             Format.fprintf fmt " ";
+             to_smt fmt a.(0);
              Format.fprintf fmt ")")
       (*Case for _N_to_bits*)
         | Aapp ((i,op),a) ->
@@ -1149,6 +1150,9 @@ module Atom =
       in
       let rec mk_hatom (h : CoqInterface.constr) =
         let c, args = CoqInterface.decompose_app_list h in
+        if CoqInterface.eq_constr c (Lazy.force c_N_to_bits) then
+          mk_n_to_bits args
+        else
 	match get_cst c with
         | CCxH -> mk_cop CCxH args
         | CCZ0 -> mk_cop CCZ0 args
@@ -1375,6 +1379,25 @@ module Atom =
           let ty = SmtBtype.of_coq rt known_logic
               (mklApp cfarray [|ti; te; ord_ti; inh_te|]) in
           mk_teq ty [a;b]
+        | _ -> assert false
+
+      and mk_n_to_bits = function
+        | [n_coq; sz_coq] ->
+          let sz_val = mk_bvsize sz_coq in
+          if sz_val = 0 then CoqInterface.error "_N_to_bits: bitvector size must not be zero";
+          (* key: _N_to_bits partially applied to sz_coq — unique per concrete size *)
+          let c' = CoqInterface.mkApp (Lazy.force c_N_to_bits, [|sz_coq|]) in
+          let hn = mk_hatom n_coq in
+          let op =
+            try Op.of_coq ro c'
+            with Not_found ->
+              Op.deeclare ro c' [|type_of hn|] (SmtBtype.TBV sz_val) None
+          in
+          (try
+             let (i, _) = destruct "" op in
+             Hashtbl.add op_coq_terms i (Lazy.force c_N_to_bits)
+           with Failure _ -> ());
+          get reify (Aapp (op, [|hn|]))
         | _ -> assert false
 
       and mk_unknown c args ty =
