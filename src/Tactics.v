@@ -20,6 +20,14 @@ Tactic Notation "reify" := reify.
 
 Import BVList.BITVECTOR_LIST.
 
+Ltac reduce_ones :=
+  repeat match goal with
+  | |- context [N.ones ?n] =>
+      let v := eval compute in (N.ones n) in
+      change (N.ones n) with v
+  end.
+
+
 Ltac2 rewrite_n_bv () :=
   repeat (
     first [
@@ -45,6 +53,7 @@ Ltac2 rewrite_n_bv () :=
 Ltac2 Notation "picinae" :=
   ltac1:(prop2bool);
   rewrite_n_bv ();
+  ltac1:(reduce_ones);
   ltac1:(reify).
 
 

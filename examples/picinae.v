@@ -17,7 +17,7 @@ Open Scope N.
 Goal (2 + 3) mod 2^32 = 5 mod 2^32.
 Proof. picinae. Admitted.
 
-Goal (0 + 7) mod 2^32 = 7 mod 2^32.
+Goal (0 + 7) mod 2^5 = 7 mod 2^5.
 Proof. picinae. Admitted.
 
 Goal (10 - 3) mod 2^32 = 7 mod 2^32.
@@ -67,7 +67,7 @@ Proof. picinae. Admitted.
 (* Concrete shifts (n_shiftl_bv, n_shiftr_bv)                        *)
 (* ------------------------------------------------------------------ *)
 
-Goal (N.shiftl 1 4) mod 2^32 = 16 mod 2^32.
+Goal (N.shiftl 1 4) mod 2^8 = 16 mod 2^8.
 Proof. picinae. Admitted.
 
 Goal (N.shiftl 3 2) mod 2^32 = 12 mod 2^32.
@@ -89,8 +89,15 @@ Proof. picinae. Admitted.
 (* One variable: additive identities (n_add_bv, n_sub_bv)            *)
 (* ------------------------------------------------------------------ *)
 
-Goal forall x : N, (x + 0) mod 2^32 = x mod 2^32.
-Proof. picinae. Admitted.
+Ltac reduce_ones_ :=
+  repeat match goal with
+  | |- context [N.ones ?n] =>
+      let v := eval compute in (N.ones n) in
+      change (N.ones n) with v
+  end.
+
+Goal forall x : N, (x mod 2 ^ 5 + 0) mod 2^5 = x mod 2^5.
+Proof. ltac1:(prop2bool). rewrite_n_bv (). ltac1:(reduce_ones_). Admitted.
 
 Goal forall x : N, (0 + x) mod 2^32 = x mod 2^32.
 Proof. picinae. Admitted.
