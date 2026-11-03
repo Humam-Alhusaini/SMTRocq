@@ -311,7 +311,14 @@ Section Tables.
       match xs with [] => Some Typ.Tbool | _ => None end
     else if String.eqb s "not" then
       match xs with [Typ.Tbool] => Some Typ.Tbool | _ => None end
-    else if existsb (String.eqb s) ["and"; "or"; "=>"; "xor"] then
+    (* Generated :premise-list arguments can contain one entry. Their internal
+       nil-terminated list has Boolean type even though object-level singleton
+       connectives are not serialized by encode_literal. *)
+    else if String.eqb s "and" || String.eqb s "or" then
+      match xs with _ :: _ =>
+        if same_types xs Typ.Tbool then Some Typ.Tbool else None
+      | _ => None end
+    else if String.eqb s "=>" || String.eqb s "xor" then
       match xs with _ :: _ :: _ =>
         if same_types xs Typ.Tbool then Some Typ.Tbool else None
       | _ => None end
@@ -710,6 +717,17 @@ Module Examples.
   Example checked_changed_root : checked_checker sorts funcs atoms forms names 40 3
     [[Lit.lit 5]; [Lit.nlit 5]] [q; app "not" [p]]
     [(0, [Lit.lit 5]); (1, [Lit.nlit 5])] contra_trace 2 = false.
+  Proof. vm_compute; reflexivity. Qed.
+
+  Example singleton_premise_list_type :
+    query (app "and" [app "=" [x; x]]) = Some (Symbol "Bool").
+  Proof. vm_compute; reflexivity. Qed.
+
+  Example generated_single_premise_congruence :
+    CpcGenerated.derive 500 query "cong"
+      [app "not" [app "=" [x; x]]]
+      [app "=" [app "=" [x; x]; Symbol "true"]] =
+    Some (app "=" [app "not" [app "=" [x; x]]; app "not" [Symbol "true"]]).
   Proof. vm_compute; reflexivity. Qed.
 End Examples.
 
