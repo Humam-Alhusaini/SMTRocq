@@ -63,6 +63,18 @@ class BenchmarkIntegrity(unittest.TestCase):
         self.assertEqual(summary["positive_attempts"], 2)
         self.assertEqual(summary["solved_attempts"], 1)
         self.assertEqual(summary["cases_solved_every_repeat"], 0)
+        self.assertEqual(summary["per_theory"]["UF"]["positive_attempts"], 2)
+
+    def test_unavailable_backend_has_no_measured_attempts_or_times(self):
+        row = {"backend": "cvc5_eunoia", "case_id": "absent", "theory": "UF",
+               "expected": "proved", "status": "unavailable", "solved": False,
+               "process_wall_s": None, "tactic_wall_s": None, "qed_wall_s": None}
+        summary = run.summarize([row])["cvc5_eunoia"]
+        self.assertEqual(summary["positive_attempts"], 0)
+        self.assertEqual(summary["positive_scheduled"], 1)
+        self.assertEqual(summary["per_theory"]["UF"]["positive_attempts"], 0)
+        self.assertIsNone(summary["solved_tactic_wall_sum_s"])
+        self.assertIsNone(summary["positive_process_wall_sum_s"])
 
     def test_timeout_kills_solver_descendants(self):
         with tempfile.TemporaryDirectory(prefix="eunoia-timeout-") as directory:

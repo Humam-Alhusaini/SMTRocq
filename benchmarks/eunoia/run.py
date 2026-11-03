@@ -162,7 +162,9 @@ def summarize(rows):
             "positive_process_wall_sum_s": (sum(r["process_wall_s"] or 0 for r in positive)
                                             if any(r["process_wall_s"] is not None for r in positive) else None),
             "per_theory": {
-                theory: {"positive_attempts": sum(r["theory"] == theory for r in positive),
+                theory: {"positive_scheduled": sum(r["theory"] == theory for r in positive),
+                         "positive_attempts": sum(r["theory"] == theory and r["status"] != "unavailable"
+                                                  for r in positive),
                          "solved_attempts": sum(r["theory"] == theory for r in solved)}
                 for theory in ("UF", "LIA")},
         }
@@ -206,7 +208,8 @@ def parse_args():
 def main():
     args = parse_args()
     wrapper = args.wrapper.resolve()
-    output = args.output.resolve() if args.output else Path(tempfile.mkdtemp(prefix="smtrocq-eunoia-"))
+    output = (args.output.resolve() if args.output else
+              Path(tempfile.mkdtemp(prefix="smtrocq-eunoia-", dir="/tmp")))
     if args.output:
         output.mkdir(parents=True, exist_ok=False)
     print(f"Results: {output}", flush=True)
