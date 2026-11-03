@@ -56,6 +56,13 @@ let run ~check =
   let xor = binary forms Fxor a b and iff = binary forms Fiff a b in
   positive "xor" atoms forms [[xor];[a]] [Form.neg b];
   positive "iff" atoms forms [[iff];[a]] [b];
+  let d = bool atoms forms 3 in
+  positive "iff-nested-congruence" atoms forms
+    [[binary forms Fiff a b];[binary forms Fiff c d]]
+    [binary forms Fiff (binary forms Fiff a c) (binary forms Fiff b d)];
+  positive "iff-transitive-congruence" atoms forms
+    [[binary forms Fiff b c];[binary forms Fiff a c]]
+    [binary forms Fiff (binary forms Fiff b a) (binary forms Fiff c c)];
   let ite = Form.get forms (Fapp (Fite,[|a;b;c|])) in
   positive "ite-then" atoms forms [[ite];[a]] [b];
   positive "ite-else" atoms forms [[ite];[Form.neg a]] [c];
