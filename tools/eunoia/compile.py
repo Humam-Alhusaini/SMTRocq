@@ -10,6 +10,7 @@ import argparse
 from dataclasses import dataclass
 import hashlib
 import json
+import re
 from pathlib import Path
 import sys
 
@@ -125,6 +126,7 @@ class Compiler:
         self.files = {}
         self.decls = {}
         self.overloaded = set()
+        self.variants = {}
         self.programs = {}
         self.rules = {}
         self.used_symbols = set()
@@ -165,6 +167,7 @@ class Compiler:
             if cmd == "declare-consts":
                 # Literal-family declarations cannot be called as symbols.
                 continue
+            self.variants.setdefault(name, []).append(form)
             old = self.decls.get(name)
             if old:
                 old_fields = seq(old)
@@ -334,7 +337,7 @@ class Compiler:
         if name in {"true", "false", "Type", "Bool", "->", "eo::List", "eo::List::cons", "eo::List::nil", "as"}:
             return
         # Literal families remain syntax; arithmetic operations have a separate hook.
-        if name in {"eo::to_bin", "eo::to_str", "eo::var"} or name.startswith(("#b", "#x")) or name.lstrip("-").isdigit() or "/" in name and all(x.lstrip("-").isdigit() for x in name.split("/")):
+        if name in {"eo::to_bin", "eo::to_str", "eo::var"} or name.startswith(("#b", "#x")) or name.lstrip("-").isdigit() or re.fullmatch(r"-?[0-9]+\.[0-9]+", name) or "/" in name and all(x.lstrip("-").isdigit() for x in name.split("/")):
             return
         decl = self.decls.get(name)
         if not decl:
@@ -370,7 +373,8 @@ class Compiler:
         nil = self.nil_node(name)
         if nil is not None and args:
             tail = args.pop() if args[-1].kind == "symbol" and atom(args[-1]) in self.list_vars else nil
-            result = self.pattern(tail, scope)
+            result = (f"(PNil {quoted(name)})" if tail is nil and nil.kind != "symbol"
+                      else self.pattern(tail, scope))
             for a in reversed(args):
                 result = f"(PApply (PApply {head} {self.pattern(a, scope)}) {result})"
             return result
@@ -428,7 +432,8 @@ class Compiler:
         nil = self.nil_node(name)
         if nil is not None and args:
             tail = args.pop() if args[-1].kind == "symbol" and atom(args[-1]) in self.list_vars else nil
-            result = self.expression(tail, scope)
+            result = (f"(ENil {quoted(name)} (ETypeof {self.expression(fs[1], scope)}))"
+                      if tail is nil and nil.kind != "symbol" else self.expression(tail, scope))
             for a in reversed(args):
                 result = f"(EApply (EApply {head} {self.expression(a, scope)}) {result})"
             return result
@@ -514,16 +519,35 @@ class Compiler:
         for name in sorted(selected):
             self.compile_rule(name)
         rules = "[" + ";\n   ".join(f"({quoted(n)}, {self.rules[n]})" for n in sorted(self.rules)) + "]"
-        programs = "[" + ";\n   ".join(f"({quoted(n)}, {self.programs[n][1]})" for n in sorted(self.programs)) + "]"
         operators = []
-        # Closed nils are executable metadata. Dependent nils are recorded as
-        # unavailable; reaching one fails closed until the generic typed-nil hook.
+        # Nil bodies are source expressions; parameterized nils bind the
+        # constructor domain against the element type at runtime.
         for name in sorted(self.used_symbols | {"eo::List::cons"}):
             nil = self.nil_node(name)
             if nil is not None:
                 if nil.kind == "symbol" and (nil.value in self.decls or nil.value in {"true", "false", "eo::List::nil"}):
                     operators.append(f"({quoted(name)}, Symbol {quoted(nil.value)})")
         operator_code = lst(operators)
+        nils, nil_names = [], []
+        for name in sorted(self.used_symbols | {"eo::List::cons"}):
+            nil = self.nil_node(name)
+            if nil is None or nil.kind == "symbol":
+                continue
+            decl = seq(self.decls[name])
+            if atom(decl[0]) == "declare-parameterized-const":
+                scope, _, _ = self.binders(decl[2])
+                ty = seq(decl[3])
+                if atom(ty[0]) != "->":
+                    self.decls[name].error("dependent nil needs function domain")
+                if len(ty) < 4:
+                    self.decls[name].error("right-assoc-nil needs element and tail domains")
+                domain = f"Some ({self.type_pattern(ty[1], scope)}, {self.type_pattern(ty[2], scope)})"
+            else:
+                scope, domain = {}, "None"
+            nils.append(f"({quoted(name)}, ({domain}, {self.expression(nil, scope)}))")
+            nil_names.append(name)
+        nil_code = lst(nils)
+        programs = "[" + ";\n   ".join(f"({quoted(n)}, {self.programs[n][1]})" for n in sorted(self.programs)) + "]"
         closed_ops = {name for name in self.used_symbols | {"eo::List::cons"}
                       if self.nil_node(name) is not None and self.nil_node(name).kind == "symbol"}
         blocked, binary = [], []
@@ -534,8 +558,14 @@ class Compiler:
             tags = {atom(a) for a in attrs if a.kind == "symbol" and atom(a).startswith(":")}
             if tags <= {":chainable", ":right-assoc", ":left-assoc"}:
                 binary.append(name)
-            elif tags != {":right-assoc-nil"} or name not in closed_ops:
+            elif tags != {":right-assoc-nil"} or (name not in closed_ops and name not in nil_names):
                 blocked.append(name)
+        unary = sorted(n for n in binary if any(
+            atom(seq(d)[0]) in {"declare-const", "declare-parameterized-const"}
+            and (lambda ty: ty.kind == "list" and len(seq(ty)) == 3 and atom(seq(ty)[0]) == "->")(
+                seq(d)[2] if atom(seq(d)[0]) == "declare-const" else seq(d)[3])
+            for d in self.variants.get(n, [])))
+        unary_code = lst(map(quoted, unary))
         blocked_code = lst(map(quoted, blocked))
         binary_code = lst(map(quoted, binary))
         aliases = []
@@ -545,26 +575,35 @@ class Compiler:
                 target = self.expand(fs[3])
                 if target.kind == "symbol":
                     aliases.append((name, atom(target)))
+        signature_names = sorted({n for n, d in self.decls.items()
+            if atom(seq(d)[0]) in {"declare-const", "declare-parameterized-const", "define"}}
+            | {"Type", "Bool", "true", "false", "->", "eo::List", "eo::List::cons", "eo::List::nil"})
+        signature_names_code = lst(map(quoted, signature_names))
         alias_code = lst([f"({quoted(a)}, Symbol {quoted(b)})" for a, b in aliases])
         inverse_code = lst([f"({quoted(b)}, Symbol {quoted(a)})" for a, b in aliases])
         code = ("(* Generated by tools/eunoia/compile.py; syntax computation only. *)\n"
                 "From Stdlib Require Import String List.\n"
-                "From SMTCoq.checker.eunoia Require Import EoSyntax EoRuntime.\n"
+                "From SMTCoq.checker.eunoia Require Import EoSyntax EoRuntime EoArithmetic EoOrder.\n"
                 "Import ListNotations.\nOpen Scope string_scope.\n\n"
+                f"Definition cpc_signature_names : list string := {signature_names_code}.\n"
                 f"Definition cpc_blocked_operators : list string := {blocked_code}.\n"
+                f"Definition cpc_unary_operators : list string := {unary_code}.\n"
                 f"Definition cpc_binary_operators : list string := {binary_code}.\n"
                 f"Definition cpc_aliases : list (string * term) := {alias_code}.\n"
                 f"Definition cpc_surface_names : list (string * term) := {inverse_code}.\n\n"
                 f"Definition cpc_operators : list (string * term) := {operator_code}.\n\n"
                 f"Definition cpc_programs : list (string * program) :=\n  {programs}.\n\n"
+                f"Definition cpc_nils : list (string * nil_spec) := {nil_code}.\n\n"
                 f"Definition cpc_rules : list (string * rule) :=\n  {rules}.\n\n"
                 "Definition derive_context_with (extra : primitive_hook) (fuel : nat) (typeof : term -> option term)\n"
                 "    (name : string) (assumption : option term) (args premises : list term) : option term :=\n"
                 "  let canon := rename_symbols cpc_aliases in\n"
                 "  let surface := rename_symbols cpc_surface_names in\n"
                 "  let all_inputs := ((match assumption with Some a => [a] | None => [] end) ++ args ++ premises)%list in\n"
-                "  if forallb (surface_supported cpc_blocked_operators cpc_binary_operators) (map canon all_inputs) then\n"
-                "  option_map surface (run_surface_rule_assuming_with extra fuel\n"
+                "  if forallb (surface_supported_with_arities cpc_unary_operators cpc_blocked_operators cpc_binary_operators) (map canon all_inputs) then\n"
+                "  let query := (fun t => option_map canon (typeof (surface t))) in\n"
+                "  let nilof := resolve_nil extra cpc_operators fuel query cpc_programs cpc_nils in\n"
+                "  option_map surface (run_surface_rule_assuming_with_nils nilof extra fuel\n"
                 "    (fun t => option_map canon (typeof (surface t)))\n"
                 "    cpc_operators cpc_programs cpc_rules name (option_map canon assumption) (map canon args) (map canon premises)) else None.\n\n"
                 "Definition derive_with (extra : primitive_hook) (fuel : nat) (typeof : term -> option term)\n"
@@ -573,11 +612,18 @@ class Compiler:
                 "Definition derive_assuming_with (extra : primitive_hook) (fuel : nat) (typeof : term -> option term)\n"
                 "    (name : string) (assumption : term) (args premises : list term) : option term :=\n"
                 "  derive_context_with extra fuel typeof name (Some assumption) args premises.\n\n"
-                "Definition derive := derive_with no_extension.\n"
-                "Definition derive_assuming := derive_assuming_with no_extension.\n")
+                "Definition default_primitive : primitive_hook := fun name args =>\n"
+                "  if String.eqb name \"eo::supports\" then match args with\n"
+                "    | [Symbol op] => Some (bool_term (EoArithmetic.supports op || String.eqb op \"eo::cmp\")) | _ => None end\n"
+                "  else if String.eqb name \"eo::cmp\" then EoOrder.eval args\n"
+                "  else EoArithmetic.eval name args.\n"
+                "Definition derive := derive_with default_primitive.\n"
+                "Definition derive_assuming := derive_assuming_with default_primitive.\n")
         all_rules = sorted(n for n, d in self.decls.items() if atom(seq(d)[0]) == "declare-rule")
         manifest = {
-            "format": 2,
+            "format": 3,
+            "dependent_nil_operators": sorted(n for n in self.used_symbols if self.nil_node(n) is not None and self.nil_node(n).kind != "symbol"),
+            "signature_name_count": len(signature_names),
             "scope": "explicit subset; excluded rules are unavailable at runtime",
             "selected_rules": sorted(self.rules),
             "assumption_rules": sorted(n for n in self.rules if any(x.kind == "symbol" and x.value == ":assumption" for x in seq(self.decls[n])[3:])),
@@ -585,6 +631,8 @@ class Compiler:
             "programs": sorted(self.programs),
             "expanded_definitions": sorted(self.definitions),
             "native_operations": sorted(self.natives),
+            "default_extension_operations": sorted(set("eo::is_z eo::is_q eo::add eo::mul eo::neg eo::is_neg eo::gt eo::zdiv eo::zmod eo::qdiv eo::to_z eo::to_q eo::pow eo::log eo::cmp".split())),
+            "unavailable_native_operations": sorted(self.natives - set("eo::is_ok eo::is_eq eo::eq eo::ite eo::requires eo::typeof eo::is_z eo::is_q eo::is_bool eo::is_bin eo::is_str eo::not eo::and eo::or eo::xor eo::nil eo::cons eo::list_len eo::list_concat eo::list_nth eo::list_find eo::list_erase eo::list_erase_all eo::list_rev eo::list_setof eo::list_minclude eo::list_meq eo::list_diff eo::list_inter eo::list_singleton_elim eo::list_singleton_intro eo::list_repeat eo::add eo::mul eo::neg eo::is_neg eo::gt eo::zdiv eo::zmod eo::qdiv eo::to_z eo::to_q eo::pow eo::log eo::cmp".split())),
             "unsupported_attributed_operators": blocked,
             "binary_only_attributed_operators": binary,
             "constructors": sorted(self.used_symbols),
