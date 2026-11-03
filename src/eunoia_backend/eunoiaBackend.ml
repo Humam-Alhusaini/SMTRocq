@@ -9,6 +9,8 @@ let core n = "SMTCoq.checker.eunoia.EunoiaChecker.EunoiaChecker." ^ n
 let scoped n = "SMTCoq.checker.eunoia.EunoiaScopedAdapter.EunoiaScopedAdapter." ^ n
 let scope n = "SMTCoq.checker.eunoia.EunoiaScope.EunoiaScope." ^ n
 let tactic_api n = "SMTCoq.checker.eunoia.EunoiaTactic.EunoiaTactic." ^ n
+let fuel_term n =
+  if n = 10000 then C.global (tactic_api "default_fuel") else CoqTerms.mkNat n
 let state n = "SMTCoq.checker.fol.State." ^ n
 let std n = "Stdlib." ^ n
 let mkint = R.mkInt
@@ -85,7 +87,7 @@ let export ?(env=Global.env ()) t roots =
   let tables = snapshot t and ns = names t in
   List.iter (fun f ->
     let encoded = C.compute_term_option env (C.call (adapter "encode_clause")
-      (tables @ [ns;CoqTerms.mkNat 10000;clause [f]])) in
+      (tables @ [ns;fuel_term 10000;clause [f]])) in
     match encoded with
     | Some term -> Format.fprintf fmt "(assert %a)@." E.pp_term term
     | None -> R.raise_error "Eunoia: exported root has no exact adapter encoding") roots;
@@ -126,7 +128,7 @@ let prepare ?(fuel=10000) ~witness env t roots parsed =
   if roots=[] || fuel<=0 || fuel>100000 then R.raise_error "Eunoia: invalid roots or computation fuel";
   register_instances env t;
   let ns = names t in
-  let fuel = CoqTerms.mkNat fuel in
+  let fuel = fuel_term fuel in
   let table_args = snapshot t in
   if SmtBtype.get_cuts t.sorts <> [] then
     R.raise_error "Eunoia: missing CompDec for an intermediate carrier; supply an existing instance";

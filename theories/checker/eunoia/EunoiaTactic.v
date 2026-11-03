@@ -16,6 +16,10 @@ Local Open Scope array_scope.
 
 Module EunoiaTactic.
 
+(* Keep the default bound as one compiled constant rather than serializing a
+   fresh Peano constructor tree into every evaluator call and proof term. *)
+Definition default_fuel : nat := 10000%nat.
+
 (* The proof file never chooses the theorem's authoritative assumptions. *)
 Definition goal_roots (l : _lit) (b : bool) : list C.t :=
   [[if b then Lit.neg l else l]].
