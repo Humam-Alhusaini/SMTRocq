@@ -1,5 +1,8 @@
 # Independent trust-boundary review
 
+Coordinator resolution of R1 is recorded at the end; the independent review
+below remains scoped to its original source pin.
+
 Reviewed source: `7c2e21df20d4e95ba700149e48d9052233d25d3a` on parent
 `smtrocq/cvc5-eunoia`. Review branch: `t3/review-eunoia-trust-boundary`
 (initially named `t3/65434544`), branched at that exact commit. Date: 2026-11-03.
@@ -341,3 +344,39 @@ exported proofs, and recursive kernel checks on the final installed revision.
 R1 also needs a fresh targeted recheck after the parent fixes or retires the
 legacy interfaces. Coordinator integration and overall backend completion
 remain outside this review.
+
+## Coordinator resolution of R1
+
+The legacy bridge now reuses `EunoiaLocal.decode`, including its supported
+operation list, literal references and binary-resolution restriction. Its
+result gate additionally checks canonical bounded conclusions, all referenced
+literal bounds, and the production `result_supported` predicate. Only explicit
+`CTrue` can certify `C._true`; failed weakening and equality operations reject.
+
+`EunoiaBridgeTests.v` adds nine compiled controls, including the exact generated
+adapter reproduction, failed intermediate resolution, production-gate parity,
+and successful binary resolution, identity weakening and dedicated truth.
+The generic scope regression now represents its valid longer resolution as two
+fresh binary steps, and its post-conflict/expiry controls retain independent
+fresh destinations. It does not replace a positive acceptance test by a failure.
+
+Validation (all exit 0 after qualifying the audit theorem name correctly):
+
+* `smtrocq-env dune build -j2 @install theories/checker/eunoia/EunoiaBridgeTests.vo theories/checker/eunoia/EunoiaScopeTests.vo`;
+  `/tmp/smtrocq-strict-legacy-bridge-regressions-fixed.log`.
+* `smtrocq-env dune runtest -j2 theories/checker/eunoia src/eunoia_backend`;
+  `/tmp/smtrocq-strict-legacy-bridge-runtest.log`.
+* Five baseline-relative `Print Assumptions` audits, including both exported
+  legacy wrappers and the generated-adapter rejection;
+  `/tmp/smtrocq-strict-legacy-bridge-assumptions-qualified/summary.json`.
+* Independent recursive kernel recheck of the bridge and scope regression
+  modules; exact argv, exit 0 and duration are recorded in
+  `/tmp/smtrocq-strict-legacy-bridge-kernel-status.json`.
+
+The first integration build exposed the old scope test's valid three-input
+resolution witness, which the stricter decoder now deliberately rejects; the
+trace was expanded to expose both binary links. The first audit invocation
+omitted the `EunoiaScope` qualifier and failed to resolve its theorem. These
+failed invocations are retained rather than reported as passes. No new
+assumptions or proof holes were introduced. This is the coordinator's verified
+fix, not a fresh independent review of later backend changes.

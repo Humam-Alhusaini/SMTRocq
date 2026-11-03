@@ -8,6 +8,7 @@
  (name runtest)
  (deps
   EunoiaCheckerTests.vo
+  EunoiaBridgeTests.vo
   EunoiaAdapter.vo
   EunoiaUf.vo
   EunoiaLiaTests.vo
