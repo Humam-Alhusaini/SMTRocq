@@ -1,0 +1,72 @@
+DECLARE PLUGIN "rocq-smtcoq.eunoia_backend_test"
+{
+open Ltac_plugin
+open Common
+open SmtAtom
+module B = Eunoia_backend.EunoiaBackend
+module C = Eunoia_backend.EunoiaRocq
+let local s = C.call ("SMTCoq.checker.eunoia.EunoiaLocal.EunoiaLocal." ^ s)
+let action s = C.call ("SMTCoq.checker.MainChecker.Checker_Ext." ^ s)
+let int () = Lazy.force CoqTerms.cint
+let clause xs = C.list (int ()) (List.map RocqInterface.mkInt xs)
+let canonical = List.sort_uniq Int.compare
+let witness_term capacity roots commands conflict =
+  let cty = SmtMisc.mklApp CoqTerms.clist [|int ()|] in
+  let pty = SmtMisc.mklApp CoqTerms.cprod [|int ();cty|] in
+  let claims = C.list pty (List.mapi (fun i c ->
+    SmtMisc.mklApp CoqTerms.cpair [|int ();cty;RocqInterface.mkInt i;clause c|]) roots) in
+  local "Witness" [RocqInterface.mkInt capacity;claims;
+    C.list (C.global "SMTCoq.checker.eunoia.EunoiaLocal.EunoiaLocal.command") commands;
+    RocqInterface.mkInt conflict]
+let command a c = local "Command" [a;clause (canonical c)]
+let res dst a b c = command (action "Res" [RocqInterface.mkInt dst;
+  CoqTerms.mkArray (int (),[|RocqInterface.mkInt a;RocqInterface.mkInt b;RocqInterface.mkInt 0|])]) c
+(* Small test-only local candidates. These do not inspect CPC rule names.
+   The production checker, generated evaluator and local gate accept or reject. *)
+let witness ~atoms:_ ~forms:_ ~premises ~conclusion =
+  let cs = List.map (List.map Form.to_lit) premises in
+  let c = List.map Form.to_lit conclusion in
+  let roots = cs @ List.map (fun l -> [l lxor 1]) c in
+  match cs,conclusion with
+  | [[p];[n]],[] when p lxor 1=n ->
+    Ok (witness_term 3 roots [res 2 0 1 []] 2)
+  | [],[f] ->
+    (match Form.pform f with
+    | SmtForm.Fapp(SmtForm.Fiff,args) when Array.length args=2 && Form.equal args.(0) args.(1) ->
+      let p = Form.to_lit f and a = Form.to_lit args.(0) in
+      let first = command (action "BuildDef" [RocqInterface.mkInt 1;RocqInterface.mkInt p]) [p;a lxor 1] in
+      let second = command (action "BuildDef2" [RocqInterface.mkInt 2;RocqInterface.mkInt p]) [p;a] in
+      Ok (witness_term 5 roots [first;second;res 3 1 2 [p];res 4 0 3 []] 4)
+    | _ -> Error "test candidate only supports Boolean reflexivity")
+  | _ -> Error "test candidate only supports reflexivity/contradiction"
+let parse text = match Eunoia_frontend.EunoiaProof.parse_string text with
+  | Ok p -> p | Error d -> RocqInterface.raise_error "%a" Eunoia_frontend.EunoiaProof.pp_diagnostic d
+let prefix = "(declare-const op_0 Bool)(assume a (not (= op_0 op_0)))"
+let suffix = "(step b :rule refl :args (op_0))(step c false :rule contra :premises (b a))"
+let text = prefix ^ suffix
+let replay () = B.tactic_from_cpc (parse text) ~witness ()
+let corrupted () = B.tactic_from_cpc (parse (text ^ "(step unused :rule trust)")) ~witness ()
+let corrupt_witness ~atoms:_ ~forms:_ ~premises:_ ~conclusion:_ =
+  Ok (witness_term 1 [] [] 0)
+let bad_unused () =
+  let calls = ref 0 in
+  let produce ~atoms ~forms ~premises ~conclusion =
+    incr calls;
+    if !calls=2 then corrupt_witness ~atoms ~forms ~premises ~conclusion
+    else witness ~atoms ~forms ~premises ~conclusion in
+  B.tactic_from_cpc (parse (prefix ^
+    "(step b :rule refl :args (op_0))(step unused :rule refl :args (op_0))" ^
+    "(step c false :rule contra :premises (b a))")) ~witness:produce ()
+let bad_gate () = B.tactic_from_cpc (parse text) ~witness:corrupt_witness ()
+let with_lemma () = B.tactic_from_cpc
+  (parse (prefix ^ "(assume h op_0)" ^ suffix)) ~witness
+  ~lemmas:[RocqInterface.mkVar (RocqInterface.mkId "hp")] ()
+}
+TACTIC EXTEND Backend_replay
+| [ "backend_replay" ] -> { replay () }
+| [ "backend_corrupted" ] -> { corrupted () }
+| [ "backend_bad_unused" ] -> { bad_unused () }
+| [ "backend_bad_gate" ] -> { bad_gate () }
+| [ "backend_with_lemma" ] -> { with_lemma () }
+| [ "backend_live" ] -> { B.tactic ~witness () }
+END

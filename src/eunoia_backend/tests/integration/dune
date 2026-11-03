@@ -1,0 +1,6 @@
+(library
+ (name backend_test_plugin)
+ (public_name rocq-smtcoq.eunoia_backend_test)
+ (libraries eunoia_backend common rocq-runtime.plugins.ltac)
+ (flags :standard -rectypes))
+(rocq.pp (modules g_backend_test))

@@ -1,0 +1,4 @@
+(test
+ (name backend_tests)
+ (libraries eunoia_backend)
+ (flags :standard -rectypes))
