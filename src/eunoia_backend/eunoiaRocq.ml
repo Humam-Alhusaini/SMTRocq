@@ -50,9 +50,11 @@ let compute_term_option env tm =
   | h,[_;t] when R.eq_constr h (Lazy.force CoqTerms.cSome) -> Some (decode_term t)
   | h,[_] when R.eq_constr h (Lazy.force CoqTerms.cNone) -> None
   | _ -> R.raise_error "Eunoia: malformed computed option"
-let checked_true env computation =
+let checked_true ?(on_failure=(fun () -> ())) env computation =
   match R.vm_conv Conversion.CUMUL env computation (Lazy.force CoqTerms.ctrue) with
-  | Result.Error () -> R.raise_error "Eunoia: generated checker rejected the certificate"
+  | Result.Error () ->
+    on_failure ();
+    R.raise_error "Eunoia: generated checker rejected the certificate"
   | Result.Ok () ->
     R.mkCast (CoqTerms.eq_refl_true (),R.vmcast,
       SmtMisc.mklApp CoqTerms.ceq

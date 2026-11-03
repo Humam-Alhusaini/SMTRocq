@@ -158,7 +158,7 @@ type atom_form = | Atom of SmtAtom.Atom.t | Form of SmtAtom.Form.t
 let startwith prefix s =
   try Scanf.sscanf s (prefix ^^ "%_s") true with _ -> false
 
-let make_root ra rf t =
+let make_root ?(eqsym=true) ra rf t =
 
   let hlets = Hashtbl.create 17 in
 
@@ -190,7 +190,8 @@ let make_root ra rf t =
       | "=", [a;b] ->
         (match make_root_term a, make_root_term b with
          | Atom a', Atom b' when Atom.type_of a' <> Tbool ->
-           Atom (Atom.mk_eq_sym ra (Atom.type_of a') a' b')
+           Atom (if eqsym then Atom.mk_eq_sym ra (Atom.type_of a') a' b'
+             else Atom.get ra (Abop (BO_eq (Atom.type_of a'), a', b')))
          | _ -> Form (Form.get rf (Fapp (Fiff, [|make_root a; make_root b|])))
         )
       | "<", [a;b] ->

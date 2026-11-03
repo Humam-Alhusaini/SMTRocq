@@ -10,6 +10,7 @@ val term_list : EunoiaElaborate.term list -> RocqInterface.constr
 val decode_term : RocqInterface.constr -> EunoiaElaborate.term
 val compute_term_option :
   Environ.env -> RocqInterface.constr -> EunoiaElaborate.term option
-val checked_true : Environ.env -> RocqInterface.constr -> RocqInterface.constr
+val checked_true :
+  ?on_failure:(unit -> unit) -> Environ.env -> RocqInterface.constr -> RocqInterface.constr
 (** Checks VM convertibility to true before constructing an equality proof.
     The final tactic uses [Tactics.exact_check], so kernel checking is retained. *)

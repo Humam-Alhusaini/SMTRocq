@@ -20,7 +20,7 @@ val bigint_bv : Big_int.big_int -> int -> string
 val string_of_symbol : Smtlib2_ast.symbol -> string
 val sort_of_sort : Smtlib2_ast.sort -> SmtBtype.btype
 val make_root :
-  SmtAtom.Atom.reify_tbl -> SmtAtom.Form.reify -> Smtlib2_ast.term -> SmtAtom.Form.t
+  ?eqsym:bool -> SmtAtom.Atom.reify_tbl -> SmtAtom.Form.reify -> Smtlib2_ast.term -> SmtAtom.Form.t
 
 (* Import from an SMTLIB2 file *)
 val import_smtlib2 :

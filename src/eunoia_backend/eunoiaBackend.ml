@@ -78,13 +78,14 @@ let reify t term =
     | E.Symbol s,[] -> A.TermQualIdentifier(loc,ident s)
     | E.Symbol s,xs -> A.TermQualIdTerm(loc,ident s,(loc,List.map ast xs))
     | _ -> R.raise_error "Eunoia: higher-order generated result unsupported" in
-  Smtlib2_genConstr.make_root t.atoms t.forms (ast term)
+  Smtlib2_genConstr.make_root ~eqsym:false t.atoms t.forms (ast term)
 
 type prepared = {
   table_args : R.constr list;
   common_args : R.constr list;
   roots_arg : R.constr;
   tail_args : R.constr list;
+  diagnose : unit -> unit;
 }
 
 let prepare ?(fuel=10000) ~witness env t roots parsed =
@@ -130,16 +131,36 @@ let prepare ?(fuel=10000) ~witness env t roots parsed =
       C.call (core "Step") [rule_ty;witness_ty;mkint st.id;
         C.list (Lazy.force CoqTerms.cint) (List.map mkint st.premises);payload;clause c;evidence]) steps) in
     let root_clauses = List.map (fun r -> [r]) roots in
+    (* Recompute individual stages only after the final checker rejects. These
+       diagnostics cannot turn rejection into acceptance or omit a step. *)
+    let diagnose () =
+      let check context computation =
+        match R.vm_conv Conversion.CUMUL env computation (Lazy.force CoqTerms.ctrue) with
+        | Result.Ok () -> ()
+        | Result.Error () -> R.raise_error "Eunoia: %s" context in
+      check "invalid final reification tables"
+        (C.call (adapter "tables_wf") (tables @ [ns]));
+      check "CPC roots differ from the authoritative formulas"
+        (C.call (adapter "bind_terms") (tables @ [ns;fuel;clauses root_clauses;C.term_list root_terms]));
+      List.iter (fun (st,c,evidence) ->
+        let context stage = Printf.sprintf "%s at %s (%s)" stage st.E.name st.rule in
+        let cs = List.map (Hashtbl.find mapped) st.premises in
+        check (context "premise syntax binding failed")
+          (C.call (adapter "bind_terms") (tables @ [ns;fuel;clauses cs;C.term_list st.premise_terms]));
+        check (context "conclusion syntax binding failed")
+          (C.call (adapter "binds") (tables @ [ns;fuel;clause c;C.term st.result]));
+        check (context "local semantic certificate failed")
+          (C.call (local "gate") (tables @ [clauses cs;clause c;evidence]))) steps in
     {table_args=tables;
      common_args=tables @ [ns;fuel;mkint proof.capacity];
      roots_arg=clauses root_clauses;
      tail_args=[C.term_list root_terms;
        claims (List.map2 (fun (i,_) c -> i,c) proof.roots root_clauses);
-       trace;mkint proof.conflict]})
+       trace;mkint proof.conflict];diagnose})
 
 let refutation env p =
   let args = p.common_args @ [p.roots_arg] @ p.tail_args in
-  let accepted = C.checked_true env (C.call (tactic_api "checker") args) in
+  let accepted = C.checked_true ~on_failure:p.diagnose env (C.call (tactic_api "checker") args) in
   let proof = C.call (tactic_api "checker_correct") (args @ [accepted]) in
   ignore (Typing.type_of env (Evd.from_env env) (EConstr.of_constr proof));
   proof
@@ -182,7 +203,7 @@ let tactic_using produce ?fuel ?(preprocess=Tactics.intros) ~witness ?(lemmas=[]
           "checker_b",[Form.to_coq fa;b]
         else "checker_eq",[Form.to_coq fa;Form.to_coq fb;Form.to_coq ng] in
         let args = prepared.common_args @ args @ prepared.tail_args in
-        let accepted = C.checked_true env (C.call (tactic_api name) args) in
+        let accepted = C.checked_true ~on_failure:prepared.diagnose env (C.call (tactic_api name) args) in
         let proof = C.call (tactic_api (name ^ "_correct")) (args @ [accepted]) in
         Tactics.exact_check (EConstr.of_constr proof)
       end else begin
