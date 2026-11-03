@@ -3,6 +3,8 @@
 
 Build the modules first. Pass every module and theorem to audit explicitly;
 there is deliberately no default list that could miss a new tactic lemma.
+For modules not installed yet, --build-loadpaths selects only the explicitly
+supplied Dune theory mappings, avoiding overlapping build/install libraries.
 """
 
 import argparse
@@ -52,14 +54,18 @@ def main():
     parser.add_argument("--output-dir", type=Path)
     parser.add_argument("--loadpath", nargs=2, action="append", default=[],
                         metavar=("PATH", "LOGICAL_PREFIX"))
+    parser.add_argument("--build-loadpaths", action="store_true",
+                        help="use explicit --loadpath mappings without the installed SMTCoq mapping")
     args = parser.parse_args()
+    if args.build_loadpaths and not args.loadpath:
+        parser.error("--build-loadpaths requires explicit --loadpath mappings")
     baseline = {line.strip() for line in args.baseline.read_text().splitlines()
                 if line.strip() and not line.startswith("#")}
     if not baseline or any(not IDENT.fullmatch(name) for name in baseline):
         parser.error("baseline must contain qualified Rocq identifiers, one per line")
     installed = root / "_build/install/default/lib"
     theory = installed / "coq/user-contrib/SMTCoq"
-    if not theory.is_dir():
+    if not args.build_loadpaths and not theory.is_dir():
         parser.error("build the project before auditing its assumptions")
     output = (args.output_dir or Path(tempfile.mkdtemp(prefix="smtrocq-assumptions."))).resolve()
     output.mkdir(parents=True, exist_ok=True)
@@ -84,8 +90,9 @@ def main():
         commands.append(f'Redirect "{stem}" Print Assumptions EunoiaAuditNames.audited_{index}.')
         paths.append(stem.with_suffix(".out"))
     source.write_text("\n".join(commands) + "\n")
-    command = [str(args.env), "rocq", "c", "-I", str(installed),
-               "-Q", str(theory), "SMTCoq"]
+    command = [str(args.env), "rocq", "c", "-I", str(installed)]
+    if not args.build_loadpaths:
+        command.extend(["-Q", str(theory), "SMTCoq"])
     for path, prefix in args.loadpath:
         if prefix and not IDENT.fullmatch(prefix):
             parser.error(f"invalid logical prefix: {prefix!r}")

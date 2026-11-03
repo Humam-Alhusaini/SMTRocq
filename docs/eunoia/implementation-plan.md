@@ -332,3 +332,18 @@ were closed under the global context; independent kernel checks passed. See
 `integer-cast-signature-coverage.md`. This is source computation evidence;
 faithful raw-term metadata/binding and integer-only semantic embedding remain
 necessary for live parity/coefficient-bound acceptance.
+
+The composed `d56e85c` targeted regression (`dune runtest -j2` over the Eunoia
+checker, backend, witness, generator and table-summary directories) exited 0:
+`/tmp/smtrocq-boolean-integer-composed-runtest.log`. Added-source forbidden-token
+and full-diff whitespace checks passed; the raw diff audit retains 59 matches
+for review in `/tmp/smtrocq-current-forbidden-token-audit-d56e85c.json`.
+
+A further integrated audit passed for 94 declarations, all eleven public Boolean
+proof bodies and six saved rollback-control certificate bodies. Independent
+recursive kernel checking exited 0 in 43.846 seconds, with no artifact changes:
+`/tmp/smtrocq-integrated-boolean-audit-d56-explicit/status.json`. Two initial
+setup failures are retained: overlapping build/install mappings, then missing
+unit-test mappings. The audit CLI's explicit `--build-loadpaths` mode avoids
+combining both library trees; defaults remain unchanged. These checks supplement
+the prior full/fresh UF22/LIA15 checkpoint; final all-feature acceptance is pending.
