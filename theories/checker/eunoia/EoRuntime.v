@@ -131,13 +131,28 @@ Definition typed_bindings (typeof : term -> option term) (bs : binder_types)
 (** Infer a matched function variable's type from its *application context*.
     No standalone monomorphic type is invented for an overloaded symbol.
     Hints are indexed by source binder, not by symbol spelling (outer Boolean
-    equality and an inner integer equality can share the same symbol). *)
-Fixpoint application_hints (typeof : term -> option term) (p : pattern)
+    equality and an inner integer equality can share the same symbol).
+
+    A source-declared polymorphic constant has one syntax identity but may
+    have different type instances at separate applications. Retain the first
+    concrete hint to check the source binder, while checking each surrounding
+    application through [typeof]. Ordinary variables still require agreement.
+    This is syntax computation, not evidence that the query is trustworthy. *)
+Definition polymorphic_head (polymorphic : list string) (t ty : term) : bool :=
+  match t, ty with
+  | Symbol name, Apply (Apply (Symbol "->") _) _ =>
+      existsb (String.eqb name) polymorphic
+  | _, _ => false
+  end.
+Fixpoint application_hints_with_polymorphic (polymorphic : list string) (typeof : term -> option term) (p : pattern)
     (t : term) (expected : option term) (hints : bindings) : option bindings :=
   let actual := match expected with Some ty => Some ty | None => typeof t end in
   match p with
   | PVar id => match actual, lookup id hints with
-      | Some ty, Some prior => if term_eqb ty prior then Some hints else None
+      | Some ty, Some prior =>
+          if term_eqb ty prior ||
+             (polymorphic_head polymorphic t ty && polymorphic_head polymorphic t prior)
+          then Some hints else None
       | Some ty, None => Some ((id, ty) :: hints)
       | None, _ => Some hints end
   | PApply f a => match t with
@@ -146,19 +161,21 @@ Fixpoint application_hints (typeof : term -> option term) (p : pattern)
           let function_type := match dom, actual with
             | Some d, Some c => Some (Apply (Apply (Symbol "->") d) c)
             | _, _ => None end in
-          match application_hints typeof f g function_type hints with
-          | Some hs => application_hints typeof a b dom hs
+          match application_hints_with_polymorphic polymorphic typeof f g function_type hints with
+          | Some hs => application_hints_with_polymorphic polymorphic typeof a b dom hs
           | None => None end
       | _ => None end
   | _ => Some hints
   end.
-Fixpoint collect_application_hints typeof ps ts hints : option bindings :=
+Definition application_hints := application_hints_with_polymorphic [].
+Fixpoint collect_application_hints_with_polymorphic polymorphic typeof ps ts hints : option bindings :=
   match ps, ts with
   | [], [] => Some hints
   | p :: pr, t :: tr =>
-      match application_hints typeof p t None hints with
-      | Some hs => collect_application_hints typeof pr tr hs | None => None end
+      match application_hints_with_polymorphic polymorphic typeof p t None hints with
+      | Some hs => collect_application_hints_with_polymorphic polymorphic typeof pr tr hs | None => None end
   | _, _ => None end.
+Definition collect_application_hints := collect_application_hints_with_polymorphic [].
 Definition binder_type_query (typeof : term -> option term) hints id t :=
   match typeof t, lookup id hints with
   | Some ty, Some inferred => if term_eqb ty inferred then Some ty else None
@@ -557,7 +574,7 @@ Definition resolve_nil extra ops fuel typeof programs (specs : list (string * ni
      nil_value := resolve_nil_mode extra ops fuel typeof programs specs false;
      nil_list_value := resolve_nil_mode extra ops fuel typeof programs specs true |}.
 
-Definition run_rule_assuming_with_nils (nilof : nil_query) (extra : primitive_hook) (ops : list (string * term))
+Definition run_rule_assuming_with_nils_polymorphic (polymorphic : list string) (nilof : nil_query) (extra : primitive_hook) (ops : list (string * term))
     (fuel : nat) (typeof : term -> option term)
     (programs : list (string * program)) (rules : list (string * rule))
     (name : string) (assumption : option term) (args premises : list term) : option term :=
@@ -585,9 +602,9 @@ Definition run_rule_assuming_with_nils (nilof : nil_query) (extra : primitive_ho
          forallb (fun t => has_type typeof t (Symbol "Bool")) premises then
         let patterns := (rule_arguments r ++ rule_premises r)%list in
         let values := (args ++ ps)%list in
-        let hints := match collect_application_hints typeof patterns values [] with
+        let hints := match collect_application_hints_with_polymorphic polymorphic typeof patterns values [] with
           | Some hs => match rule_assumption r, assumption with
-              | Some pat, Some t => application_hints typeof pat t None hs
+              | Some pat, Some t => application_hints_with_polymorphic polymorphic typeof pat t None hs
               | _, _ => Some hs end
           | None => None end in
         match (match hints with Some hs => typed_bindings_with_hints typeof hs (rule_binders r) env | None => None end) with
@@ -606,13 +623,14 @@ Definition run_rule_assuming_with_nils (nilof : nil_query) (extra : primitive_ho
     | _, _ => None
     end
   end.
+Definition run_rule_assuming_with_nils := run_rule_assuming_with_nils_polymorphic [].
 Definition run_rule_assuming_with extra ops := run_rule_assuming_with_nils (closed_nil ops) extra ops.
 
 Definition run_rule_with extra ops fuel typeof programs rules name args premises :=
   run_rule_assuming_with extra ops fuel typeof programs rules name None args premises.
 Definition run_rule := run_rule_with no_extension [].
 
-Definition run_surface_rule_assuming_with_nils (nilof : nil_query) (extra : primitive_hook) (fuel : nat)
+Definition run_surface_rule_assuming_with_nils_polymorphic (polymorphic : list string) (nilof : nil_query) (extra : primitive_hook) (fuel : nat)
     (typeof : term -> option term) (ops : list (string * term))
     (programs : list (string * program)) (rules : list (string * rule))
     (name : string) (assumption : option term) (args premises : list term) : option term :=
@@ -632,12 +650,13 @@ Definition run_surface_rule_assuming_with_nils (nilof : nil_query) (extra : prim
     end in
   match visit args, visit premises, assumed with
   | Some xs, Some ps, Some a =>
-    match run_rule_assuming_with_nils nilof extra ops fuel internal_type programs rules name a xs ps with
+    match run_rule_assuming_with_nils_polymorphic polymorphic nilof extra ops fuel internal_type programs rules name a xs ps with
     | Some t => surface_out_with nilof typeof fuel ops t
     | _ => None
     end
   | _, _, _ => None
   end.
+Definition run_surface_rule_assuming_with_nils := run_surface_rule_assuming_with_nils_polymorphic [].
 Definition run_surface_rule_assuming_with extra fuel typeof ops :=
   run_surface_rule_assuming_with_nils (closed_nil ops) extra fuel typeof ops.
 
