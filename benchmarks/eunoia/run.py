@@ -75,6 +75,13 @@ def sha256(path):
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+def load_average():
+    try:
+        return list(os.getloadavg())
+    except (AttributeError, OSError):
+        return None
+
+
 def process_identity(pid):
     """Read Linux parent/start identifiers without assuming a simple comm field."""
     try:
@@ -128,6 +135,8 @@ def kill_process_tree(proc):
 def execute(command, cwd, timeout):
     """Kill the compiler group and observed Linux descendants on timeout."""
     start = time.perf_counter()
+    context = {"started_utc": datetime.now(timezone.utc).isoformat(),
+               "loadavg_before": load_average()}
     try:
         proc = subprocess.Popen(command, cwd=cwd, stdout=subprocess.PIPE,
                                 stderr=subprocess.STDOUT, text=True,
@@ -135,7 +144,9 @@ def execute(command, cwd, timeout):
     except OSError as exc:
         return {"command": command, "cwd": str(cwd), "exit_code": None,
                 "timeout": False, "launch_error": str(exc), "output": str(exc),
-                "process_wall_s": time.perf_counter() - start}
+                "process_wall_s": time.perf_counter() - start, **context,
+                "finished_utc": datetime.now(timezone.utc).isoformat(),
+                "loadavg_after": load_average()}
     timed_out = False
     try:
         output, _ = proc.communicate(timeout=timeout)
@@ -149,7 +160,9 @@ def execute(command, cwd, timeout):
         raise
     return {"command": command, "cwd": str(cwd), "exit_code": proc.returncode,
             "timeout": timed_out, "output": output,
-            "process_wall_s": time.perf_counter() - start}
+            "process_wall_s": time.perf_counter() - start, **context,
+            "finished_utc": datetime.now(timezone.utc).isoformat(),
+            "loadavg_after": load_average()}
 
 
 def record_command(command, cwd, timeout, directory):
@@ -325,6 +338,9 @@ def main():
         "schema_version": 1, "started_utc": datetime.now(timezone.utc).isoformat(),
         "repository": str(REPO), "wrapper": str(wrapper), "wrapper_sha256": sha256(wrapper),
         "argv": sys.argv, "python": sys.version, "platform": platform.platform(),
+        "cpu_count": os.cpu_count(), "loadavg_start": load_average(),
+        "profiling_environment": {name: os.environ.get(name) for name in
+                                  ("EUNOIA_WITNESS_PROFILE", "ROCQ_PROFILE_COMPONENTS")},
         "configuration": vars(args) | {"wrapper": str(wrapper), "output": str(output),
                                        "cases": str(cases_path)},
         "cases_sha256": sha256(cases_path),
@@ -404,6 +420,8 @@ def main():
                        "status": "unavailable", "exit_code": None, "timeout": False,
                        "process_wall_s": None, "tactic_wall_s": None, "qed_wall_s": None,
                        "tactic_user_s": None, "tactic_system_s": None,
+                       "started_utc": None, "finished_utc": None,
+                       "loadavg_before": None, "loadavg_after": None,
                        "assumptions": None, "new_assumptions": None, "artifact_dir": str(directory)}
                 if available[backend]:
                     directory.mkdir(parents=True)
@@ -413,7 +431,9 @@ def main():
                     temporary.mkdir()
                     command = [compiler[0], "env", f"TMPDIR={temporary}", *compiler[1:], str(proof)]
                     result, diagnostic = record_command(command, REPO, args.timeout, directory)
-                    row.update({k: result[k] for k in ("exit_code", "timeout", "process_wall_s")})
+                    row.update({k: result[k] for k in (
+                        "exit_code", "timeout", "process_wall_s", "started_utc", "finished_utc",
+                        "loadavg_before", "loadavg_after")})
                     row.update(classify(case, result, diagnostic, proof.with_suffix(".vo").exists()))
                 rows.append(row)
                 with (output / "attempts.jsonl").open("a") as stream:

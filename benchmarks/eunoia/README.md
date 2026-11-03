@@ -125,6 +125,9 @@ separate session, as the cvc5 runner does. Python's native pidfd APIs or libc's
 equivalent APIs provide this support; other hosts only get process-group cleanup.
 The timeout tests exercise both ordinary and detached solver children. Descendant
 discovery uses a snapshot at expiration, so this is not a process sandbox.
+Metadata records CPU count, initial load averages and enabled profiling flags;
+each attempt retains UTC start/end timestamps and load averages before/after it.
+These observations help identify concurrent load, but do not control it.
 
 Artifacts are outside Git by default:
 
