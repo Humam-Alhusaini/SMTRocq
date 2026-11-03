@@ -15,4 +15,4 @@
  (name SMTCoq.tests)
  (generate_project_file)
  (theories SMTCoq)
- (modules abduce_tactics eunoia_tactics eunoia_uf lfsc_tactics verit_tactics zchaff_tactics))
+ (modules abduce_tactics eunoia_tactics eunoia_uf eunoia_lia lfsc_tactics verit_tactics zchaff_tactics))
