@@ -1,0 +1,11 @@
+{
+  "capture_inventory": "regression-inventory.json",
+  "capture_inventory_sha256": "1f9a3bce19d7a1c534a6c22104ddfbeca766ec934bdc7d95f88220285f5620dc",
+  "fixtures": [
+    "default/uf4.cpc",
+    "reduced/uf6.cpc",
+    "default/lia1.cpc",
+    "default/lia3.cpc"
+  ],
+  "status": "UNVERIFIED_SOLVER_OUTPUT"
+}
