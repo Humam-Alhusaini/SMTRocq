@@ -13,5 +13,6 @@
   EunoiaLiaTests.vo
   EunoiaLocalTests.vo
   EunoiaTacticTests.vo
+  EunoiaScopeTests.vo
   EoRuntime.vo
   CpcGenerated.vo))
