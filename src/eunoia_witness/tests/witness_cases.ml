@@ -156,6 +156,45 @@ let run ~check =
   positive "euf-two-sort-nested-congruence" atoms forms [[xy]]
     [equal (from_other (to_other x)) (from_other (to_other y))];
   let atoms,forms = fresh () in
+  let abool = symbol atoms 0 [||] SmtBtype.Tbool []
+  and bbool = symbol atoms 1 [||] SmtBtype.Tbool []
+  and cbool = symbol atoms 2 [||] SmtBtype.Tbool [] in
+  let equal a b =
+    if SmtBtype.HashedBtype.equal (Atom.type_of a) SmtBtype.Tbool then
+      binary forms Fiff (form forms a) (form forms b)
+    else form forms (Atom.get atoms (Abop (BO_eq (Atom.type_of a),a,b))) in
+  let ab = equal abool bbool and bc = equal bbool cbool in
+  let f a = symbol atoms 3 [|SmtBtype.Tbool|] SmtBtype.Tbool [a]
+  and h a = symbol atoms 4 [|SmtBtype.Tbool|] SmtBtype.TZ [a] in
+  positive "bool-uf-original" atoms forms [[ab]] [equal (f abool) (f bbool)];
+  positive "bool-uf-reverse-edge" atoms forms [[equal bbool abool]]
+    [equal (f abool) (f bbool)];
+  positive "bool-uf-integer-result" atoms forms [[ab]] [equal (h abool) (h bbool)];
+  positive "bool-uf-nested" atoms forms [[ab]] [equal (f (f abool)) (f (f bbool))];
+  positive "bool-uf-transitive" atoms forms [[ab];[bc]] [equal (f abool) (f cbool)];
+  positive "bool-uf-positive-predicate" atoms forms [[ab];[form forms (f abool)]]
+    [form forms (f bbool)];
+  positive "bool-uf-false-valued-inputs" atoms forms
+    [[ab];[Form.neg (form forms abool)];[Form.neg (form forms bbool)]]
+    [equal (h abool) (h bbool)];
+  positive "bool-uf-negative-predicate" atoms forms [[ab];[Form.neg (form forms (f abool))]]
+    [Form.neg (form forms (f bbool))];
+  positive "bool-uf-conditional" atoms forms [] [Form.neg ab;equal (f abool) (f bbool)];
+  let x = symbol atoms 5 [||] SmtBtype.TZ [] and y = symbol atoms 6 [||] SmtBtype.TZ [] in
+  let k a x = symbol atoms 7 [|SmtBtype.Tbool;SmtBtype.TZ|] SmtBtype.TZ [a;x] in
+  positive "bool-uf-mixed" atoms forms [[ab];[equal x y]]
+    [equal (k abool x) (k bbool y)];
+  positive "bool-uf-mixed-unchanged" atoms forms [[ab]]
+    [equal (k abool x) (k bbool x)];
+  negative "bool-uf-missing-edge" atoms forms [] [equal (f abool) (f bbool)];
+  negative "bool-uf-false-premise-is-not-fact" atoms forms [[Form.neg ab]]
+    [equal (f abool) (f bbool)];
+  negative "bool-uf-injectivity" atoms forms [[equal (f abool) (f bbool)]] [ab];
+  let other a = symbol atoms 8 [|SmtBtype.Tbool|] SmtBtype.Tbool [a] in
+  negative "bool-uf-different-head" atoms forms [[ab]] [equal (f abool) (other bbool)];
+  negative "bool-uf-nonunit-is-not-assumed" atoms forms [[ab;bc]]
+    [equal (f abool) (f bbool)];
+  let atoms,forms = fresh () in
   let x = symbol atoms 0 [||] SmtBtype.TZ [] in
   let zero = Atom.hatom_Z_of_int atoms 0 and one = Atom.hatom_Z_of_int atoms 1
   and two = Atom.hatom_Z_of_int atoms 2 in
@@ -169,6 +208,10 @@ let run ~check =
   positive "lia-inconsistent-roots" atoms forms [[x0];[lt zero x]] [];
   let iff = binary forms Fiff (lt x one) x0 in
   positive "lia-integer-gap-iff" atoms forms [] [iff];
+  let xor_gap = binary forms Fxor (lt x one) x0 in
+  positive "lia-integer-gap-xor" atoms forms [] [Form.neg xor_gap];
+  let ite_gap = Form.get forms (Fapp (Fite,[|x0;lt x one;Form.neg (lt x one)|])) in
+  positive "lia-integer-gap-ite" atoms forms [] [ite_gap];
   let normalized = le (Atom.mk_plus atoms x one) two in
   positive "lia-normalization-iff" atoms forms [] [binary forms Fiff normalized x1];
   let y = symbol atoms 1 [||] SmtBtype.TZ [] in

@@ -19,6 +19,7 @@ type action =
   | ImmFlatten of clause_id * clause_id * literal
   | EqTr of clause_id * literal * literal list
   | EqCgr of clause_id * literal * literal option list
+  | BoolCongr of clause_id * literal * literal option list
   | EqCgrP of clause_id * literal * literal * literal option list
   | LiaMicromega of clause_id * clause * lia_proof
 
