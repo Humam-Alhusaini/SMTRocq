@@ -1,8 +1,9 @@
 # cvc5 / Eunoia implementation milestones
 
 Status: implementation in progress. A checked `cvc5_eunoia` tactic runs live
-smoke and UF integration goals; the complete UF/LIA acceptance suites and benchmarks are
-still incomplete.
+UF and integer arithmetic integration goals. Separate complete UF and LIA
+milestones are verified and registered; composed final validation, larger
+benchmark coverage and measured efficiency remain incomplete.
 
 ## Required outcome
 
@@ -242,3 +243,46 @@ Their commands, revisions, timing rows and assumptions are retained in
 These small sequential probes ran alongside other jobs and establish no
 competitive speed claim. Final latency comparisons still need the complete
 integrated backend and the same versioned workload for each solver.
+
+## Live LIA and integer-tightening integration
+
+`72bbd45` merges the LIA child `46cecc0`: fourteen actual integer proofs and
+one mixed UF/arithmetic proof, two false controls, six corrupted-proof controls,
+75 local-gate cases, 29 baseline assumption audits, and independent recursive
+kernel checking passed in that child's frozen validation. Exact commands and
+exits are `/tmp/eunoia-lia-suite/final-status.json`. The assumption audit is
+`/tmp/eunoia-lia-frozen-assumptions/summary.json`; imported proof artifact hashes
+were unchanged. `c79eeba` registers `unit-tests/eunoia_lia.v` in the unit-test
+theory. Those uncapped correctness runs do not establish the benchmark time limit.
+
+The merge preserves the actual goal sigma, propagates newly checked constraints
+through Proofview and the optional builder sigma reference, and retains the
+transparent default-fuel constant from `3dd364d`. The latter represents the
+same bound of 10000; it does not change evaluator behavior or resource limits.
+
+`e2704cb` merges actual-signature `arith-geq-tighten` support: 49 rules,
+53 helpers and 560 explicitly excluded rules. All 994 source steps across
+29 fixtures compute, including the exact 32-step strict-shift capture.
+Forty-two Python tests, 27 new computation examples, independent kernel checks
+and 28 closed assumption reports passed. See
+`tools/eunoia/STRICT-SHIFT-VALIDATION.md` and
+`/tmp/smtrocq-strict-shift-handoff.json`. Semantic acceptance of the unchanged
+live strict-shift goal still needs verification after this merge.
+
+The frozen parent checkpoint `f965e57` passed full `dune build -j2`, full
+`dune runtest -j2`, 33 assumption audits including all 22 UF exports, and recursive
+kernel checks; exact commands and exits are in
+`/tmp/smtrocq-registered-uf-full-validation/status.json`. Composed UF/LIA and
+new-generator validation is running separately under
+`/tmp/smtrocq-integrated-lia-tightening-validation/`.
+
+## Benchmark result integrity
+
+The harness requires the fresh proof artifact, successful `Qed`, parsed tactic
+and `Qed` timings, and an assumption report contained in the existing baseline.
+Scoped imports close before printing, preserving qualified assumption names.
+Unknown or unparsed dependencies do not count as solved. All fourteen harness
+tests pass, including unknown-dependency rejection and detached solver cleanup.
+The same actual congruence goal closed for all three backends with exactly the
+allowed 52 assumptions in
+`/tmp/smtrocq-benchmark-assumption-congruence-smoke/results.json`.

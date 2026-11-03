@@ -4,6 +4,14 @@ This is an implementation milestone, not completion of the cvc5/Eunoia port.
 The public tactic runs the actual cvc5 CPC derivations and existing SMTCoq
 semantic gates. Unsupported valid goals are recorded separately from proofs.
 
+Coordinator integration `72bbd45` merges this milestone and retains the
+sigma-reference API, returned constraints, and the unchanged default-fuel helper.
+`c79eeba` registers the suite in `unit-tests/dune`; the registration obligations
+below describe the original child handoff. The independently generated
+`arith-geq-tighten` declaration is now included by `e2704cb` (49 rules in total).
+Its source computation passes, while live semantic acceptance and larger-case
+performance remain subject to the coordinator's composed validation.
+
 ## Source pins and ownership
 
 The child branch is `t3/eunoia-lia-acceptance`, based on
