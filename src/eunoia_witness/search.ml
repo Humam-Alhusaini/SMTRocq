@@ -157,8 +157,8 @@ let produce ?(limits=default_limits) ~atoms ~forms ~premises ~conclusion () =
         register id c;
         if c = [] then raise (Conflict id)
       end in
-    let resolve_pending () =
-      while not (Queue.is_empty units && Queue.is_empty pending) do
+    let resolve_pending ?(units_only=false) () =
+      while not (Queue.is_empty units && (units_only || Queue.is_empty pending)) do
         let id = Queue.take (if Queue.is_empty units then pending else units) in
         let c = Hashtbl.find clauses id in
         if c = [] then raise (Conflict id);
@@ -194,16 +194,21 @@ let produce ?(limits=default_limits) ~atoms ~forms ~premises ~conclusion () =
       let graph = Hashtbl.create 31 in
       let edge a b f = Hashtbl.replace graph (Atom.index a)
         ((b,f)::Stdlib.Option.value ~default:[] (Hashtbl.find_opt graph (Atom.index a))) in
-      List.iter (fun f -> if Form.is_pos f then match eq f with
-        | Some (a,b) -> edge a b f; edge b a f | None -> ()) (unit_forms ());
-      let path a b =
+      (* Edges are hypotheses of candidate theory clauses, not facts asserted
+         by search. Keeping nonunit equality atoms allows conditional symmetry,
+         transitivity and congruence lemmas; resolution must still discharge
+         every edge literal against the exact local roots. *)
+      List.iter (fun f -> match eq f with
+        | Some (a,b) -> edge a b f; edge b a f | None -> ()) fs;
+      let path ?exclude a b =
         if Atom.equal a b then Some [] else
         let seen = Hashtbl.create 31 and q = Queue.create () in
         Hashtbl.add seen (Atom.index a) (); Queue.add (a,[]) q;
         let rec loop () = if Queue.is_empty q then None else
           let x,rev = Queue.take q in
           if Atom.equal x b then Some (List.rev rev) else begin
-            List.iter (fun (y,f) -> if not (Hashtbl.mem seen (Atom.index y)) then begin
+            List.iter (fun (y,f) -> if Some (lit f) <> exclude &&
+                not (Hashtbl.mem seen (Atom.index y)) then begin
               Hashtbl.add seen (Atom.index y) (); Queue.add (y,f::rev) q end)
               (Stdlib.Option.value ~default:[] (Hashtbl.find_opt graph (Atom.index x)));
             loop () end in loop () in
@@ -211,7 +216,9 @@ let produce ?(limits=default_limits) ~atoms ~forms ~premises ~conclusion () =
         (lit f :: List.map (fun f -> neg (lit f)) path) in
       List.iter (fun f -> match eq f with
         | Some (a,b) when not (Hashtbl.mem known [lit f]) ->
-          (match path a b with Some es -> trans f es | None -> ())
+          (* Using the target edge itself only yields a tautology and hides
+             useful alternative paths, e.g. (= x y) versus (= y x). *)
+          (match path ~exclude:(lit f) a b with Some es -> trans f es | None -> ())
         | _ -> ()) fs;
       let arguments a b = match congr_args a b with
         | None -> None
@@ -225,16 +232,28 @@ let produce ?(limits=default_limits) ~atoms ~forms ~premises ~conclusion () =
                 loop xs ys (Some (lit f)::acc))
             | _ -> None in loop xs ys [] in
       let neg_args ls = List.filter_map (Stdlib.Option.map neg) ls in
+      let targets = Hashtbl.create 31 in
+      List.iter (fun f -> match eq f with
+        | Some (a,b) -> Hashtbl.replace targets (Atom.index a,Atom.index b) ()
+        | None -> ()) fs;
       let ts = Hashtbl.fold (fun _ a acc -> a::acc) terms []
         |> List.sort (fun a b -> Int.compare (Atom.index a) (Atom.index b)) in
       List.iteri (fun i a -> List.iteri (fun j b ->
         if i < j && SmtBtype.HashedBtype.equal (Atom.type_of a) (Atom.type_of b) then
+          (* Respect a requested equality's orientation rather than waiting
+             another round for symmetry while resolution saturates. *)
+          let a,b = if Hashtbl.mem targets (Atom.index b,Atom.index a) &&
+              not (Hashtbl.mem targets (Atom.index a,Atom.index b)) then b,a else a,b in
           match arguments a b with
           | None -> ()
           | Some es -> let f = intern_eq a b in
             add (fun p -> EqCgr (p,lit f,es)) (lit f :: neg_args es)) ts) ts;
       let predicates = List.filter_map (fun f -> match Form.pform f with
-        | Fatom a when eq f = None -> Some (f,a) | _ -> None) fs in
+        (* Equality is a Boolean predicate too. In particular, a generated
+           congruence on (= x z) may conclude an iff before either equality
+           becomes a unit. The existing check_congr_pred handles Abop BO_eq;
+           excluding it here loses precisely that local implication. *)
+        | Fatom a -> Some (f,a) | _ -> None) fs in
       List.iter (fun (fa,a) -> List.iter (fun (fb,b) ->
         if not (Form.equal fa fb) then match arguments a b with
           | None -> ()
@@ -270,12 +289,17 @@ let produce ?(limits=default_limits) ~atoms ~forms ~premises ~conclusion () =
       end;
       List.iter cnf (form_list ());
       let rec rounds n =
-        resolve_pending ();
-        if n >= limits.max_theory_rounds then raise (Fail (Resource_limit "theory rounds"));
+        resolve_pending ~units_only:true ();
+        if n >= limits.max_theory_rounds then begin
+          resolve_pending (); raise (Fail (Resource_limit "theory rounds"))
+        end;
         let before = !next in
         theory ();
         try_lia (List.map Form.neg (List.filter (fun f ->
           lia_count := 0; lia_form f) (unit_forms ())));
+        (* Conditional EUF clauses must be available before unrestricted
+           propositional saturation of the Boolean definitions. *)
+        resolve_pending ();
         if !next = before then raise (Fail Unsupported);
         rounds (n+1) in rounds 0 in
     (try run () with Conflict id -> Ok (finish id))
