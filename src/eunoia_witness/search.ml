@@ -31,6 +31,10 @@ let eq f = match Form.pform f with
   | Fatom a -> (match Atom.atom a with Abop (BO_eq _,a,b) -> Some (a,b) | _ -> None)
   | _ -> None
 let tautology c = List.exists (fun l -> List.mem (neg l) c) c
+let rec subset a b = match a,b with
+  | [],_ -> true | _,[] -> false
+  | x::xs,y::ys -> if x = y then subset xs ys
+    else if x > y then subset a ys else false
 
 (* This is a producer-side prediction of the existing CNF checker, not a new
    acceptance test. All emitted predictions must be recomputed by the gate. *)
@@ -136,6 +140,8 @@ let produce ?(limits=default_limits) ~atoms ~forms ~premises ~conclusion () =
       if not (Hashtbl.mem known c) then Hashtbl.add known c id;
       Queue.add id (if List.length c = 1 then units else pending) in
     List.iter (fun (id,c) -> register id c) root_claims;
+    let subsumed ?(strict=false) c = Hashtbl.fold (fun d _ found ->
+      found || ((not strict || d <> c) && subset d c)) known false in
     let finish conflict =
       (* Drop unused search work, but retain EVERY exact root claim. This only
          slices the local resolution DAG; it never omits a generated inference. *)
@@ -150,7 +156,7 @@ let produce ?(limits=default_limits) ~atoms ~forms ~premises ~conclusion () =
     let add mk c =
       let c = canonical c in
       let explicit_true = match mk !next with CTrue _ -> true | _ -> false in
-      if (c <> [0] || explicit_true) && not (tautology c) && not (Hashtbl.mem known c) then begin
+      if (c <> [0] || explicit_true) && not (tautology c) && not (subsumed c) then begin
         if !next >= limits.max_clauses then raise (Fail (Resource_limit "clauses"));
         let id = !next in incr next;
         program := {action=mk id;expected=c} :: !program;
@@ -162,22 +168,26 @@ let produce ?(limits=default_limits) ~atoms ~forms ~premises ~conclusion () =
         let id = Queue.take (if Queue.is_empty units then pending else units) in
         let c = Hashtbl.find clauses id in
         if c = [] then raise (Conflict id);
-        List.iter (fun l ->
-          let partners = Stdlib.Option.value ~default:[] (Hashtbl.find_opt index (neg l)) in
-          List.iter (fun other ->
-            let a,b = if id < other then id,other else other,id in
-            if not (Hashtbl.mem pairs (a,b)) then begin
-              if !pair_count >= limits.max_resolution_pairs then
-                raise (Fail (Resource_limit "resolution pairs"));
-              incr pair_count; Hashtbl.add pairs (a,b) ();
-              let ca = Hashtbl.find clauses a and cb = Hashtbl.find clauses b in
-              let result = resolve cb ca in
-              (* A genuine pivot exists; a tautological resolvent is useless.
-                 Match the checker's order, including its fallback behavior. *)
-              if canonical result = result then add (fun p -> Res (p,a,b)) result
-            end) partners) c;
-        List.iter (fun l -> Hashtbl.replace index l
-          (id :: Stdlib.Option.value ~default:[] (Hashtbl.find_opt index l))) c
+        (* A stronger available clause can do all resolution work of this
+           superset. Keep its exact slot/root claim; only skip producer work. *)
+        if not (subsumed ~strict:true c) then begin
+          List.iter (fun l ->
+            let partners = Stdlib.Option.value ~default:[] (Hashtbl.find_opt index (neg l)) in
+            List.iter (fun other ->
+              let a,b = if id < other then id,other else other,id in
+              if not (Hashtbl.mem pairs (a,b)) then begin
+                if !pair_count >= limits.max_resolution_pairs then
+                  raise (Fail (Resource_limit "resolution pairs"));
+                incr pair_count; Hashtbl.add pairs (a,b) ();
+                let ca = Hashtbl.find clauses a and cb = Hashtbl.find clauses b in
+                let result = resolve cb ca in
+                (* A genuine pivot exists; a tautological resolvent is useless.
+                   Match the checker's order, including its fallback behavior. *)
+                if canonical result = result then add (fun p -> Res (p,a,b)) result
+              end) partners) c;
+          List.iter (fun l -> Hashtbl.replace index l
+            (id :: Stdlib.Option.value ~default:[] (Hashtbl.find_opt index l))) c
+        end
       done in
     let form_list () = Hashtbl.fold (fun _ f acc -> f::acc) relevant []
       |> List.sort (fun a b -> Int.compare (lit a) (lit b)) in
