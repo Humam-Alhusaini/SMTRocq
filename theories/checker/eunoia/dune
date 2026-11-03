@@ -13,6 +13,7 @@
   EunoiaUf.vo
   EunoiaLiaTests.vo
   EunoiaLocalTests.vo
+  EunoiaBoolTests.vo
   EunoiaTacticTests.vo
   EunoiaScopeTests.vo
   EunoiaScopedAdapterTests.vo
