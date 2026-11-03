@@ -340,7 +340,8 @@ def main():
         "argv": sys.argv, "python": sys.version, "platform": platform.platform(),
         "cpu_count": os.cpu_count(), "loadavg_start": load_average(),
         "profiling_environment": {name: os.environ.get(name) for name in
-                                  ("EUNOIA_WITNESS_PROFILE", "ROCQ_PROFILE_COMPONENTS")},
+                                  ("EUNOIA_WITNESS_PROFILE", "EUNOIA_TABLE_PROFILE",
+                                   "ROCQ_PROFILE_COMPONENTS")},
         "configuration": vars(args) | {"wrapper": str(wrapper), "output": str(output),
                                        "cases": str(cases_path)},
         "cases_sha256": sha256(cases_path),
