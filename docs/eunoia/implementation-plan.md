@@ -148,3 +148,12 @@ syntax/type queries, and scope integration. No performance or competitive
 coverage claim follows from this run. In particular, the nominal UF benchmark
 cases use integer carriers and can invoke arithmetic normalization in cvc5;
 an abstract-carrier UF suite is still needed.
+
+The first full `dune runtest -j2` after this integration exposed missing Python
+input dependencies in the generator's Dune alias (`rules.txt`, the replay
+module, manifest and provenance inputs). The coordinator added those declared
+dependencies. The targeted generator alias then passed all 31 tests, and the
+subsequent full regression command exited 0. Logs are
+`/tmp/smtrocq-generator-dune-regression.log` and
+`/tmp/smtrocq-corrected-generator-full-runtest.log` respectively. A failed first
+run is not reported as a successful full regression.

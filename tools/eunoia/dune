@@ -2,8 +2,13 @@
  (alias runtest)
  (deps
   compile.py
+  replay_fixtures.py
+  rules.txt
+  cpc-manifest.json
   (source_tree tests)
   (source_tree signatures)
+  (source_tree ../../unit-tests/files)
+  ../../unit-tests/eunoia-fixtures/default/uf4.cpc
   ../../theories/checker/eunoia/CpcGenerated.v)
  (action
   (run python3 -B -m unittest discover -s tests -p test_*.py -v)))

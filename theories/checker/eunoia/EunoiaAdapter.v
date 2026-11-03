@@ -8,7 +8,7 @@ From SMTCoq.utils Require Import Misc PArray CompDec.
 From SMTCoq.structures Require Import CompDecInstances.
 From SMTCoq.checker.fol Require Import State Terms.
 From SMTCoq.checker Require Import MainChecker.
-From SMTCoq.checker.eunoia Require Import EoSyntax CpcGenerated EunoiaChecker EunoiaBridge.
+From SMTCoq.checker.eunoia Require Import EoSyntax EoArithmetic CpcGenerated EunoiaChecker EunoiaBridge.
 
 Import ListNotations.
 Local Open Scope string_scope.
@@ -53,7 +53,12 @@ Definition is_numeral (s : string) : bool :=
 
 Definition reserved : list string :=
   ["Bool"; "Int"; "Type"; "->"; "true"; "false"; "not"; "and";
-   "or"; "=>"; "xor"; "ite"; "="; "+"; "-"; "*"; "<"; "<="; ">"; ">="].
+   "or"; "=>"; "xor"; "ite"; "="; "+"; "-"; "*"; "<"; "<="; ">"; ">=";
+   "Real"; "@List"; "@list"; "@list.nil";
+   "eo::List"; "eo::List::cons"; "eo::List::nil"].
+
+Definition is_literal_name (s : string) : bool :=
+  match EoArithmetic.parse s with Some _ => true | None => false end.
 
 (* Shared by sort names and function names: no collision with CPC primitives,
    duplicate names, duplicate indices, or array defaults. Names are already
@@ -83,7 +88,7 @@ Fixpoint map_wf (bound : int) (ns : list (int * string)) : bool :=
   | [] => true
   | (i, s) :: ns =>
     (i <? bound) && negb (existsb (fun p => i =? fst p) ns) &&
-    negb (String.eqb s "") && fresh_name s reserved && negb (is_numeral s) &&
+    negb (String.eqb s "") && fresh_name s reserved && negb (is_literal_name s) &&
     map_wf bound ns
   end.
 
@@ -382,16 +387,52 @@ Section Tables.
     | _ => false
     end.
 
-  Definition typeof (fuel : nat) (t : term) : option term :=
-    if names_wf then
+  Definition object_typeof (fuel : nat) (t : term) : option term :=
       match t with
       | Symbol s =>
         if is_sort_name s then Some (Symbol "Type")
         else match infer fuel t with Some ft => type_term ft | None => None end
       | _ => if is_function_type t then Some (Symbol "Type")
         else match infer fuel t with Some ft => type_term ft | None => None end
+      end.
+
+  (* CPC proof arguments can contain heterogeneous lists and rational
+     coefficients. These are signature syntax, not new Atom/Form sorts or
+     interpretations. The existing object query remains authoritative for
+     every term it supports; unsupported object Real expressions stay absent.
+     List aliases are from programs/Utils.eo; literal sorts are declared by
+     theories/Arith.eo in the pinned signature. *)
+  Fixpoint syntax_typeof (fuel : nat) (t : term) : option term :=
+    match fuel with
+    | O => None
+    | S k =>
+      match object_typeof fuel t with
+      | Some ty => Some ty
+      | None =>
+        match t with
+        | Symbol "Real" | Symbol "@List" | Symbol "eo::List" => Some (Symbol "Type")
+        | Symbol "@list.nil" | Symbol "eo::List::nil" => Some (Symbol "@List")
+        | Symbol s =>
+          match EoArithmetic.parse s with
+          | Some (EoArithmetic.LRational _) | Some (EoArithmetic.LDecimal _ _) =>
+            Some (Symbol "Real")
+          | _ => None
+          end
+        | _ =>
+          let '(head, args) := spine t [] in
+          match head, args with
+          | Symbol "@list", _ :: _ | Symbol "eo::List::cons", _ :: _ =>
+            if forallb (fun a =>
+              match syntax_typeof k a with Some _ => true | None => false end) args
+            then Some (Symbol "@List") else None
+          | _, _ => None
+          end
+        end
       end
-    else None.
+    end.
+
+  Definition typeof (fuel : nat) (t : term) : option term :=
+    if names_wf then syntax_typeof fuel t else None.
 
   Definition tables_wf : bool :=
     names_wf && Form.check_form t_form && Atom.check_atom t_atom &&
@@ -640,6 +681,45 @@ Module Examples.
   Example query_ill_typed : query (app "f" [Symbol "0"]) = None.
   Proof. vm_compute; reflexivity. Qed.
   Example query_unknown : query (app "mystery" [p]) = None.
+  Proof. vm_compute; reflexivity. Qed.
+  Example query_metadata_sort : query (Symbol "@List") = Some (Symbol "Type").
+  Proof. vm_compute; reflexivity. Qed.
+  Example query_metadata_empty : query (Symbol "@list.nil") = Some (Symbol "@List").
+  Proof. vm_compute; reflexivity. Qed.
+  Example query_metadata_canonical_sort :
+    query (Symbol "eo::List") = Some (Symbol "Type").
+  Proof. vm_compute; reflexivity. Qed.
+  Example query_metadata_canonical_empty :
+    query (Symbol "eo::List::nil") = Some (Symbol "@List").
+  Proof. vm_compute; reflexivity. Qed.
+  Example query_metadata_canonical_list :
+    query (app "eo::List::cons" [p; Symbol "1"]) = Some (Symbol "@List").
+  Proof. vm_compute; reflexivity. Qed.
+  Example query_metadata_heterogeneous :
+    query (app "@list" [p; Symbol "1"; x; Symbol "1/2"]) = Some (Symbol "@List").
+  Proof. vm_compute; reflexivity. Qed.
+  Example query_metadata_nested :
+    query (app "@list" [app "@list" [p]; Symbol "@list.nil"]) = Some (Symbol "@List").
+  Proof. vm_compute; reflexivity. Qed.
+  Example query_metadata_unknown : query (app "@list" [Symbol "unknown"]) = None.
+  Proof. vm_compute; reflexivity. Qed.
+  Example query_metadata_unknown_application :
+    query (app "@list" [app "mystery" [p]]) = None.
+  Proof. vm_compute; reflexivity. Qed.
+  Example query_rational_kind : query (Symbol "1/1") = Some (Symbol "Real").
+  Proof. vm_compute; reflexivity. Qed.
+  Example query_decimal_kind : query (Symbol "1.0") = Some (Symbol "Real").
+  Proof. vm_compute; reflexivity. Qed.
+  Example query_malformed_rational : query (Symbol "1/0") = None.
+  Proof. vm_compute; reflexivity. Qed.
+  Example query_real_object_unsupported :
+    query (app "+" [Symbol "1/1"; Symbol "2/1"]) = None.
+  Proof. vm_compute; reflexivity. Qed.
+  Example metadata_name_collision :
+    names_wf sorts funcs (Naming [(0, "@List")] []) = false.
+  Proof. vm_compute; reflexivity. Qed.
+  Example literal_name_collision :
+    names_wf sorts funcs (Naming [] [(0, "1/1")]) = false.
   Proof. vm_compute; reflexivity. Qed.
   Example query_function : query (Symbol "f") = Some (app "->" [Symbol "U"; Symbol "U"]).
   Proof. vm_compute; reflexivity. Qed.

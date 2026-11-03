@@ -60,7 +60,7 @@ Calling `eval` alone never authorizes insertion into State.
 These identify existing table entries, including nullary function constants.
 `names_wf` rejects out-of-bounds indices, duplicate indices within either map,
 duplicate names across both maps, empty names, supported primitive names, and
-canonical integer literals used as names. Every visited uninterpreted sort or
+integer, rational, or decimal literals used as names. Every visited uninterpreted sort or
 function needs a map entry. Sort indices are compared in `Z` before conversion
 to `Uint63`, preventing wraparound from producing a valid table index.
 
@@ -81,6 +81,17 @@ equality, branch types for `ite`, UF argument types/arity, supported sorts,
 and first-order function type syntax. It returns `None` for unknown syntax,
 unknown names, unsupported sorts, or malformed applications. Its result is
 executable input to the generated evaluator, never semantic evidence.
+
+The query also recognizes CPC's `@List`/`@list.nil`/`@list` aliases from
+`programs/Utils.eo`, and `Real` literal categories declared in
+`theories/Arith.eo`. List elements must each have a known syntax type, though
+those types may differ. Nested lists are allowed; unknown elements and malformed
+numeric literals reject. Rational and decimal literal spellings retain the
+`Real` category even when their value is integral. This extends only the
+signature argument query: it adds no `Typ.type` constructor, Atom/Form encoding,
+or interpretation for object-level real arithmetic. Such unsupported object
+expressions still reject. The new metadata names are reserved against naming
+collisions. The original Boolean/integer/UF query supplies all object types.
 
 ## Exact surface encodings
 

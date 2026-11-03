@@ -1,9 +1,9 @@
 # Checked tactic benchmarks for the Eunoia port
 
 This harness runs the existing checked `verit` and `cvc4` tactics on the same
-small UF/LIA goals. It can invoke a future **real** `cvc5_eunoia` tactic once
-integration exposes it. Registering its name in the CLI does not implement that
-tactic. The default benchmark runs only the existing backends. There is no
+small UF/LIA goals. It also invokes the integrated checked `cvc5_eunoia` tactic
+when selected explicitly. Its coverage is still under development. The default
+benchmark runs only the existing backends. There is no
 solver-only benchmark or external-prover performance claim here.
 
 ## Reproduce
@@ -26,7 +26,7 @@ already exist). `--skip-build` is only for a previously successful build in the
 same checkout. The harness derives logical load paths from existing theory
 stanzas rather than adding a benchmark stanza to shared files.
 
-To exercise the integrated tactic later:
+To exercise the integrated tactic:
 
 ```sh
 python3 benchmarks/eunoia/run.py --backends verit cvc4 cvc5_eunoia --repeat 3 --timeout 30 --jobs 2
@@ -37,10 +37,14 @@ python3 benchmarks/eunoia/run.py --backends verit cvc4 cvc5_eunoia --repeat 3 --
 A preflight imports the requested modules and resolves each actual tactic name
 without invoking a solver. Missing tactics/imports are recorded as `unavailable`,
 with null timing fields and no solved attempts; no fallback tactic is used.
-Ensure the wrapper resolves the intended cvc5 binary before measuring it. The
-current private wrapper's `cvc5` on PATH may differ from the separately provided
-1.4.2 binary; `metadata.json` records what it actually resolves, its version, and
-its SHA-256. A CPC-producing executable alone is insufficient for this benchmark.
+The private wrapper's `cvc5` on PATH is distinct from the pinned 1.4.2 executable
+selected by the new backend. The ordinary PATH probe records the older binary
+and its hash. When `cvc5_eunoia` is selected, the harness additionally runs
+`scripts/eunoia/verify_toolchain.py`, which verifies the private 1.4.2 binary,
+archives and matching signature files and reports their exact paths, hashes and
+version. Failure ends the benchmark with status 2. Metadata also records the
+backend solver source hash, so its fixed executable selection is reviewable.
+A CPC-producing executable alone is insufficient for this benchmark.
 
 Exit status is `0` if every positive attempt was checked and every negative
 control was rejected, `1` for backend errors, timeouts, unavailable backends,
