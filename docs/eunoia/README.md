@@ -9,9 +9,9 @@ interpretation and CNF/EUF/LIA checkers.
 The functional suites contain 22 public UF proofs, 11 additional Boolean UF
 proofs and 15 integer/mixed proofs,
 with false-goal and corrupted-proof controls. They have passed compilation and
-baseline assumption audits. Final composed performance acceptance is still in
-progress: larger valid benchmark goals exceed the current 30-second compiler
-limit. This is an experimental backend, with explicitly bounded coverage.
+baseline assumption audits. Larger valid benchmark goals exceed the current
+30-second compiler limit. This is an experimental backend, with explicitly
+bounded coverage and no competitive performance claim.
 
 ## Build and use
 
@@ -168,5 +168,5 @@ versions and timing boundaries; it supplies no speed ratio for this backend.
 Known limits include excluded source rules, finite generation/search budgets,
 some purification and Boolean-constant argument cases, and proofs requiring
 object-level Real/`to_real`/`to_int` intermediates. Rational/decimal metadata
-support does not add real-arithmetic semantics. Bitvectors and arrays remain
-stretch work after UF/LIA acceptance and performance are verified.
+support does not add real-arithmetic semantics. Bitvectors, arrays and other
+theory extensions are outside this UF/LIA change.

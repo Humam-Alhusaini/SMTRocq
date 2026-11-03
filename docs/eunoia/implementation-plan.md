@@ -347,3 +347,22 @@ setup failures are retained: overlapping build/install mappings, then missing
 unit-test mappings. The audit CLI's explicit `--build-loadpaths` mode avoids
 combining both library trees; defaults remain unchanged. These checks supplement
 the prior full/fresh UF22/LIA15 checkpoint; final all-feature acceptance is pending.
+
+## Final UF/LIA scope freeze
+
+Charles narrowed the wrap-up on 2026-11-03 to the existing generated reflective
+UF/LIA backend, full verification, and one matched benchmark invocation. Further
+purification, integer-embedding, performance and Boolean-constant investigations
+are excluded from this wrap-up. The two active optional children were stopped;
+the completed integer-embedding helper stays on its unmerged child branch.
+No new children or theory extensions will be started. The six development
+benchmark timeout cases remain in the unchanged workload and will be reported
+as limitations. Already integrated Boolean UF tests and source-computation
+coverage remain part of the frozen implementation.
+
+Final artifacts are kept outside the repository: full/fresh proof acceptance
+under `/tmp/smtrocq-final-uf-lia-acceptance/`, the single matched benchmark under
+`/tmp/smtrocq-final-uf-lia-benchmark/`, and Charles's local PR draft at
+`/home/charles/code/friends/Humam-Alhusaini/smtrocq-pr-body.md`. Their recorded
+commands, exit codes and actual results determine the final report; this note
+does not assert that pending checks have passed.
