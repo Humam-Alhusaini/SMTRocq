@@ -1,7 +1,7 @@
 {
   "base": "41c93f5ed49483c498900d1a25c27028142a830a",
   "runtime_sha256": "ad77b97b9717c1b6f9add760c3f338389bdc419ee815725ed4d575e3bd8fa4d4",
-  "trial_patch_sha256": "68a450674a4684456c748c1af521c9c44b4f669bd4af9b3ab89e9d6e80cb4889",
+  "trial_patch_sha256": "8900efcf949a02520a53a4f428c4fb4e31b8656ea49d08fbf3aeeaf2efd84558",
   "fresh_process": [
     {
       "run": "/tmp/smtrocq-context/runtime-before",

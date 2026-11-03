@@ -3,7 +3,7 @@ index 6605fee..0c0b3c0 100644
 --- a/theories/checker/eunoia/EunoiaAdapter.v
 +++ b/theories/checker/eunoia/EunoiaAdapter.v
 @@ -480,11 +480,10 @@ Section Tables.
- 
+
    (* Polymorphic only to expose the binding theorem independently of generator
       correctness. The public evaluator below always uses CpcGenerated.derive. *)
 -  Definition eval_with
@@ -19,12 +19,12 @@ index 6605fee..0c0b3c0 100644
 @@ -495,6 +494,9 @@ Section Tables.
        end
      else None.
- 
+
 +  Definition eval_with derive fuel :=
 +    eval_in_context derive (typeof fuel) tables_wf fuel.
 +
    Definition eval := eval_with CpcGenerated.derive.
- 
+
    Lemma eval_with_binding : forall derive fuel p cs c,
 @@ -504,7 +506,7 @@ Section Tables.
        Some (result_term p) /\
@@ -42,7 +42,7 @@ index fa2b34d..fc9b5f4 100644
 @@ -322,4 +322,42 @@ Print Assumptions run_invariant.
  Print Assumptions load_roots_invariant.
  Print Assumptions checker_correct.
- 
+
 +Section CallbackRefinement.
 +  Context {rule witness : Type}.
 +  Variables e1 e2 : rule -> list C.t -> option C.t.
@@ -87,7 +87,7 @@ index c017df3..b6172b1 100644
 --- a/theories/checker/eunoia/EunoiaLocal.v
 +++ b/theories/checker/eunoia/EunoiaLocal.v
 @@ -241,8 +241,7 @@ Section Context.
- 
+
    (* The trace passes this partially applied callback to every step. Keep the
       immutable table guard outside its changing premise/witness arguments. *)
 -  Definition gate : list C.t -> C.t -> witness -> bool :=
@@ -99,7 +99,7 @@ index c017df3..b6172b1 100644
 @@ -256,6 +255,8 @@ Section Context.
        end
      end.
- 
+
 +  Definition gate := gate_in_context (Form.check_form t_form && Atom.check_atom t_atom).
 +
    (* Acceptance exposes exact roots, all local reads, a fresh bounded output,
@@ -115,7 +115,7 @@ index c017df3..b6172b1 100644
      destruct (load_roots (PArray.length t_form) (initial (capacity w))
        (local_roots cs c) (root_claims w)) as [m| ] eqn:Hl; try discriminate.
 @@ -335,7 +336,7 @@ Section Context.
- 
+
    Theorem gate_correct : Atom.wt t_i t_func t_atom -> gate_sound valuation.
    Proof.
 -    intros Hwt cs c w Hgate Hcs; unfold gate in Hgate.
@@ -130,7 +130,7 @@ index da8f900..d9fc773 100644
 @@ -281,4 +281,53 @@ Print Assumptions checker_correct.
  Print Assumptions table_checker_correct.
  Print Assumptions checker_b_correct.
- 
+
 +Section ScopedCallbackRefinement.
 +  Context {rule scope_rule witness : Type}.
 +  Variables e1 e2 : rule -> list C.t -> option C.t.
@@ -188,7 +188,7 @@ index c96efec..dc562af 100644
 @@ -45,14 +45,14 @@ Section Tables.
        (CpcGenerated.derive_with extra).
    Definition eval := eval_with CpcGenerated.default_primitive.
- 
+
 -  Definition scope_eval_with (extra : EoRuntime.primitive_hook) (fuel : nat) :=
 -    let tables_ready := tables_wf in
 +  Definition scope_eval_in_context (extra : EoRuntime.primitive_hook)
@@ -210,7 +210,7 @@ index c96efec..dc562af 100644
 +  Definition scope_eval_with extra fuel :=
 +    scope_eval_in_context extra (typeof fuel) tables_wf fuel.
    Definition scope_eval := scope_eval_with CpcGenerated.default_primitive.
- 
+
    Lemma scope_eval_with_binding : forall extra fuel p a c result,
 @@ -77,7 +79,7 @@ Section Tables.
        binds fuel result (EunoiaAdapter.result_term p) = true /\
@@ -224,7 +224,7 @@ index c96efec..dc562af 100644
 @@ -132,11 +134,66 @@ Section Tables.
      exists c, pushed; repeat split; assumption.
    Qed.
- 
+
 -  Definition checker_with extra fuel capacity roots root_terms claims (t : trace) goal :=
 +  Definition checker_guarded_with extra fuel capacity roots root_terms claims (t : trace) goal :=
      tables_wf && bind_terms fuel roots root_terms &&
@@ -287,7 +287,7 @@ index c96efec..dc562af 100644
 +  Qed.
 +
    Definition checker := checker_with CpcGenerated.default_primitive.
- 
+
    Lemma checker_with_binding : forall extra fuel capacity roots root_terms claims t goal,
 @@ -155,7 +212,8 @@ Section Tables.
      pose proof (checker_with_binding _ _ _ _ _ _ _ _ H) as [Htables _].
@@ -302,7 +302,7 @@ index c96efec..dc562af 100644
 @@ -238,4 +296,9 @@ Print Assumptions checker_b_correct.
  Print Assumptions checker_eq_with_correct.
  Print Assumptions checker_eq_correct.
- 
+
 +Print Assumptions context_eval_refine.
 +Print Assumptions context_scope_eval_refine.
 +Print Assumptions context_gate_refine.
@@ -319,20 +319,20 @@ index d6b5884..9acd5ac 100644
  From SMTCoq.checker.eunoia Require Import
 -  EoSyntax EunoiaChecker EunoiaAdapter EunoiaLocal.
 +  EoSyntax CpcGenerated EunoiaChecker EunoiaAdapter EunoiaLocal.
- 
+
  Import ListNotations.
  Local Open Scope uint63_scope.
 @@ -44,18 +44,63 @@ Section Tables.
    Definition trace := list
      (@EunoiaChecker.step EunoiaAdapter.rule_payload EunoiaLocal.witness).
- 
+
 -  (* A concrete checked gate: no unproved gate hypothesis reaches the tactic. *)
 -  Definition checker fuel capacity roots root_terms claims (steps : trace) goal :=
 +  Definition checker_guarded fuel capacity roots root_terms claims (steps : trace) goal :=
      EunoiaAdapter.checker t_i t_func t_atom t_form names
        (@EunoiaLocal.gate t_i t_func t_atom t_form)
        fuel capacity roots root_terms claims steps goal.
- 
+
 +  Local Definition context_eval fuel :=
 +    EunoiaAdapter.eval_in_context t_i t_func t_atom t_form names CpcGenerated.derive
 +      (EunoiaAdapter.syntax_typeof t_i t_func names fuel) true fuel.
@@ -388,7 +388,7 @@ index d6b5884..9acd5ac 100644
 +    unfold checker_guarded, EunoiaAdapter.checker in H.
      rewrite !andb_true_iff in H; tauto.
    Qed.
- 
+
 @@ -68,6 +113,7 @@ Section Tables.
      unfold EunoiaAdapter.tables_wf in Htables.
      rewrite !andb_true_iff in Htables.
@@ -400,7 +400,7 @@ index d6b5884..9acd5ac 100644
 @@ -128,4 +174,8 @@ Section Tables.
    Qed.
  End Tables.
- 
+
 +Print Assumptions context_eval_refine.
 +Print Assumptions context_gate_refine.
 +Print Assumptions checker_guarded_refine.
