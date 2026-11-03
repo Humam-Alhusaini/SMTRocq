@@ -1,6 +1,7 @@
 DECLARE PLUGIN "rocq-smtcoq.eunoia_backend_test"
 {
 open Ltac_plugin
+open Stdarg
 open Common
 open SmtAtom
 module B = Eunoia_backend.EunoiaBackend
@@ -178,7 +179,44 @@ let scope_bad_unused = scope_required_prefix ^
 let with_lemma () = B.tactic_from_cpc
   (parse (prefix ^ "(assume h op_0)" ^ suffix)) ~witness
   ~lemmas:[RocqInterface.mkVar (RocqInterface.mkId "hp")] ()
+let no_private_effects () = RocqInterface.mk_tactic (fun _ sigma _ ->
+  if not (Safe_typing.is_empty_private_constants
+      (Evd.seff_private (Evd.eval_side_effects sigma))) then
+    RocqInterface.raise_error "Eunoia test: failed/undone tactic left private proof effects";
+  Proofview.tclUNIT ())
+(* Read-only dependency audit of the actual saved certificate bodies. Rocq
+   inlines private opaque bodies at Qed (polymorphic ones by substitution), so
+   there need not be an exported helper name to pass to Print Assumptions.
+   Use that command's own dependency walker and printer on every saved VM cast.
+   These terms are inspected only; they are never reused to construct proofs. *)
+let helper_assumptions name ~opaque_access =
+  let constant = match Nametab.locate (Libnames.qualid_of_string name) with
+    | Names.GlobRef.ConstRef c -> c
+    | _ -> RocqInterface.raise_error "Eunoia test: expected a proved constant" in
+  let body = match Global.body_of_constant opaque_access constant with
+    | Some (body,_,_) -> body
+    | None -> RocqInterface.raise_error "Eunoia test: theorem has no checked body" in
+  let refs = ref [] and casts = ref 0 in
+  let rec dependencies t =
+    (match Constr.kind t with
+    | Constr.Const(c,_) -> refs := Names.GlobRef.ConstRef c :: !refs
+    | Constr.Ind(i,_) -> refs := Names.GlobRef.IndRef i :: !refs
+    | Constr.Construct(c,_) -> refs := Names.GlobRef.ConstructRef c :: !refs
+    | _ -> ());
+    Constr.iter dependencies t in
+  let rec inspect t = match Constr.kind t with
+    | Constr.Cast(_,Constr.VMcast,_) -> incr casts; dependencies t
+    | _ -> Constr.iter inspect t in
+  inspect body;
+  if !casts=0 then RocqInterface.raise_error "Eunoia test: no saved checker certificate found";
+  let theory,assumptions = Assumptions.assumptions opaque_access
+    TransparentState.full !refs in
+  let env = Global.env () in
+  Feedback.msg_notice (Printer.pr_assumptionset env (Evd.from_env env) theory assumptions)
 }
+VERNAC COMMAND EXTEND EunoiaHelperAssumptions CLASSIFIED AS QUERY STATE opaque_access
+| [ "Eunoia_helper_assumptions" string(name) ] -> { helper_assumptions name }
+END
 TACTIC EXTEND Backend_replay
 | [ "backend_replay" ] -> { replay () }
 | [ "backend_corrupted" ] -> { corrupted () }
@@ -207,4 +245,5 @@ TACTIC EXTEND Backend_replay
 | [ "backend_lia_missing_certificate" ] -> { lia_mutated_witness false }
 | [ "backend_lia_bad_unused" ] -> { lia_mutated_witness true }
 | [ "backend_live" ] -> { B.tactic ~witness:production_witness () }
+| [ "backend_no_private_effects" ] -> { no_private_effects () }
 END
