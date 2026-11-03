@@ -57,9 +57,12 @@ binders cannot shadow known signature names or exported functions/sorts.
 The inventory is generated from the 35-file pinned signature closure. Membership
 reserves a name and permits its parsing; it does not declare its operators or
 rules supported by the evaluator, adapter or semantic gate.
-Decimal/rational source literals and object Real formulas still reject here;
-this child does not implement an alternative arithmetic parser or normalize
-away exact source spelling. Parent metadata type queries are necessary for
+At integration `45b3411`, decimal/rational source metadata literals are admitted
+only after the actual `EoArithmetic.normalize` computation succeeds. Their raw
+spelling and integer/rational/decimal categories are retained in the source
+tree. This admits signature coefficients, not object-level real arithmetic:
+unsupported Real formulas still reject at reification or binding. The original
+child milestone rejected both categories. Parent metadata type queries are necessary for
 `@list` arguments; surface query results use `Symbol "@List"`.
 
 ## Wiring and tests
@@ -126,7 +129,8 @@ theorems and their baseline Uint63/PArray and proof-irrelevance dependencies
 justify the installed proof terms.
 
 Still incomplete: acceptance of a full actual **scoped solver fixture**, live
-scoped coverage, complete generated namespace inventory and rules, rational
-metadata ingestion, object Real support, broad QF_UF/QF_LIA coverage and
-performance evidence. Hand-written CPC scope replays are labeled as such;
+scoped coverage, complete generated rule coverage, object Real support, broad
+QF_UF/QF_LIA coverage and final performance evidence. The generated namespace
+inventory and rational metadata ingestion have since been integrated.
+Hand-written CPC scope replays are labeled as such;
 they are not represented as solver-produced scope coverage.

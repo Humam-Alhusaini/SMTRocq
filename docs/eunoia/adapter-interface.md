@@ -1,8 +1,37 @@
 # CPC surface syntax / SMTCoq table adapter
 
 `theories/checker/eunoia/EunoiaAdapter.v` implements a checked structural
-boundary for the current generator and core. It does **not** implement the
-proof-file reader, a tactic, or complete QF_UF/QF_LIA coverage.
+boundary for the generator and core. The production reader and tactic are
+separate modules; see [the scoped backend](scoped-backend.md). The validation
+section below records the original adapter milestone, not final backend acceptance.
+
+## Integrated arithmetic and negation binding
+
+At integration commit `45b3411`, a source application of integer `+` or `*`
+with at least three arguments is lowered to a fixed right-associated binary
+tree. Every operand, its order, duplicates, and existing binary subtrees are
+preserved. This lowering recurses through arguments, leaves all other operators
+unchanged, and fails on exhausted fuel. It performs no commutative sorting,
+constant evaluation, binary-tree reassociation, or Boolean simplification.
+
+The exact current `binds_spec` contract is:
+
+```coq
+binds fuel c t = true <->
+  EunoiaChecker.clause_wf (PArray.length t_form) c = true /\
+  exists u, encode_clause fuel c = Some u /\ lower_arithmetic fuel t = Some u
+```
+
+Raw CPC argument, premise, and result trees remain in every payload. The actual
+generated evaluator runs on those raw trees; only their binding to the existing
+binary SMTCoq tables uses this deterministic lowering. Every resulting clause
+still requires its own checked semantic certificate from its exact premises.
+
+The backend exports roots with `encode_clause`, preserving signed decimal
+symbols separately from unary minus applications. Its reifier uses the same
+arithmetic lowering and explicitly preserves negations through existing
+`Form.Fnot2`. A local `ImmFlatten` certificate can justify a simplification from
+an exact singleton root; the source step and its bindings remain checked.
 
 ## Entry points and trust boundary
 
@@ -144,7 +173,13 @@ nor a normalized nil-terminated `or` is accepted as an alternative spelling.
 `binds_spec` and `bind_terms_spec` prove exact checked-encoding relationships,
 including list lengths and order; they do not assert injectivity.
 
-## Remaining interfaces and integration work
+## Original milestone's integration obligations (historical)
+
+The list below describes the initial standalone adapter, before the subsequent
+generated UF/LIA support, local multistep certificates, scoped adapter, and public
+tactic were integrated. Those components now exist. Full live UF/LIA acceptance
+and final performance measurements remain tracked in
+[the implementation plan](implementation-plan.md).
 
 1. The current generator fragment deliberately rejects associative-nil
    declarations. A flat `(or p q)` differs from `(or p (or q false))`, as does

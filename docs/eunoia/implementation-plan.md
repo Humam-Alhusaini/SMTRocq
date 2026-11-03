@@ -184,16 +184,39 @@ integer-carrier UF and LIA goals. Its first diagnostic exposed a proof-local
 universe anomaly when a carrier is quantified inside the theorem; Section
 carrier tests did not expose that bug. The exact commands and failed proofs
 are retained in `/tmp/smtrocq-abstract-uf-development-benchmark/`.
-The active backend job owns that fix; changing the benchmark to avoid the
-quantified carrier is not an acceptance solution.
+Coordinator fix `53e2c32` retains the actual goal evar map during explicit proof
+typechecking. The original fully quantified goal now closes and its assumption
+audit passes; see `/tmp/smtrocq-goal-universe-context-assumptions/summary.json`.
+All six abstract-carrier benchmark goals then checked for both cvc5 and veriT
+in `/tmp/smtrocq-abstract-uf-universe-fixed-benchmark/`. The carrier was not
+changed to avoid the regression.
 
 The live abstract UF suite has a separate explicit-double-negation binding
 failure in negative predicate transport. Shared reifier commit `fbfbe26` adds
 an optional exact-negation mode using the existing `Form.Fnot2` representation;
 `smtrocq-env dune build -j2 src/common` exited 0. Production wiring and semantic
-witness validation remain with the active backend job. The other twenty UF
-cases have separate checked probe evidence from the UF child, but the complete
-file, audits and final regression still must pass before it is accepted.
+witness validation were integrated in `45b3411`: the backend preserves explicit
+negations and the local producer emits checked `ImmFlatten` operations from
+exact singleton roots. The original negative-predicate goal now closes with
+`Qed` and adds no assumptions
+(`/tmp/smtrocq-negative-predicate-assumptions/summary.json`). The full 22-goal
+file, its audits and final regression still must pass before suite acceptance.
+
+The same integration adds deterministic right-fold lowering for n-ary integer
+`+`/`*` while retaining each raw source payload. The generated rule computation
+and local semantic gate both remain mandatory; see the exact contract in
+`adapter-interface.md`. Five main/scoped/arithmetic replay assumption audits
+passed in `/tmp/smtrocq-local-lia-negation-core-assumptions/summary.json`.
+Targeted backend, witness and theory tests passed, including 75 native witness
+cases (`/tmp/smtrocq-local-lia-negation-targeted-tests.log`). The four source
+arithmetic replays are deliberately labeled replays, not live LIA acceptance.
+
+The independent trust-boundary review found permissive failure fallbacks in the
+legacy one-operation bridge, without demonstrating a false theorem. Coordinator
+fix `2e36fb4` rejects those fallbacks and requires explicit binary resolution
+links. Nine new bridge regressions, existing scoped/backend tests, five assumption
+audits and recursive kernel checking passed. The original finding and exact
+resolution evidence remain in `trust-boundary-review.md`.
 
 ## Callback sharing
 

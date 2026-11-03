@@ -3,7 +3,11 @@
 Current scoped production integration and validation are documented in
 [scoped-backend.md](scoped-backend.md). The initial integration evidence below
 predates that work; statements that scopes or all live proofs reject describe
-that earlier milestone.
+that earlier milestone. The generated evaluator now includes `evaluate` and 47
+other selected rules. Integration `45b3411` also exports exact adapter roots,
+lowers n-ary integer `+`/`*` to fixed binary trees, preserves explicit negations,
+and admits checked arithmetic metadata literals. See
+[the current binding contract](adapter-interface.md#integrated-arithmetic-and-negation-binding).
 
 This child supplies a compiled OCaml solver/reification/proof-builder pipeline.
 It does not claim an operational general cvc5 tactic or complete QF_UF/QF_LIA
