@@ -66,6 +66,64 @@ let production_witness ~atoms ~forms ~premises ~conclusion =
         ("SMTCoq.checker.eunoia.EunoiaLocal.EunoiaLocal." ^ name))
       ~step:(fun name -> C.global
         ("SMTCoq.checker.MainChecker.Checker_Ext." ^ name)) candidate)
+let scoped_prefix = prefix ^ "(assume-push x op_0)"
+let scoped_body = "(step local :rule refl :args (op_0))" ^
+  "(step endpoint false :rule contra :premises (local a))"
+let scoped_pop = "(step-pop exported :rule scope :premises (endpoint))"
+let scoped_text = scoped_prefix ^ scoped_body ^ scoped_pop ^ suffix
+let scoped_replay text = B.tactic_from_cpc (parse text) ~witness:production_witness ()
+let scoped () = scoped_replay scoped_text
+let metadata_replay () = scoped_replay (prefix ^
+  "(step b :rule refl :args (op_0))" ^
+  "(step c false :rule chain_m_resolution :premises (a b)" ^
+  " :args (false (@list false) (@list (= op_0 op_0))))")
+let nested_text = scoped_prefix ^ "(assume-push y (not op_0))" ^ scoped_body ^
+  "(step-pop inner :rule scope :premises (endpoint))" ^
+  "(step-pop exported :rule scope :premises (inner))" ^ suffix
+let scoped_nested () = scoped_replay nested_text
+let scoped_bad_discharge () =
+  let calls = ref 0 in
+  let produce ~atoms ~forms ~premises ~conclusion =
+    incr calls;
+    if !calls=3 then corrupt_witness ~atoms ~forms ~premises ~conclusion
+    else production_witness ~atoms ~forms ~premises ~conclusion in
+  B.tactic_from_cpc (parse scoped_text) ~witness:produce ()
+
+let scoped_bad_supported_unused () =
+  let calls = ref 0 in
+  let produce ~atoms ~forms ~premises ~conclusion =
+    incr calls;
+    if !calls=1 then corrupt_witness ~atoms ~forms ~premises ~conclusion
+    else production_witness ~atoms ~forms ~premises ~conclusion in
+  let text = scoped_prefix ^ "(step unused :rule refl :args (op_0))" ^
+    scoped_body ^ scoped_pop ^ suffix in
+  B.tactic_from_cpc (parse text) ~witness:produce ()
+
+(* The exported implication is essential to these final refutations. *)
+let scope_required_prefix = "(declare-const op_0 Bool)" ^
+  "(assume a (not (=> op_0 op_0)))"
+let scope_required_pop =
+  "(step-pop exported (=> op_0 op_0) :rule scope :premises (x))"
+let scope_required_suffix = "(step c false :rule contra :premises (exported a))"
+let scope_required = scope_required_prefix ^ "(assume-push x op_0)" ^
+  scope_required_pop ^ scope_required_suffix
+let scope_required_nested = "(declare-const op_0 Bool)(declare-const op_1 Bool)" ^
+  "(assume a (not (=> op_0 (=> op_1 op_0))))" ^
+  "(assume-push x op_0)(assume-push y op_1)" ^
+  "(step-pop inner :rule scope :premises (x))" ^
+  "(step-pop exported :rule scope :premises (inner))" ^ scope_required_suffix
+let scope_bad_assumption = scope_required_prefix ^ "(assume-push x (not op_0))" ^
+  scope_required_pop ^ scope_required_suffix
+let scope_bad_root = "(declare-const op_0 Bool)(assume a op_0)" ^
+  "(assume-push x op_0)" ^ scope_required_pop ^ scope_required_suffix
+let scope_leak = scope_required_prefix ^ "(assume-push x op_0)" ^
+  scope_required_pop ^ "(step c false :rule contra :premises (x a))"
+let scope_bad_endpoint = scope_required_prefix ^ "(assume-push x op_0)" ^
+  "(step-pop exported :rule scope :premises (a))" ^ scope_required_suffix
+let scope_bad_unused = scope_required_prefix ^
+  "(assume-push x op_0)(step unused :rule trust)" ^
+  scope_required_pop ^ scope_required_suffix
+
 let with_lemma () = B.tactic_from_cpc
   (parse (prefix ^ "(assume h op_0)" ^ suffix)) ~witness
   ~lemmas:[RocqInterface.mkVar (RocqInterface.mkId "hp")] ()
@@ -76,5 +134,17 @@ TACTIC EXTEND Backend_replay
 | [ "backend_bad_unused" ] -> { bad_unused () }
 | [ "backend_bad_gate" ] -> { bad_gate () }
 | [ "backend_with_lemma" ] -> { with_lemma () }
+| [ "backend_scoped" ] -> { scoped () }
+| [ "backend_scoped_nested" ] -> { scoped_nested () }
+| [ "backend_scoped_bad_supported_unused" ] -> { scoped_bad_supported_unused () }
+| [ "backend_scoped_bad_discharge" ] -> { scoped_bad_discharge () }
+| [ "backend_scope_required" ] -> { scoped_replay scope_required }
+| [ "backend_scope_required_nested" ] -> { scoped_replay scope_required_nested }
+| [ "backend_scope_bad_assumption" ] -> { scoped_replay scope_bad_assumption }
+| [ "backend_scope_bad_root" ] -> { scoped_replay scope_bad_root }
+| [ "backend_scope_leak" ] -> { scoped_replay scope_leak }
+| [ "backend_scope_bad_endpoint" ] -> { scoped_replay scope_bad_endpoint }
+| [ "backend_scope_bad_unused" ] -> { scoped_replay scope_bad_unused }
+| [ "backend_metadata_replay" ] -> { metadata_replay () }
 | [ "backend_live" ] -> { B.tactic ~witness:production_witness () }
 END

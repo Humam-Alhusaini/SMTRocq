@@ -1,5 +1,10 @@
 # OCaml Eunoia backend integration
 
+Current scoped production integration and validation are documented in
+[scoped-backend.md](scoped-backend.md). The initial integration evidence below
+predates that work; statements that scopes or all live proofs reject describe
+that earlier milestone.
+
 This child supplies a compiled OCaml solver/reification/proof-builder pipeline.
 It does not claim an operational general cvc5 tactic or complete QF_UF/QF_LIA
 coverage. The current generated rule fragment rejects ordinary cvc5 `evaluate`
