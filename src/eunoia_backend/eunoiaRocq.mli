@@ -14,3 +14,7 @@ val checked_true :
   ?on_failure:(unit -> unit) -> Environ.env -> RocqInterface.constr -> RocqInterface.constr
 (** Checks VM convertibility to true before constructing an equality proof.
     The final tactic uses [Tactics.exact_check], so kernel checking is retained. *)
+
+val signature_names : Environ.env -> string list
+(** Compute admitted metadata names/aliases from the loaded CpcGenerated data.
+    Proof text cannot extend this set or select native primitive hooks. *)
