@@ -1,0 +1,280 @@
+(**************************************************************************)
+(*     SMTCoq -- distributed under the terms of the CeCILL-C licence       *)
+(**************************************************************************)
+
+open Common
+open SmtAtom
+open SmtForm
+open Certificate
+
+type limits = {
+  max_clauses : int;
+  max_resolution_pairs : int;
+  max_theory_rounds : int;
+  max_terms : int;
+  max_formulas : int;
+  max_lia_literals : int;
+}
+let default_limits = { max_clauses = 4096; max_resolution_pairs = 100000;
+  max_theory_rounds = 32; max_terms = 128; max_formulas = 256; max_lia_literals = 64 }
+type failure = Invalid_input of string | Resource_limit of string | Unsupported
+let string_of_failure = function
+  | Invalid_input s -> "invalid input: " ^ s
+  | Resource_limit s -> "resource limit: " ^ s
+  | Unsupported -> "no local witness found"
+exception Fail of failure
+exception Conflict of int
+let pos f = if Form.is_pos f then f else Form.neg f
+let lit = Form.to_lit
+let neg l = l lxor 1
+let eq f = match Form.pform f with
+  | Fatom a -> (match Atom.atom a with Abop (BO_eq _,a,b) -> Some (a,b) | _ -> None)
+  | _ -> None
+let tautology c = List.exists (fun l -> List.mem (neg l) c) c
+
+(* This is a producer-side prediction of the existing CNF checker, not a new
+   acceptance test. All emitted predictions must be recomputed by the gate. *)
+let definitions f =
+  let p = lit (pos f) in
+  let n = neg p in
+  let def l c = (fun id -> BuildDef (id,l)), c in
+  let def2 l c = (fun id -> BuildDef2 (id,l)), c in
+  let projections xs mk = Array.to_list (Array.mapi (fun i x ->
+      (fun id -> BuildProj (id,p,i)), mk (lit x)) xs) in
+  match Form.pform f with
+  | Fapp (Ffalse,_) -> [(fun id -> CFalse id), [3]]
+  | Fapp (Fand,xs) -> def p (p :: List.map (fun x -> neg (lit x)) (Array.to_list xs))
+      :: projections xs (fun x -> [n;x])
+  | Fapp (For,xs) -> def n (n :: List.map lit (Array.to_list xs))
+      :: projections xs (fun x -> [p;neg x])
+  | Fapp (Fimp,xs) when Array.length xs > 0 ->
+    let last = Array.length xs - 1 in
+    def n (n :: Array.to_list (Array.mapi (fun i x ->
+      if i = last then lit x else neg (lit x)) xs)) ::
+    Array.to_list (Array.mapi (fun i x ->
+      (fun id -> BuildProj (id,p,i)), [p;if i = last then neg (lit x) else lit x]) xs)
+  | Fapp ((Fxor | Fiff | Fite as op),xs) ->
+    let a = lit xs.(0) and b = lit xs.(1) in
+    let d, d2, e, e2 = match op with
+      | Fxor -> [p;a;neg b], [p;neg a;b], [n;a;b], [n;neg a;neg b]
+      | Fiff -> [p;neg a;neg b], [p;a;b], [n;a;neg b], [n;neg a;b]
+      | Fite -> let c = lit xs.(2) in
+        [p;a;neg c], [p;neg a;neg b], [n;a;c], [n;neg a;b]
+      | _ -> assert false in
+    [def p d;def2 p d2;def n e;def2 n e2]
+  | _ -> []
+
+let children a = match Atom.atom a with
+  | Acop _ -> [] | Auop (_,a) -> [a] | Abop (_,a,b) -> [a;b]
+  | Atop (_,a,b,c) -> [a;b;c] | Anop (_,xs) | Aapp (_,xs) -> Array.to_list xs
+let congr_args a b = match Atom.atom a, Atom.atom b with
+  | Auop (o,a), Auop (p,b) when o = p -> Some ([a],[b])
+  | Abop (o,a,b), Abop (p,c,d) when o = p -> Some ([a;b],[c;d])
+  | Aapp (f,xs), Aapp (g,ys) when
+      indexed_op_index f = indexed_op_index g && Array.length xs = Array.length ys ->
+    Some (Array.to_list xs,Array.to_list ys)
+  | _ -> None
+
+let produce ?(limits=default_limits) ~atoms ~forms ~premises ~conclusion () =
+  try
+    if limits.max_clauses <= 0 || limits.max_resolution_pairs < 0 ||
+       limits.max_theory_rounds < 0 || limits.max_terms < 0 || limits.max_formulas < 0 ||
+       limits.max_lia_literals < 0
+    then raise (Fail (Invalid_input "negative/zero search limits"));
+    let initial_forms = Form.pform_tbl forms in
+    let initial_atoms = Atom.to_array atoms None (fun a -> Some a) in
+    let relevant = Hashtbl.create 31 and terms = Hashtbl.create 31 in
+    let remember f =
+      let i = Form.index f in
+      if not (Hashtbl.mem relevant i) then begin
+        if Hashtbl.length relevant >= limits.max_formulas then
+          raise (Fail (Resource_limit "formulas"));
+        Hashtbl.add relevant i (pos f)
+      end in
+    let rec atom a =
+      let i = Atom.index a in
+      if i < 0 || i >= Array.length initial_atoms || initial_atoms.(i) <> Some (Atom.atom a)
+      then raise (Fail (Invalid_input "atom is outside the supplied table"));
+      if not (Hashtbl.mem terms i) then begin
+        if Hashtbl.length terms >= limits.max_terms then
+          raise (Fail (Resource_limit "terms"));
+        Hashtbl.add terms i a; List.iter atom (children a)
+      end in
+    let rec visit f =
+      let i = Form.index f in
+      if i < 0 || i >= Array.length initial_forms || initial_forms.(i) <> Form.pform f
+      then raise (Fail (Invalid_input "formula is outside the supplied table"));
+      if not (Hashtbl.mem relevant i) then begin
+        remember f;
+        match Form.pform f with
+        | Fatom a -> atom a
+        | Fapp (op,xs) ->
+          (match op with
+           | Fxor | Fiff when Array.length xs <> 2 ->
+             raise (Fail (Invalid_input "binary connective arity"))
+           | Fite when Array.length xs <> 3 ->
+             raise (Fail (Invalid_input "ite arity"))
+           | _ -> ()); Array.iter visit xs
+        | FbbT _ -> ()
+      end in
+    let input c =
+      List.iter visit c;
+      let c = List.map lit c in
+      if canonical c <> c then raise (Fail (Invalid_input "noncanonical clause")); c in
+    let pcs = List.map input premises and cc = input conclusion in
+    let roots = pcs @ List.map (fun l -> [neg l]) cc in
+    if List.length roots > limits.max_clauses then raise (Fail (Resource_limit "roots"));
+    let root_claims = List.mapi (fun id c -> id,c) roots in
+    let next = ref (List.length roots) and program = ref [] in
+    let clauses = Hashtbl.create 127 and known = Hashtbl.create 127 in
+    let pending = Queue.create () and units = Queue.create () in
+    let index = Hashtbl.create 127 and pairs = Hashtbl.create 127 in
+    let pair_count = ref 0 in
+    let register id c =
+      Hashtbl.add clauses id c;
+      if not (Hashtbl.mem known c) then Hashtbl.add known c id;
+      Queue.add id (if List.length c = 1 then units else pending) in
+    List.iter (fun (id,c) -> register id c) root_claims;
+    let finish conflict =
+      (* Drop unused search work, but retain EVERY exact root claim. This only
+         slices the local resolution DAG; it never omits a generated inference. *)
+      let needed = Hashtbl.create 31 in
+      Hashtbl.add needed conflict ();
+      let program = List.fold_left (fun acc cmd ->
+        if Hashtbl.mem needed (output cmd.action) then begin
+          List.iter (fun id -> Hashtbl.replace needed id ()) (reads cmd.action);
+          cmd::acc
+        end else acc) [] !program in
+      { capacity = !next;root_claims;program;conflict } in
+    let add mk c =
+      let c = canonical c in
+      if c <> [0] && not (tautology c) && not (Hashtbl.mem known c) then begin
+        if !next >= limits.max_clauses then raise (Fail (Resource_limit "clauses"));
+        let id = !next in incr next;
+        program := {action=mk id;expected=c} :: !program;
+        register id c;
+        if c = [] then raise (Conflict id)
+      end in
+    let resolve_pending () =
+      while not (Queue.is_empty units && Queue.is_empty pending) do
+        let id = Queue.take (if Queue.is_empty units then pending else units) in
+        let c = Hashtbl.find clauses id in
+        if c = [] then raise (Conflict id);
+        List.iter (fun l ->
+          let partners = Stdlib.Option.value ~default:[] (Hashtbl.find_opt index (neg l)) in
+          List.iter (fun other ->
+            let a,b = if id < other then id,other else other,id in
+            if not (Hashtbl.mem pairs (a,b)) then begin
+              if !pair_count >= limits.max_resolution_pairs then
+                raise (Fail (Resource_limit "resolution pairs"));
+              incr pair_count; Hashtbl.add pairs (a,b) ();
+              let ca = Hashtbl.find clauses a and cb = Hashtbl.find clauses b in
+              let result = resolve cb ca in
+              (* A genuine pivot exists; a tautological resolvent is useless.
+                 Match the checker's order, including its fallback behavior. *)
+              if canonical result = result then add (fun p -> Res (p,a,b)) result
+            end) partners) c;
+        List.iter (fun l -> Hashtbl.replace index l
+          (id :: Stdlib.Option.value ~default:[] (Hashtbl.find_opt index l))) c
+      done in
+    let form_list () = Hashtbl.fold (fun _ f acc -> f::acc) relevant []
+      |> List.sort (fun a b -> Int.compare (lit a) (lit b)) in
+    let cnf f = List.iter (fun (mk,c) -> add mk c) (definitions f) in
+    let intern_eq a b =
+      let f = Form.get forms (Fatom (Atom.get atoms
+        (Abop (BO_eq (Atom.type_of a),a,b)))) in
+      remember f; f in
+    let unit_forms () = List.filter_map (fun f ->
+      if Hashtbl.mem known [lit f] then Some f
+      else if Hashtbl.mem known [neg (lit f)] then Some (Form.neg f) else None) (form_list ()) in
+    let theory () =
+      let fs = form_list () in
+      let graph = Hashtbl.create 31 in
+      let edge a b f = Hashtbl.replace graph (Atom.index a)
+        ((b,f)::Stdlib.Option.value ~default:[] (Hashtbl.find_opt graph (Atom.index a))) in
+      List.iter (fun f -> if Form.is_pos f then match eq f with
+        | Some (a,b) -> edge a b f; edge b a f | None -> ()) (unit_forms ());
+      let path a b =
+        if Atom.equal a b then Some [] else
+        let seen = Hashtbl.create 31 and q = Queue.create () in
+        Hashtbl.add seen (Atom.index a) (); Queue.add (a,[]) q;
+        let rec loop () = if Queue.is_empty q then None else
+          let x,rev = Queue.take q in
+          if Atom.equal x b then Some (List.rev rev) else begin
+            List.iter (fun (y,f) -> if not (Hashtbl.mem seen (Atom.index y)) then begin
+              Hashtbl.add seen (Atom.index y) (); Queue.add (y,f::rev) q end)
+              (Stdlib.Option.value ~default:[] (Hashtbl.find_opt graph (Atom.index x)));
+            loop () end in loop () in
+      let trans f path = add (fun p -> EqTr (p,lit f,List.map lit path))
+        (lit f :: List.map (fun f -> neg (lit f)) path) in
+      List.iter (fun f -> match eq f with
+        | Some (a,b) when not (Hashtbl.mem known [lit f]) ->
+          (match path a b with Some es -> trans f es | None -> ())
+        | _ -> ()) fs;
+      let arguments a b = match congr_args a b with
+        | None -> None
+        | Some (xs,ys) ->
+          let rec loop xs ys acc = match xs,ys with
+            | [],[] -> Some (List.rev acc)
+            | a::xs,b::ys when Atom.equal a b -> loop xs ys (None::acc)
+            | a::xs,b::ys -> (match path a b with
+              | None -> None
+              | Some es -> let f = intern_eq a b in trans f es;
+                loop xs ys (Some (lit f)::acc))
+            | _ -> None in loop xs ys [] in
+      let neg_args ls = List.filter_map (Stdlib.Option.map neg) ls in
+      let ts = Hashtbl.fold (fun _ a acc -> a::acc) terms []
+        |> List.sort (fun a b -> Int.compare (Atom.index a) (Atom.index b)) in
+      List.iteri (fun i a -> List.iteri (fun j b ->
+        if i < j && SmtBtype.HashedBtype.equal (Atom.type_of a) (Atom.type_of b) then
+          match arguments a b with
+          | None -> ()
+          | Some es -> let f = intern_eq a b in
+            add (fun p -> EqCgr (p,lit f,es)) (lit f :: neg_args es)) ts) ts;
+      let predicates = List.filter_map (fun f -> match Form.pform f with
+        | Fatom a when eq f = None -> Some (f,a) | _ -> None) fs in
+      List.iter (fun (fa,a) -> List.iter (fun (fb,b) ->
+        if not (Form.equal fa fb) then match arguments a b with
+          | None -> ()
+          | Some es -> add (fun p -> EqCgrP (p,lit fa,lit fb,es))
+              (neg (lit fa) :: lit fb :: neg_args es)) predicates) predicates in
+    let lia_count = ref 0 in
+    let rec lia_form f =
+      incr lia_count;
+      !lia_count <= limits.max_lia_literals && match Form.pform f with
+      | Fatom a -> (match Atom.atom a with
+        | Abop ((BO_Zlt | BO_Zle | BO_Zge | BO_Zgt | BO_eq SmtBtype.TZ),_,_) -> true
+        | _ -> false)
+      | Fapp ((Ftrue | Ffalse | Fand | For),xs) -> Array.for_all lia_form xs
+      | _ -> false in
+    let try_lia c =
+      lia_count := 0;
+      if List.for_all lia_form c then
+        match Lia.build_lia_certif c with
+        | None -> ()
+        | Some proof -> let c = List.map lit c in
+          add (fun p -> LiaMicromega (p,c,proof)) c in
+    let run () =
+      List.iter (fun (id,c) -> if c = [] then raise (Conflict id)) root_claims;
+      (* Keep disjunctive premises whole for Micromega. CNF equivalences below
+         connect each auxiliary disjunction back to its exact root clause. *)
+      let arithmetic_inputs = List.concat premises @ conclusion in
+      lia_count := 0;
+      if List.for_all lia_form arithmetic_inputs then begin
+        let pforms = List.map (function [f] -> f | c ->
+          let f = Form.get forms (Fapp (For,Array.of_list c)) in
+          remember f; f) premises in
+        try_lia (List.map Form.neg pforms @ conclusion)
+      end;
+      List.iter cnf (form_list ());
+      let rec rounds n =
+        resolve_pending ();
+        if n >= limits.max_theory_rounds then raise (Fail (Resource_limit "theory rounds"));
+        let before = !next in
+        theory ();
+        try_lia (List.map Form.neg (List.filter (fun f ->
+          lia_count := 0; lia_form f) (unit_forms ())));
+        if !next = before then raise (Fail Unsupported);
+        rounds (n+1) in rounds 0 in
+    (try run () with Conflict id -> Ok (finish id))
+  with Fail e -> Error e
