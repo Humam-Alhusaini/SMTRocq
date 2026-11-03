@@ -50,6 +50,8 @@ def main():
     parser.add_argument("--baseline", type=Path,
                         default=root / "docs/eunoia/baseline-assumptions.txt")
     parser.add_argument("--output-dir", type=Path)
+    parser.add_argument("--loadpath", nargs=2, action="append", default=[],
+                        metavar=("PATH", "LOGICAL_PREFIX"))
     args = parser.parse_args()
     baseline = {line.strip() for line in args.baseline.read_text().splitlines()
                 if line.strip() and not line.startswith("#")}
@@ -65,18 +67,30 @@ def main():
     if output == root or root in output.parents:
         parser.error("--output-dir must be outside the repository")
     source = output / "AssumptionAudit.v"
-    commands = [f"Require Import {module}." for module in args.imports]
-    commands.append("Set Printing Width 100.")
+    # Resolve user-friendly theorem names inside a local module. Close those
+    # imports before printing, so exported Uint63 aliases cannot hide the
+    # qualified identities of dependencies in the report.
+    commands = [f"Require {module}." for module in args.imports]
+    commands.append("Module EunoiaAuditNames.")
+    commands.extend(f"Import {module}." for module in args.imports)
+    for index, theorem in enumerate(args.theorem):
+        commands.append(f"Definition audited_{index} := @{theorem}.")
+    commands.extend(["End EunoiaAuditNames.", "Set Printing Width 100."])
     paths = []
     for index, theorem in enumerate(args.theorem):
         stem = output / f"assumptions-{index}"
         if '"' in str(stem) or "\n" in str(stem):
             parser.error("output path cannot contain quotes or newlines")
-        commands.append(f'Redirect "{stem}" Print Assumptions {theorem}.')
+        commands.append(f'Redirect "{stem}" Print Assumptions EunoiaAuditNames.audited_{index}.')
         paths.append(stem.with_suffix(".out"))
     source.write_text("\n".join(commands) + "\n")
     command = [str(args.env), "rocq", "c", "-I", str(installed),
-               "-Q", str(theory), "SMTCoq", str(source)]
+               "-Q", str(theory), "SMTCoq"]
+    for path, prefix in args.loadpath:
+        if prefix and not IDENT.fullmatch(prefix):
+            parser.error(f"invalid logical prefix: {prefix!r}")
+        command.extend(["-Q", str(Path(path).resolve()), prefix])
+    command.append(str(source))
     run = subprocess.run(command, cwd=root, text=True, capture_output=True)
     (output / "compiler.log").write_text(run.stdout + run.stderr)
     summary = {"command": command, "compiler_exit_code": run.returncode,

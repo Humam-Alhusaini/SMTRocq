@@ -29,7 +29,7 @@ equivalent isolated wrapper at another location.
 
 The baseline command above passed. A negative control importing
 `Stdlib.Logic.Classical_Prop` and auditing its existing `classic` declaration
-failed, correctly identifying `classic` as an additional
+failed, correctly identifying `Classical_Prop.classic` as an additional
 dependency. Reports are at `/tmp/smtrocq-assumptions-script-check/summary.json`
 and `/tmp/smtrocq-assumptions-script-negative/summary.json` on the build host.
 The control introduces no declarations or assumptions into SMTRocq.
@@ -41,3 +41,10 @@ in for the concrete bridge and tactic lemmas. Audit representative end-to-end
 UF and LIA lemmas too, to catch proof dependencies introduced by the importer.
 This script does not replace the separate diff inspection for proof holes,
 new assumptions or skipped proof steps.
+
+The script resolves theorem names through local imports, then closes their
+scope before printing. It therefore compares fully qualified dependencies even
+when a test module exports short Uint63 aliases; names are not matched merely
+by suffix. Use repeated `--loadpath PATH LOGICAL_PREFIX` options for built test
+theories outside the local install tree. Rebuild those tests after changing
+their dependencies to avoid stale-object consistency errors.
