@@ -98,6 +98,18 @@ let run ~check =
   positive "euf-predicate-congruence" atoms forms [[xy];[p x]] [p y];
   positive "euf-negative-predicate-congruence" atoms forms [[xy];[Form.neg (p x)]] [Form.neg (p y)];
   positive "euf-predicate-iff-conclusion" atoms forms [[xy]] [binary forms Fiff (p x) (p y)];
+  (* Actual cvc5 1.4.2 CPC cong on (= x z) needs the equality predicate's
+     congruence clause even when neither (= x z) nor (= y z) is a unit. *)
+  positive "euf-equality-predicate-congruence" atoms forms [[xy]]
+    [binary forms Fiff xz yz];
+  positive "euf-negative-equality-predicate" atoms forms [[xy];[Form.neg xz]]
+    [Form.neg yz];
+  positive "euf-equality-predicate-local-clause" atoms forms []
+    [Form.neg xy;Form.neg xz;yz];
+  positive "euf-symmetry-iff" atoms forms [] [binary forms Fiff xy yx];
+  positive "euf-disjunctive-congruence-root" atoms forms [[xy;xz]]
+    [equal (f x) (f y);equal (f x) (f z)];
+  negative "euf-nonunit-equality-is-not-assumed" atoms forms [[xy;xz]] [xy];
   negative "euf-predicate-without-equality" atoms forms [[p x]] [p y];
   let other x = symbol atoms 6 [|ty|] ty [x] in
   negative "euf-different-function" atoms forms [[xy]] [equal (f x) (other y)];
