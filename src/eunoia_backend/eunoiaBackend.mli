@@ -24,7 +24,7 @@ val export : ?env:Environ.env -> tables -> SmtAtom.Form.t list -> string
     No solver declarations are imported. *)
 
 val build_refutation :
-  ?limits:EunoiaSolver.limits -> ?fuel:int -> ?sigma:Evd.evar_map -> witness:witness_producer ->
+  ?sigma:Evd.evar_map ref -> ?limits:EunoiaSolver.limits -> ?fuel:int -> witness:witness_producer ->
   Environ.env -> tables -> SmtAtom.Form.t list -> RocqInterface.constr
 (** Returns a checked proof of [~ Forall (C.valid valuation) (map singleton roots)].
     Calls the private solver and elaborates every command. Requires loaded
@@ -32,12 +32,16 @@ val build_refutation :
     and EunoiaScopedAdapter for proofs containing scopes. Scope-free proofs keep
     EunoiaTactic.checker; nested proofs use EunoiaScopedAdapter.checker. Both fix
     the proved multi-operation semantic gate and generated default primitives.
-    Supply [sigma] when the environment contains proof-local universes. *)
+    Supply the actual [sigma] reference when the environment contains proof-local
+    universes; the builder returns typechecking constraints through it. *)
 
 val build_refutation_from_cpc :
-  ?fuel:int -> ?sigma:Evd.evar_map -> witness:witness_producer -> Environ.env -> tables ->
+  ?sigma:Evd.evar_map ref -> ?fuel:int -> witness:witness_producer -> Environ.env -> tables ->
   SmtAtom.Form.t list -> Eunoia_frontend.EunoiaProof.proof -> RocqInterface.constr
-(** Offline replay through exactly the same generated checker and gates. *)
+(** Offline replay through exactly the same generated checker and gates.
+    Proof-local callers should supply their actual [sigma] reference; the
+    explicit proof typecheck preserves that map and returns its constraints
+    through the reference. The tactic also propagates them into Proofview. *)
 
 val tactic :
   ?limits:EunoiaSolver.limits -> ?fuel:int ->

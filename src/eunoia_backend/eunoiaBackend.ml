@@ -156,7 +156,7 @@ let prepare ?(fuel=10000) ~witness env t roots parsed =
       | Some b -> b
       | None ->
         let b = Stdlib.Option.is_some (C.compute_term_option env
-          (C.call "SMTCoq.checker.eunoia.EoArithmetic.normalize" [C.term (E.Symbol s)])) in
+          (C.call "SMTCoq.checker.eunoia.EoArithmetic.EoArithmetic.normalize" [C.term (E.Symbol s)])) in
         Hashtbl.add metadata_literals s b; b in
   let proof = E.elaborate ~signature_names:(C.signature_names env) ~is_metadata_literal
     ~declarations:(declarations t) ~roots:root_terms ~derive ~derive_assuming parsed in
@@ -287,16 +287,19 @@ let prepare ?(fuel=10000) ~witness env t roots parsed =
        trace;mkint proof.conflict];diagnose;
      checker_api=(if has_scopes then scoped else tactic_api)})
 
-let refutation ?sigma env p =
+let refutation env sigma p =
   let args = p.common_args @ [p.roots_arg] @ p.tail_args in
   let accepted = C.checked_true ~on_failure:p.diagnose env (C.call (p.checker_api "checker") args) in
   let proof = C.call (p.checker_api "checker_correct") (args @ [accepted]) in
-  let sigma = match sigma with Some sigma -> sigma | None -> Evd.from_env env in
-  ignore (Typing.type_of env sigma (EConstr.of_constr proof));
-  proof
+  let sigma, _ = Typing.type_of env sigma (EConstr.of_constr proof) in
+  proof,sigma
 
-let build_refutation_from_cpc ?fuel ?sigma ~witness env t roots parsed =
-  refutation ?sigma env (prepare ?fuel ~witness env t roots parsed)
+let build_refutation_from_cpc ?sigma ?fuel ~witness env t roots parsed =
+  let sigma = match sigma with Some sigma -> sigma | None -> ref (Evd.from_env env) in
+  let env = Environ.push_context_set (Evd.universe_context_set !sigma) env in
+  let proof, checked_sigma = refutation env !sigma (prepare ?fuel ~witness env t roots parsed) in
+  sigma := checked_sigma;
+  proof
 
 let tactic_using produce ?fuel ?(preprocess=Tactics.intros) ~witness ?(lemmas=[]) () =
   R.tclTHEN preprocess (R.mk_tactic (fun env sigma goal ->
@@ -341,7 +344,7 @@ let tactic_using produce ?fuel ?(preprocess=Tactics.intros) ~witness ?(lemmas=[]
         let proof = C.call (prepared.checker_api (name ^ "_correct")) (args @ [accepted]) in
         Tactics.exact_check (EConstr.of_constr proof)
       end else begin
-      let refutation = refutation ~sigma env prepared in
+      let refutation, checked_sigma = refutation env sigma prepared in
       let tables = prepared.table_args in
       let rho = C.call (local "valuation") tables in
       let valid = C.call (state "C.valid") [rho] in
@@ -373,15 +376,18 @@ let tactic_using produce ?fuel ?(preprocess=Tactics.intros) ~witness ?(lemmas=[]
       let not_false = R.mkLambda(R.mkName "eunoia_false",hty,contradiction) in
       let is_true = C.call (std "Bool.Bool.not_false_is_true") [eqb;not_false] in
       let proof = C.call (std "Bool.Bool.eqb_prop") [a;b;is_true] in
-      Tactics.exact_check (EConstr.of_constr proof)
+      R.tclTHEN (Proofview.Unsafe.tclEVARS checked_sigma)
+        (Tactics.exact_check (EConstr.of_constr proof))
       end
     with
     | EunoiaSolver.Error s | E.Error s | Failure s | Invalid_argument s ->
       R.raise_error "Eunoia: %s" s))
 
-let build_refutation ?limits ?fuel ?sigma ~witness env t roots =
+let build_refutation ?sigma ?limits ?fuel ~witness env t roots =
+  let env = match sigma with None -> env | Some sigma ->
+    Environ.push_context_set (Evd.universe_context_set !sigma) env in
   let parsed = EunoiaSolver.run ?limits (export ~env t roots) in
-  build_refutation_from_cpc ?fuel ?sigma ~witness env t roots parsed
+  build_refutation_from_cpc ?sigma ?fuel ~witness env t roots parsed
 
 let tactic ?limits = tactic_using (fun env t roots ->
   EunoiaSolver.run ?limits (export ~env t roots))

@@ -42,3 +42,12 @@ Section MissingInstance.
     intros H; now subst.
   Qed.
 End MissingInstance.
+
+(* A live UF benchmark over integer carriers. The mixed arithmetic/UF
+   normalization case is in unit-tests/eunoia_lia.v. *)
+From Stdlib Require Import ZArith.
+Local Open Scope Z_scope.
+Lemma backend_uf_integer_carrier (x y z : Z) (f : Z -> Z) :
+  (x =? y) && (y =? z) && negb (f x =? f z) = false.
+Proof. cvc5_eunoia. Qed.
+Print Assumptions backend_uf_integer_carrier.
