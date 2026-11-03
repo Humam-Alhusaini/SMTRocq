@@ -137,7 +137,7 @@ doing Computations in Commutative Algebra, available here:
   https://cocoa.altervista.org/cocoalib/index.shtml
 
 
-cvc5 can be optionally configured to link against Normaliz, a C++ library for 
+cvc5 can be optionally configured to link against Normaliz, a C++ library for
 computing the Hilbert bases and enumerative data of rational cones and
 sets of lattice points in rational polyhedra, available here:
 

@@ -15,4 +15,6 @@ an excluded rule cannot execute.
 
 Copied read-only from the private matching cvc5 source installation at
 `/home/charles/code/friends/.toolchains/cvc5-1.4.2/cvc5-cvc5-1.4.2/proofs/eo/cpc/`.
-The upstream copyright/license is retained in `COPYING`.
+The upstream copyright/license is retained in `COPYING`; one trailing space
+on its Normaliz description line was removed. Its wording is unchanged. All
+35 proof signature files retain their original bytes and recorded hashes.
