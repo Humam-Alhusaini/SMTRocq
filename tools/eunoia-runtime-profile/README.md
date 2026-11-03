@@ -12,6 +12,8 @@ PYTHONDONTWRITEBYTECODE=1 python3 tools/eunoia-runtime-profile/profile.py \
 PYTHONDONTWRITEBYTECODE=1 python3 tools/eunoia-runtime-profile/profile.py \
   --output /tmp/runtime-after --repeats 10 --rounds 3 \
   --refinement tools/eunoia-runtime-profile/SurfaceOutRefinement.v
+PYTHONDONTWRITEBYTECODE=1 python3 tools/eunoia-runtime-profile/compare.py \
+  /tmp/runtime-before /tmp/runtime-after --output /tmp/runtime-comparison
 EUNOIA_KEEP_TEST_DIR=1 tools/eunoia/check-generated.sh
 ```
 
@@ -45,6 +47,12 @@ only immutable VM bytecode is shared. Odd rounds reverse fixture order.
 Every exported fixture example prints its assumptions on every round, and the
 first round is also checked independently with recursive `rocq check`. Later
 rounds have the same examples, so only their `Qed` checking is repeated.
+
+`compare.py` requires successful runs, matching fixture bytes/counts, identical
+timing source files, matching non-runtime module hashes, compiler versions,
+repetition counts and round counts. It emits per-round and median CPU totals in
+JSON, a Markdown table and a self-contained HTML chart. The timing totals use
+user plus system CPU time; they are not elapsed wall time.
 
 `SurfaceOutRefinement.v` retains the previous surface conversion function and
 proves pointwise equality with the optimized runtime for **all** nil queries,

@@ -301,20 +301,23 @@ Fixpoint surface_out_with (nilof : nil_query) (typeof : term -> option term) (fu
           | _, _ => None
           end
         end in
-      match hd with
-      | Symbol name =>
-          match (match xs with [] => named name ops | x :: _ =>
-            match surface_out_with nilof typeof k ops x with
-            | Some y => nilof name (typeof y) | None => None end end), xs with
-          | Some terminator, _ :: _ =>
-              match list_elements hd terminator t with
-              | Some ys => option_map (apply_many hd) (visit ys)
-              | None => None
+      match hd, xs with
+      | Symbol name, [] => Some hd
+      | Symbol name, x :: tl =>
+          match surface_out_with nilof typeof k ops x with
+          | None => None
+          | Some y =>
+              match nilof name (typeof y) with
+              | Some terminator =>
+                  match list_elements hd terminator t with
+                  | Some ys => option_map (apply_many hd) (visit ys)
+                  | None => None
+                  end
+              | None => if nil_known nilof name then None else
+                  option_map (fun ys => apply_many hd (y :: ys)) (visit tl)
               end
-          | None, _ :: _ => if nil_known nilof name then None else option_map (apply_many hd) (visit xs)
-          | _, _ => option_map (apply_many hd) (visit xs)
           end
-      | _ => None
+      | _, _ => None
       end
   end.
 
