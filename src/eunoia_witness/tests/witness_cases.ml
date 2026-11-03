@@ -62,6 +62,10 @@ let run ~check =
     [[a;b];[a;Form.neg b];[Form.neg a;b];[Form.neg a;Form.neg b]] [];
   negative "invalid-and-projection" atoms forms [[or_ab]] [and_ab];
   positive "false-refutation" atoms forms [[Form.get forms Form.pform_false]] [];
+  let true_form = Form.get forms Form.pform_true in
+  positive "singleton-true" atoms forms [] [true_form];
+  positive "boolean-equality-to-true" atoms forms []
+    [binary forms Fiff (binary forms Fiff a true_form) a];
   negative ~limits:{Search.default_limits with max_clauses=1}
     "clause-budget" atoms forms [[a]] [a];
   negative ~limits:{Search.default_limits with max_resolution_pairs=0}
@@ -122,7 +126,7 @@ let check_shape _name _atoms _forms _premises _conclusion (w:Certificate.witness
   List.iter (fun (id,c) -> load id c) w.root_claims;
   List.iter (fun cmd ->
     List.iter (fun id -> assert (Hashtbl.mem live id)) (Certificate.reads cmd.Certificate.action);
-    assert (cmd.expected <> [0]);
+    assert (cmd.expected <> [0] || (match cmd.action with Certificate.CTrue _ -> true | _ -> false));
     (match cmd.action with
      | Certificate.Res (_,a,b) ->
        assert (cmd.expected = Certificate.resolve (Hashtbl.find live b) (Hashtbl.find live a))

@@ -171,9 +171,14 @@ Example unknown_operation_after_conflict : check [[4];[6]] [8]
     (trans_program ++ [Command (Checker_Ext.BBVar 7 4) [4]]) 6) = false.
 Proof. vm_compute; reflexivity. Qed.
 
-Example true_operation_rejected : check [[4];[6]] [8]
+Example dedicated_true_operation : check [[4];[6]] [8]
   (Witness 8 trans_claims
-    (Command (Checker_Ext.CTrue 7) C._true :: trans_program) 6) = false.
+    (Command (Checker_Ext.CTrue 7) C._true :: trans_program) 6) = true.
+Proof. vm_compute; reflexivity. Qed.
+
+Example singleton_true_conclusion : check [] C._true
+  (Witness 3 [(0, [1])]
+    [Command (Checker_Ext.CTrue 1) C._true; resolve 2 0 1 []] 2) = true.
 Proof. vm_compute; reflexivity. Qed.
 
 Example euf_fallback_even_with_true_expectation : check [[4];[6]] [8]

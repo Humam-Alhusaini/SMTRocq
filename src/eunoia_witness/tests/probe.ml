@@ -42,7 +42,8 @@ let check name atoms forms premises conclusion w =
   (match w.program with
    | [] -> ()
    | cmd::rest ->
-     if eval premises conclusion {w with program={cmd with expected=[0]}::rest} then
+     let changed = if cmd.expected = [] then [0] else [] in
+     if eval premises conclusion {w with program={cmd with expected=changed}::rest} then
        failwith (name ^ ": gate accepted altered expected clause"));
   (* Keep the candidate fixed, but change the implication's premises. *)
   if premises <> [] && eval (List.tl premises) conclusion w then

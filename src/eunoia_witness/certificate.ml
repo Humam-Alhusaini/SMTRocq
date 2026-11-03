@@ -11,6 +11,7 @@ type lia_proof = RocqInterface.Micromega_plugin_Certificate.Mc.zArithProof list
 type action =
   | Res of clause_id * clause_id * clause_id
   | CFalse of clause_id
+  | CTrue of clause_id
   | BuildDef of clause_id * literal
   | BuildDef2 of clause_id * literal
   | BuildProj of clause_id * literal * int
@@ -27,7 +28,7 @@ type witness = {
 }
 
 let output = function
-  | Res (p,_,_) | CFalse p | BuildDef (p,_) | BuildDef2 (p,_)
+  | Res (p,_,_) | CFalse p | CTrue p | BuildDef (p,_) | BuildDef2 (p,_)
   | BuildProj (p,_,_) | EqTr (p,_,_) | EqCgr (p,_,_)
   | EqCgrP (p,_,_,_) | LiaMicromega (p,_,_) -> p
 let reads = function Res (_,a,b) -> [a;b] | _ -> []
@@ -61,6 +62,7 @@ let to_coq ~local ~step w =
     | Res (p,a,b) -> app (step "Res")
         [int p; mkArray (ty, [|int a;int b;int 0|])]
     | CFalse p -> app (step "CFalse") [int p]
+    | CTrue p -> app (step "CTrue") [int p]
     | BuildDef (p,l) -> app (step "BuildDef") [int p;int l]
     | BuildDef2 (p,l) -> app (step "BuildDef2") [int p;int l]
     | BuildProj (p,l,i) -> app (step "BuildProj") [int p;int l;int i]

@@ -75,7 +75,7 @@ should impose a process-level timeout and reject a timed-out inference.
 term, including the native Micromega proof terms via the existing
 `RocqInterface.micromega_dump_proof_term`. `local` resolves `Witness`, `Command`,
 and `command` in the actual loaded `EunoiaLocal` module. `step` resolves `Res`,
-`CFalse`, `BuildDef`, `BuildDef2`, `BuildProj`, `EqTr`, `EqCgr`, `EqCgrP`, and
+`CFalse`, `CTrue`, `BuildDef`, `BuildDef2`, `BuildProj`, `EqTr`, `EqCgr`, `EqCgrP`, and
 `LiaMicromega` in the actual `Checker_Ext` module. These callbacks only resolve
 constructors; they do not decide whether a command is valid.
 
@@ -87,7 +87,8 @@ and default zero. `CoqTerms.mkArray` takes an OCaml array whose final entry is
 the default, so its input has three entries. The existing resolution checker
 computes `C.resolve clause_b clause_a`; its first numeric complementary pair
 determines the pivot. The producer mirrors that order, and never emits an
-operation predicted to return `C._true` (`[0]`).
+operation predicted to return `C._true` (`[0]`), except the dedicated proved
+`CTrue` operation. Other operations still reject that failure fallback.
 
 All tables must be serialized after search and passed unchanged to the gate.
 The backend still owns generated derivation validation, premise lookup/order,
@@ -121,9 +122,9 @@ Coverage remains incomplete. EUF propagation uses unit equality paths and does
 not implement theory splitting for arbitrary nonunit EUF clauses. Search can
 exhaust its budgets on a valid inference. Quantifiers, arrays, BV rules,
 distinct elimination, `Fnot2` flattening, and Boolean equality/form bridges are
-not implemented. A proof needing the singleton true axiom cannot currently
-use it: this gate rejects `C._true` outputs, including the ordinary `CTrue`
-result. Such cases fail closed. Backend integration and CPC fixture-wide
+not implemented. The dedicated `CTrue` path now supports singleton-true
+proofs and Boolean equality-to-true rewrites; all other tautology fallbacks
+remain rejected. Backend integration and CPC fixture-wide
 coverage remain the coordinator's work.
 
 No Rocq soundness lemmas or assumptions are added by this library. The copied

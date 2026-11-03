@@ -12,6 +12,7 @@ type lia_proof =
 type action =
   | Res of clause_id * clause_id * clause_id
   | CFalse of clause_id
+  | CTrue of clause_id
   | BuildDef of clause_id * literal
   | BuildDef2 of clause_id * literal
   | BuildProj of clause_id * literal * int

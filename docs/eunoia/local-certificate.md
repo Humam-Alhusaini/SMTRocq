@@ -123,12 +123,13 @@ This is a switch over existing SMTCoq semantic checker operations, not a CPC
 rule evaluator. A witness can compose several operations to establish one
 CPC result that is not directly produced by any single small checker.
 
-The actual output of EVERY command must differ from `C._true`. Existing
-small-checker failures return that clause. This deliberately also rejects a
-legitimate operation whose result normalizes to `C._true`; no tautology fallback
-is accepted as evidence. Resolution arrays must have length two so every
+The output of every command except the dedicated `CTrue` operation must differ
+from `C._true`. Existing small-checker failures return that clause. `CTrue`
+is separately recognized and must produce exactly its proved singleton-true
+clause. This permits Boolean constant proofs without accepting a failed EUF,
+CNF or resolution operation as a tautology. Resolution arrays must have length two so every
 individual resolution link is exposed to this check. Longer chains must use
-separate fresh binary operations. Unsupported shapes, including `CTrue`, all
+separate fresh binary operations. Unsupported shapes, including all
 BV operations and array operations, return `None`. `Checker_Ext.step` contains
 neither proof-carrying `Hole` nor `ForallInst`; these cannot be constructed as
 commands. There is no witness-cut field.

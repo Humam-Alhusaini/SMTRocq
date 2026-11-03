@@ -42,6 +42,7 @@ let definitions f =
   let projections xs mk = Array.to_list (Array.mapi (fun i x ->
       (fun id -> BuildProj (id,p,i)), mk (lit x)) xs) in
   match Form.pform f with
+  | Fapp (Ftrue,_) -> [(fun id -> CTrue id), [0]]
   | Fapp (Ffalse,_) -> [(fun id -> CFalse id), [3]]
   | Fapp (Fand,xs) -> def p (p :: List.map (fun x -> neg (lit x)) (Array.to_list xs))
       :: projections xs (fun x -> [n;x])
@@ -148,7 +149,8 @@ let produce ?(limits=default_limits) ~atoms ~forms ~premises ~conclusion () =
       { capacity = !next;root_claims;program;conflict } in
     let add mk c =
       let c = canonical c in
-      if c <> [0] && not (tautology c) && not (Hashtbl.mem known c) then begin
+      let explicit_true = match mk !next with CTrue _ -> true | _ -> false in
+      if (c <> [0] || explicit_true) && not (tautology c) && not (Hashtbl.mem known c) then begin
         if !next >= limits.max_clauses then raise (Fail (Resource_limit "clauses"));
         let id = !next in incr next;
         program := {action=mk id;expected=c} :: !program;

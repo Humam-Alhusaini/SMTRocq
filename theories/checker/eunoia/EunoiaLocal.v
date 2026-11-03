@@ -138,6 +138,15 @@ Record witness := Witness {
   conflict : clause_id
 }.
 
+(* A dedicated CTrue operation has a proved successful singleton-true result.
+   Every other operation must still distinguish its result from the failure
+   fallback, even when the requested conclusion is itself a tautology. *)
+Definition result_supported (a : Checker_Ext.step) (c : C.t) : bool :=
+  match a with
+  | Checker_Ext.CTrue _ => clause_eqb c C._true
+  | _ => negb (clause_eqb c C._true)
+  end.
+
 Section Context.
   Variable t_i : array CompDec.typ_compdec.
   Variable t_func : array (Atom.tval t_i).
@@ -172,6 +181,8 @@ Section Context.
       Some (Plan [id] pos [l] (@Euf_Checker.ImmFlatten _ _ _ _ pos id l))
     | Checker_Ext.CFalse pos =>
       Some (Plan [] pos [] (@Euf_Checker.CFalse _ _ _ _ pos))
+    | Checker_Ext.CTrue pos =>
+      Some (Plan [] pos [] (@Euf_Checker.CTrue _ _ _ _ pos))
     | Checker_Ext.BuildDef pos l =>
       Some (Plan [] pos [l] (@Euf_Checker.BuildDef _ _ _ _ pos l))
     | Checker_Ext.BuildDef2 pos l =>
@@ -213,7 +224,7 @@ Section Context.
         let s' := Euf_Checker.step_checker (clauses m) (semantic_step p) in
         let result := S.get s' (output p) in
         if clause_wf (PArray.length t_form) (expected cmd) &&
-           clause_eqb result (expected cmd) && negb (clause_eqb result C._true)
+           clause_eqb result (expected cmd) && result_supported (action cmd) result
         then Some (Machine s' (output p :: live m)) else None
       else None
     end.
@@ -251,7 +262,7 @@ Section Context.
       m' = Machine (Euf_Checker.step_checker (clauses m) (semantic_step p))
                     (output p :: live m) /\
       S.get (clauses m') (output p) = expected cmd /\
-      clause_eqb (S.get (clauses m') (output p)) C._true = false.
+      result_supported (action cmd) (S.get (clauses m') (output p)) = true.
   Proof.
     intros m cmd m' H; unfold execute in H.
     destruct (decode (action cmd)) as [p| ] eqn:Hd; try discriminate.
@@ -262,13 +273,13 @@ Section Context.
       clause_eqb
         (S.get (Euf_Checker.step_checker (clauses m) (semantic_step p)) (output p))
         (expected cmd) &&
-      negb (clause_eqb
+      result_supported (action cmd)
         (S.get (Euf_Checker.step_checker (clauses m) (semantic_step p)) (output p))
-        C._true)) eqn:Hr; try discriminate.
+        ) eqn:Hr; try discriminate.
     inversion H; subst; clear H; simpl.
     rewrite !andb_true_iff in Hg, Hr.
     destruct Hg as [[Hreads Hfresh] _]; destruct Hr as [[_ Heq] Hfallback].
-    apply clause_eqb_spec in Heq; apply negb_true_iff in Hfallback.
+    apply clause_eqb_spec in Heq.
     exists p; repeat split; assumption.
   Qed.
 
