@@ -1,7 +1,8 @@
 # cvc5 / Eunoia implementation milestones
 
-Status: implementation in progress. This document does not claim an operational
-backend or a completed soundness proof.
+Status: implementation in progress. A checked `cvc5_eunoia` tactic runs on two
+live smoke goals; meaningful UF/LIA coverage and the acceptance benchmarks are
+still incomplete.
 
 ## Required outcome
 
@@ -99,3 +100,51 @@ comments and optimization suggestions. The old-backend measurements and their
 limits are retained at `/tmp/smtrocq-eunoia-baseline-20261103-946ad9fd/report.txt`.
 The local PR draft at the requested path has been updated with these milestones,
 the measured baseline table, and explicit unfinished completion requirements.
+
+## Live integration milestone
+
+The public `cvc5_eunoia` tactic now invokes the private cvc5 1.4.2 runner,
+strictly reads CPC output, computes generated conclusions, constructs local
+certificates, and applies the concrete reflective checker correctness theorem.
+`unit-tests/eunoia_tactics.v` contains live integer reflexivity and function
+congruence proofs and two false-goal rejection controls. The audit in
+`/tmp/smtrocq-two-live-goal-assumptions/summary.json` passed for both exported
+proofs without additional assumptions. This is a smoke milestone, not the
+required meaningful QF_UF/QF_LIA suite.
+
+The merged runtime currently generates 30 rules and 34 helpers from the pinned
+35-file signature closure. The multi-operation semantic gate checks every
+generated result against its exact premises. Its explicit `CTrue` operation
+can certify the true clause; all other operations still reject that clause as
+a checker fallback. Equality reification preserves source operand order.
+
+Exact arithmetic literal primitives and the concrete generated scoped adapter
+have been merged. Their 133 and 59 computation examples respectively are now
+registered in the test alias. The arithmetic module is not yet wired into
+generated arithmetic computation, and the production backend still rejects
+scoped proofs. The backend replay suite is also registered: four checked replay
+proofs plus a live proof, with invalid output, an invalid semantic certificate,
+and an invalid unused step rejected before that live proof succeeds.
+
+The integrated build command was:
+
+```sh
+/home/charles/code/friends/.toolchains/smtrocq-env dune build -j2 @install \
+  src/eunoia_backend/tests/integration/Proof.vo \
+  theories/checker/eunoia/EoArithmeticTests.vo \
+  theories/checker/eunoia/EunoiaScopedAdapterTests.vo
+```
+
+It exited 0; output is in `/tmp/smtrocq-integrated-arithmetic-scope-build.log`.
+The three scoped checker correctness theorems and the new live/rejection replay
+theorem passed the integrated assumption audit in
+`/tmp/smtrocq-scoped-replay-integrated-assumptions/summary.json`.
+
+The first new-backend benchmark is a development diagnostic, retained in
+`/tmp/smtrocq-first-cvc5-eunoia-live-benchmark/`. Only one of twelve positive
+cases checked; both false controls were rejected. The remaining cases expose
+missing generated arithmetic normalization, Boolean implication, metadata
+syntax/type queries, and scope integration. No performance or competitive
+coverage claim follows from this run. In particular, the nominal UF benchmark
+cases use integer carriers and can invoke arithmetic normalization in cvc5;
+an abstract-carrier UF suite is still needed.

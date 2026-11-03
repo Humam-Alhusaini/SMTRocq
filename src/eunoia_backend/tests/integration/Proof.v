@@ -18,13 +18,11 @@ Lemma replay_false (p:bool) : negb (Bool.eqb p p) = false.
 Proof. backend_replay. Qed.
 Print Assumptions replay_false.
 
-Goal forall p:bool, p = p.
+Lemma checked_rejections_and_live (p:bool) : p = p.
 Proof.
-  intros p.
   Fail backend_corrupted.
   Fail backend_bad_gate.
   Fail backend_bad_unused.
-  (* The initial generated fragment lacks cvc5's evaluate rule. *)
-  Fail backend_live.
-  backend_replay.
+  backend_live.
 Qed.
+Print Assumptions checked_rejections_and_live.

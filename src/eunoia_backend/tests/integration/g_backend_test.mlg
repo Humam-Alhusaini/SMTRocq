@@ -58,6 +58,14 @@ let bad_unused () =
     "(step b :rule refl :args (op_0))(step unused :rule refl :args (op_0))" ^
     "(step c false :rule contra :premises (b a))")) ~witness:produce ()
 let bad_gate () = B.tactic_from_cpc (parse text) ~witness:corrupt_witness ()
+let production_witness ~atoms ~forms ~premises ~conclusion =
+  match Eunoia_witness.Search.produce ~atoms ~forms ~premises ~conclusion () with
+  | Error error -> Error (Eunoia_witness.Search.string_of_failure error)
+  | Ok candidate -> Ok (Eunoia_witness.Certificate.to_coq
+      ~local:(fun name -> C.global
+        ("SMTCoq.checker.eunoia.EunoiaLocal.EunoiaLocal." ^ name))
+      ~step:(fun name -> C.global
+        ("SMTCoq.checker.MainChecker.Checker_Ext." ^ name)) candidate)
 let with_lemma () = B.tactic_from_cpc
   (parse (prefix ^ "(assume h op_0)" ^ suffix)) ~witness
   ~lemmas:[RocqInterface.mkVar (RocqInterface.mkId "hp")] ()
@@ -68,5 +76,5 @@ TACTIC EXTEND Backend_replay
 | [ "backend_bad_unused" ] -> { bad_unused () }
 | [ "backend_bad_gate" ] -> { bad_gate () }
 | [ "backend_with_lemma" ] -> { with_lemma () }
-| [ "backend_live" ] -> { B.tactic ~witness () }
+| [ "backend_live" ] -> { B.tactic ~witness:production_witness () }
 END
