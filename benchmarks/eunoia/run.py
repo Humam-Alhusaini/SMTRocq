@@ -240,6 +240,13 @@ def main():
                   "{n: shutil.which(n) for n in ['rocq','ocamlc','dune','veriT','cvc4','cvc5','lean','lake','isabelle']}, "
                   "'environment': {n: os.getenv(n) for n in ['PATH','OPAMROOT','OPAM_SWITCH_PREFIX','LFSCSIGS']}}))"],
     }
+    if "cvc5_eunoia" in args.backends:
+        # The new backend uses its pinned private executable, independently of
+        # the older cvc5 retained on PATH for the existing abduction backend.
+        probes["cvc5_eunoia_toolchain"] = [str(wrapper), "python3", "-B",
+            str(REPO / "scripts/eunoia/verify_toolchain.py")]
+        backend_source = REPO / "src/eunoia_backend/eunoiaSolver.ml"
+        metadata["eunoia_solver_source_sha256"] = sha256(backend_source)
     for name, command in probes.items():
         result, diagnostic = record_command(command, REPO, 30, output / "metadata" / name)
         metadata["tools"][name] = result | {"output": diagnostic}
@@ -249,6 +256,11 @@ def main():
         metadata["executable_sha256"] = {n: sha256(Path(p)) for n, p in binaries.items()
                                           if p and Path(p).is_file()}
     write_json(output / "metadata.json", metadata)
+    private = metadata["tools"].get("cvc5_eunoia_toolchain")
+    if private and (private["exit_code"] != 0 or private["timeout"]):
+        print("Private cvc5 toolchain verification failed; see metadata/cvc5_eunoia_toolchain/output.log",
+              file=sys.stderr)
+        return 2
     if not args.skip_build:
         build, _ = record_command([str(wrapper), "dune", "build", f"-j{args.jobs}", "theories"],
                                   REPO, args.build_timeout, output / "build")
