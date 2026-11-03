@@ -37,7 +37,8 @@ Proof. cvc5_eunoia. Qed.
 
 The current fragment covers tested UF and integer arithmetic goals; unsupported
 source rules and exhausted certificate search reject. Broader coverage and
-performance work are in progress. See the [implementation status](docs/eunoia/implementation-plan.md),
+performance work are in progress. See the [backend guide](docs/eunoia/README.md),
+[implementation status](docs/eunoia/implementation-plan.md),
 [private solver setup and provenance](scripts/eunoia/README.md),
 [signature regeneration](tools/eunoia/README.md), and
 [checked benchmark protocol](benchmarks/eunoia/README.md).

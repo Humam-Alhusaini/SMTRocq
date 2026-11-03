@@ -1,0 +1,153 @@
+# cvc5 / Eunoia development backend
+
+`cvc5_eunoia` exports a reified Rocq goal to the private cvc5 solver, reads its
+CPC proof, evaluates every inference through a signature-generated Rocq
+interpreter, checks a semantic certificate for every inference, and applies a
+proved goal-checker correctness lemma. It uses SMTCoq's existing SMT-LIB
+interpretation and CNF/EUF/LIA checkers.
+
+The functional suites contain 22 public UF proofs and 15 integer/mixed proofs,
+with false-goal and corrupted-proof controls. They have passed compilation and
+baseline assumption audits. Final composed performance acceptance is still in
+progress: larger valid benchmark goals exceed the current 30-second compiler
+limit. This is an experimental backend, with explicitly bounded coverage.
+
+## Build and use
+
+All local dependencies are isolated. The development wrapper is
+`/home/charles/code/friends/.toolchains/smtrocq-env`; it selects Rocq 9.3.0,
+OCaml 4.14.2 and the project dependencies. From the repository root:
+
+```sh
+/home/charles/code/friends/.toolchains/smtrocq-env dune build -j2
+/home/charles/code/friends/.toolchains/smtrocq-env dune runtest -j2
+```
+
+The solver runner selects private cvc5 1.4.2 explicitly, independently of the
+older cvc5 on the existing backend's PATH. See
+[the toolchain manifest and offline verification](../../scripts/eunoia/README.md)
+for its paths, archive pins and matching signature files. The scripts verify
+an existing installation; they do not install system packages.
+
+```coq
+From SMTCoq Require Import SMTCoq.
+From Stdlib Require Import ZArith.
+Local Open Scope Z_scope.
+
+Lemma congruence :
+  forall (A : Type) (HA : CompDec A) (f : A -> A) (x y : A),
+    x = y -> f x = f y.
+Proof. cvc5_eunoia. Qed.
+
+Lemma bounds (x : Z) : x <= 0 -> x >= 1 -> False.
+Proof. cvc5_eunoia. Qed.
+```
+
+Ordinary local hypotheses are included by the existing preprocessing. The
+solver-specific tactic also accepts supplied hypotheses, for example
+`cvc5_eunoia (Hxy, Hyz)`. Every uninterpreted carrier, including intermediate
+function-result sorts, needs an existing `CompDec` instance. The tactic reuses
+those proof terms and rejects unresolved instance cuts.
+
+The default `smt` strategy is unchanged. The new backend is selected explicitly
+with `cvc5_eunoia`.
+
+## Signature generation
+
+The committed signature is cvc5 1.4.2's complete 35-file CPC include closure.
+The compiler follows its declarations, patterns, binder types, ordered helper
+cases, requirements, aliases and computed conclusions. Selection in
+`tools/eunoia/rules.txt` currently includes 49 rules and 53 helpers; the manifest
+lists all source hashes and 560 excluded rules. There is no rule-name-dependent
+execution switch implementing the selected CPC inferences.
+
+```sh
+python3 tools/eunoia/regenerate.py
+EUNOIA_KEEP_TEST_DIR=1 tools/eunoia/check-generated.sh
+```
+
+Regeneration updates `theories/checker/eunoia/CpcGenerated.v` and
+`tools/eunoia/cpc-manifest.json`. Validation checks deterministic regeneration,
+42 Python tests, source/helper/guard mutations, all 994 steps in 29 actual
+original/reduced solver captures, and independent kernel checks. These fixture
+replays establish source computation coverage; semantic proof acceptance uses
+the additional gate described below. See the [compiler interface](../../tools/eunoia/INTERFACE.md)
+and [integer-tightening capture](../../tools/eunoia/STRICT-SHIFT-VALIDATION.md).
+
+The runtime's argument-conversion optimization has a pointwise refinement proof
+for arbitrary fuel, nil/type queries, operator lists and terms. Both lemmas are
+closed under the global context, and
+`tools/eunoia-runtime-profile/SurfaceOutRefinement.vo` is a normal build/test target.
+
+## Checked data flow
+
+```mermaid
+flowchart TD
+    Goal[Original Rocq goal and actual hypothesis proofs] --> Reify[Existing SMTCoq preprocessing and reification]
+    Reify --> Tables[Authoritative State / Atom / Form tables and roots]
+    Reify --> Solver[Private cvc5 CPC output]
+    Solver --> Reader[Strict reader and scoped elaboration]
+    Signature[Pinned CPC .eo signature] --> Generator[Signature compiler]
+    Generator --> Generated[Generated Rocq rules and helper programs]
+    Reader --> Steps[Every source step and ordered premises]
+    Generated --> Syntax[Generated evaluation and syntax binding]
+    Steps --> Syntax
+    Tables --> Syntax
+    Steps --> Search[Untrusted local certificate search]
+    Search --> Gate[Existing checked CNF / EUF / LIA operations]
+    Tables --> Gate
+    Syntax --> Trace[Reflective trace and scope checker]
+    Gate --> Trace
+    Trace --> Correctness[Concrete checker_b / checker_eq correctness]
+    Goal --> Correctness
+    Correctness --> Kernel[Checked proof installed in Rocq]
+```
+
+The strict reader resolves visible premise identities and rejects future,
+missing and expired references. Every source command is processed, including
+unused steps and steps following a conflict. Roots come from the actual goal
+and hypothesis proof terms. The source assumptions must match their ordered
+export or its stable first-occurrence projection for duplicate assertions;
+all authoritative roots and root claims remain in the checker.
+
+`EunoiaAdapter` binds each ordered premise and result to the authoritative
+tables and reruns the actual generated rule computation. N-ary integer `+`/`*`
+use a checked deterministic right-fold representation preserving operand order,
+duplicates and existing binary subtrees. Explicit negations and signed literal
+spellings remain represented. See the [exact binding contract](adapter-interface.md).
+
+For each inference, `EunoiaLocal` checks a refutation of the exact premise
+clauses plus negated conclusion. It preserves disjunctive premises, checks live
+reads, bounds, fresh outputs and every expected intermediate clause, and
+rejects failure fallbacks. Candidate search cannot authorize a clause. The
+scoped checker uses the actual pushed literal and endpoint, checks the guarded
+consequence, and restores parent state so local facts expire. See
+[the local gate](local-certificate.md) and [the scoped backend](scoped-backend.md).
+
+The fixed concrete correctness wrappers use the existing interpretation.
+The tactic installs the complete proof with `Tactics.exact_check`; `Qed` and
+independent `rocq check` validate its term. Parser success, an `unsat` answer,
+native search success and generated syntax computation are not proof acceptance.
+
+## Evidence and limits
+
+Current commands, revision pins and remaining milestones are recorded in
+[the implementation plan](implementation-plan.md). The [UF report](uf-live-coverage.md)
+and [LIA report](lia-live-coverage.md) retain exact public proof and rejection
+commands. Completed audits have introduced no dependencies beyond the existing
+52-name baseline: 51 primitive-integer operations/specifications and
+`ProofIrrelevance.proof_irrelevance`. The exact names are in
+`baseline-assumptions.txt`; this is not an axiom-free claim.
+
+The [benchmark harness](../../benchmarks/eunoia/README.md) counts only completed
+proofs whose assumption reports match that baseline. It retains tactic, `Qed`
+and whole-compiler times, timeouts, raw diagnostics and toolchain provenance.
+Final comparisons must use the same integrated revision and workload. Published
+[Lean-SMT and Sledgehammer context](comparison-context.md) uses different goals,
+versions and timing boundaries; it supplies no speed ratio for this backend.
+
+Known limits include excluded source rules, finite generation/search budgets,
+Boolean equality as an argument to uninterpreted functions, and proofs requiring
+object-level Real/`to_real`/`to_int` intermediates. Rational/decimal metadata
+support does not add real-arithmetic semantics. Bitvectors and arrays remain
+stretch work after UF/LIA acceptance and performance are verified.
