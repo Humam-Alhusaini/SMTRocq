@@ -14,7 +14,7 @@ import tempfile
 
 
 IDENT = re.compile(r"[A-Za-z_][A-Za-z0-9_']*(?:\.[A-Za-z_][A-Za-z0-9_']*)*\Z")
-DEPENDENCY = re.compile(r"^([A-Za-z_][A-Za-z0-9_']*(?:\.[A-Za-z_][A-Za-z0-9_']*)+)\s*:", re.M)
+DEPENDENCY = re.compile(r"^([A-Za-z_][A-Za-z0-9_']*(?:\.[A-Za-z_][A-Za-z0-9_']*)*)\s*:", re.M)
 
 
 def identifier(value):
@@ -29,7 +29,8 @@ def assumptions(output):
         return set()
     if not stripped.startswith("Axioms:"):
         raise ValueError("unrecognized Print Assumptions output")
-    result = set(DEPENDENCY.findall(output))
+    body = "\n".join(stripped.splitlines()[1:])
+    result = set(DEPENDENCY.findall(body))
     if not result:
         raise ValueError("assumptions were reported but no dependency names were parsed")
     # Fail on an unparsed top-level entry rather than accidentally omitting it.

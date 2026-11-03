@@ -27,7 +27,7 @@ equivalent isolated wrapper at another location.
 
 The baseline command above passed. A negative control importing
 `Stdlib.Logic.Classical_Prop` and auditing its existing `classic` declaration
-failed, correctly identifying `Classical_Prop.classic` as an additional
+failed, correctly identifying `classic` as an additional
 dependency. Reports are at `/tmp/smtrocq-assumptions-script-check/summary.json`
 and `/tmp/smtrocq-assumptions-script-negative/summary.json` on the build host.
 The control introduces no declarations or assumptions into SMTRocq.
