@@ -20,8 +20,12 @@ let fail fmt = Format.kasprintf (fun s -> raise (Error s)) fmt
 let builtins = ["Type"; "Bool"; "Int"; "true"; "false"; "->";
   "="; "not"; "and"; "or"; "xor"; "=>"; "ite"; "distinct";
   "+"; "-"; "*"; "<"; "<="; ">"; ">="]
-let numeral s = String.length s > 0 &&
-  String.for_all (fun c -> c >= '0' && c <= '9') s
+let numeral s =
+  let first = if String.length s > 0 && s.[0]='-' then 1 else 0 in
+  String.length s > first &&
+  let rec digits i = i=String.length s ||
+    (s.[i]>='0' && s.[i]<='9' && digits (i+1)) in
+  digits first
 
 type value = Value of term | Macro of P.definition
 let elaborate ?(max_expansion=1000000) ~declarations ~roots ~derive (parsed:P.proof) =
@@ -79,6 +83,14 @@ let elaborate ?(max_expansion=1000000) ~declarations ~roots ~derive (parsed:P.pr
   List.iter (fun (command:P.command) -> match command.command with
     | P.Declare d -> declare d
     | P.Define d ->
+      (* The pinned CPC printer's @t<digits> aliases are disjoint from the
+         signature namespace. Refuse arbitrary redefinitions of constants,
+         including signature constants outside this supported fragment. *)
+      let name = d.name.text in
+      if String.length name <= 2 || String.sub name 0 2 <> "@t" ||
+         not (String.for_all (fun c -> c>='0' && c<='9')
+           (String.sub name 2 (String.length name-2))) then
+        fail "CPC definition %s is outside the private @t<digits> alias namespace" name;
       (* Eagerly inspect unused definitions too, with symbolic formal binders. *)
       let locals = List.map (fun (p:P.parameter) ->
         ignore (read p.sort); p.binding,Symbol p.name.text) d.parameters in

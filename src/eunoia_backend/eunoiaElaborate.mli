@@ -27,6 +27,7 @@ val elaborate :
   derive:(string -> term list -> term list -> term option) ->
   Eunoia_frontend.EunoiaProof.proof -> proof
 (** Exact declaration types and ordered roots must match the export; definitions
-    and parallel lets are expanded with binding IDs. Scopes and directives are
+    and parallel lets are expanded with binding IDs. Definitions must use the
+    pinned printer's private [@t<digits>] namespace to prevent signature shadowing. Scopes and directives are
     rejected until their proved checker is integrated. No hard-coded rule table.
     Derivation failure or a differing claimed conclusion rejects the whole file. *)
