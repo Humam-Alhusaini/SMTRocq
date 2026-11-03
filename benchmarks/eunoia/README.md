@@ -74,10 +74,15 @@ Each attempt starts a new compiler process and calls exactly the named tactic.
 No auxiliary proof tactic completes remaining obligations. A positive counts
 as solved only when compilation exits zero, `Qed` has succeeded, a fresh `.vo`
 exists, both timing messages parse, and the final marker after
-`Print Assumptions bench_result` appears. This matters because `cvc4` can return
+`Print Assumptions EunoiaBenchmark.bench_result` appears. The assumption report
+must parse and contain only names in the existing checker baseline. Unknown
+dependencies produce `unsupported_assumptions`; an unrecognized report produces
+`assumption_error`. Neither counts as solved. This matters because `cvc4` can return
 remaining obligations. It is not enough for a solver to report unsatisfiability
 or for the tactic command itself to succeed. The generated files use the
-existing SMTCoq import and proof-checking path.
+existing SMTCoq import and proof-checking path. Their imports are local to a
+module that closes before printing assumptions, preserving qualified dependency
+names. Both the baseline and its parser are hashed in the run metadata.
 
 The false controls assert injectivity of an arbitrary function and a strict
 integer gap from a non-strict inequality. Concrete counterexamples are in the
@@ -91,7 +96,8 @@ they unexpectedly compile. An unexpected success fails the run.
 
 No soundness lemma is added by the harness. Every successfully generated
 benchmark theorem is audited with `Print Assumptions`, whose complete output
-is retained in its log. Existing SMTCoq/Rocq assumptions (including primitive
+and parsed dependency names are retained. The allowed names are fixed by
+`docs/eunoia/baseline-assumptions.txt`. Existing SMTCoq/Rocq assumptions (including primitive
 integer/array specifications and proof irrelevance where used) are not removed
 or claimed absent by this benchmark.
 

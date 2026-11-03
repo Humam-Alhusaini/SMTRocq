@@ -7,6 +7,7 @@ import csv
 import ctypes
 from datetime import datetime, timezone
 import hashlib
+import importlib.util
 import json
 import math
 import os
@@ -25,6 +26,15 @@ HERE = Path(__file__).resolve().parent
 REPO = HERE.parents[1]
 WRAPPER = Path("/home/charles/code/friends/.toolchains/smtrocq-env")
 BACKENDS = {name: name for name in ("verit", "cvc4", "cvc5_eunoia")}
+BASELINE_PATH = REPO / "docs/eunoia/baseline-assumptions.txt"
+BASELINE = {line.strip() for line in BASELINE_PATH.read_text().splitlines()
+            if line.strip() and not line.startswith("#")}
+_audit_spec = importlib.util.spec_from_file_location(
+    "eunoia_assumption_audit", REPO / "tools/audit-eunoia-assumptions.py")
+_audit = importlib.util.module_from_spec(_audit_spec)
+_audit_spec.loader.exec_module(_audit)
+if not BASELINE or any(not _audit.IDENT.fullmatch(name) for name in BASELINE):
+    raise ValueError("Invalid checker assumption baseline")
 BEGIN = "EUNOIA_BENCH_TACTIC_BEGIN"
 END = "EUNOIA_BENCH_TACTIC_END"
 ASSUMPTIONS = "EUNOIA_BENCH_ASSUMPTIONS"
@@ -165,7 +175,13 @@ def load_cases(path):
     return cases
 
 
-def prelude(extra_imports):
+def prelude(extra_imports, scoped=False):
+    if scoped:
+        modules = ["SMTCoq.SMTCoq", "Stdlib.Bool.Bool", "Stdlib.ZArith.ZArith", *extra_imports]
+        return ("".join(f"Require {name}.\n" for name in modules)
+                + "Module EunoiaBenchmark.\n"
+                + "".join(f"Import {name}.\n" for name in modules)
+                + "Local Open Scope Z_scope.\n")
     return ("From SMTCoq Require Import SMTCoq.\n"
             "From Stdlib Require Import Bool ZArith.\n"
             + "".join(f"Require Import {name}.\n" for name in extra_imports)
@@ -176,12 +192,13 @@ def source(case, backend, extra_imports):
     # A negative case is deliberately attempted as a real proof. Its failed
     # compilation is retained; there is no discarded or unfinished proof file
     # that can successfully compile and accidentally enter the solved count.
-    return (prelude(extra_imports)
+    return (prelude(extra_imports, scoped=True)
             + f"Lemma bench_result : {case['statement']}.\nProof.\n"
             + f'  idtac "{BEGIN}".\n  Time {BACKENDS[backend]}.\n'
             + "Time Qed.\n"
+            + "End EunoiaBenchmark.\n"
             + f'Goal True. Proof. idtac "{END}" "{ASSUMPTIONS}". exact I. Qed.\n'
-            + "Print Assumptions bench_result.\n"
+            + "Print Assumptions EunoiaBenchmark.bench_result.\n"
             + f'Goal True. Proof. idtac "{DONE}". exact I. Qed.\n')
 
 
@@ -209,6 +226,16 @@ def classify(case, execution, output, vo_exists):
         return row
     if len(timings) != 2:
         row["status"] = "timing_error"
+        return row
+    try:
+        names = _audit.assumptions(output.split(ASSUMPTIONS, 1)[1].split(DONE, 1)[0])
+    except ValueError:
+        row["status"] = "assumption_error"
+        return row
+    row["assumptions"] = sorted(names)
+    row["new_assumptions"] = sorted(names - BASELINE)
+    if row["new_assumptions"]:
+        row["status"] = "unsupported_assumptions"
         return row
     row.update(status="solved", solved=True, tactic_wall_s=float(timings[0][0]),
                tactic_user_s=float(timings[0][1]), tactic_system_s=float(timings[0][2]),
@@ -300,6 +327,8 @@ def main():
         "configuration": vars(args) | {"wrapper": str(wrapper), "output": str(output),
                                        "cases": str(cases_path)},
         "cases_sha256": sha256(cases_path),
+        "assumption_baseline_sha256": sha256(BASELINE_PATH),
+        "assumption_audit_sha256": sha256(REPO / "tools/audit-eunoia-assumptions.py"),
         "source_sha256": {p.name: sha256(p) for p in HERE.iterdir() if p.is_file()},
         "measurements": "Rocq Time backend, Time Qed, and separate compiler process wall time; no solver-only timings",
         "tools": {},

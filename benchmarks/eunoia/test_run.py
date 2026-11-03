@@ -35,6 +35,17 @@ class BenchmarkIntegrity(unittest.TestCase):
     def test_qed_failure_is_unsolved(self):
         self.assertFalse(run.classify(self.positive, self.failure, self.output, True)["solved"])
 
+    def test_unapproved_or_unparsed_assumptions_are_unsolved(self):
+        for text, status in (("Axioms:\nForeign.unchecked : False", "unsupported_assumptions"),
+                             ("not an assumption report", "assumption_error")):
+            output = self.output.replace("Closed under the global context", text)
+            row = run.classify(self.positive, self.success, output, True)
+            self.assertFalse(row["solved"])
+            self.assertEqual(row["status"], status)
+        known = next(iter(run.BASELINE))
+        output = self.output.replace("Closed under the global context", f"Axioms:\n{known} : True")
+        self.assertTrue(run.classify(self.positive, self.success, output, True)["solved"])
+
     def test_negative_success_is_a_failure_never_solved(self):
         row = run.classify(self.negative, self.success, self.output, True)
         self.assertFalse(row["solved"])
