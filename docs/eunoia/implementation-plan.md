@@ -194,3 +194,23 @@ an optional exact-negation mode using the existing `Form.Fnot2` representation;
 witness validation remain with the active backend job. The other twenty UF
 cases have separate checked probe evidence from the UF child, but the complete
 file, audits and final regression still must pass before it is accepted.
+
+## Callback sharing
+
+The local gate and scoped evaluator now bind immutable table guards outside
+their changing per-step arguments. This permits reuse when they are passed as
+partially applied callbacks. The Boolean checks and every source/local proof
+step are preserved. `/tmp/EunoiaGateSharingRefinement.v` proves equality with
+the previous gate for every table, premise list, conclusion and witness by
+`reflexivity`; its compilation exited 0 after correcting the temporary file's
+loadpath and implicit-argument invocation.
+
+The integrated build and existing local/scoped regression targets exited 0
+(`/tmp/smtrocq-gate-hoist-build.log`), and four concrete correctness audits
+added no assumptions (`/tmp/smtrocq-gate-hoist-assumptions/summary.json`).
+Three live congruence repetitions before and after all closed with `Qed`.
+Their commands, revisions, timing rows and assumptions are retained in
+`/tmp/smtrocq-gate-hoist-before/` and `/tmp/smtrocq-gate-hoist-after/`.
+These small sequential probes ran alongside other jobs and establish no
+competitive speed claim. Final latency comparisons still need the complete
+integrated backend and the same versioned workload for each solver.
