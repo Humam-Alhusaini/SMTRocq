@@ -27,22 +27,27 @@ let () =
     (prefix ^ "(step c :rule contra :premises (a b))"));
   rejected (fun () -> run ("(assume a true)(step c false :rule contra :premises (a a))"));
   rejected (fun () -> run (prefix ^ "(assume-push z true)(step-pop d :rule copy :args (false))"));
-  let macros = "(declare-const p Bool)(define n ((x Bool)) (not x))" ^
-    "(define q () (let ((u p)) u))(assume a q)(assume b (n p))" ^
+  let macros = "(declare-const p Bool)(define @t1 ((x Bool)) (not x))" ^
+    "(define @t2 () (let ((u p)) u))(assume a @t2)(assume b (@t1 p))" ^
     "(step c false :rule contra :premises (a b))" in
   ignore (run macros);
   rejected (fun () -> elaborate ~max_expansion:2 ~declarations:decl ~roots:[p;np] ~derive (parse macros));
   (* Every unused definition is inspected, not only the final dependency cone. *)
-  rejected (fun () -> run ("(define unused () mystery)" ^ prefix ^
+  rejected (fun () -> run ("(define @t1 () mystery)" ^ prefix ^
     "(step c false :rule contra :premises (a b))"));
   (* Parallel let values see the outer bindings, never earlier siblings. *)
-  let lets = "(declare-const p Bool)(define x () true)" ^
-    "(assume a (let ((x p)(y x)) y))(assume b (not true))" ^
+  let lets = "(declare-const p Bool)(define @t1 () true)" ^
+    "(assume a (let ((@t1 p)(y @t1)) y))(assume b (not true))" ^
     "(step c false :rule contra :premises (a b))" in
   ignore (run ~roots:[Symbol "true"; app "not" [Symbol "true"]] lets);
-  Printf.printf "elaboration: positive and 10 corruption/resource cases passed\n%!";
+  rejected (fun () -> run ("(define true () false)" ^ prefix ^
+    "(step c false :rule contra :premises (a b))"));
+  Printf.printf "elaboration: positive and 11 corruption/resource cases passed\n%!";
   let solver_input = "(set-logic QF_UF)(declare-fun op_0 () Bool)" ^
     "(assert op_0)(assert (not op_0))(check-sat)(exit)" in
+  let temporaries () = Sys.readdir (Filename.get_temp_dir_name ()) |> Array.to_list |>
+    List.filter (fun s -> String.starts_with ~prefix:"smtrocq-eunoia-" s) |> List.sort String.compare in
+  let before = temporaries () in
   let raw = EunoiaSolver.run solver_input in
   assert (raw.envelope=P.Unsat_parenthesized);
   let solver_rejected input = try ignore (EunoiaSolver.run input);
@@ -52,4 +57,8 @@ let () =
   (try ignore (EunoiaSolver.run
      ~limits:{EunoiaSolver.default_limits with max_bytes=1} solver_input);
      failwith "output limit not enforced" with EunoiaSolver.Error _ -> ());
-  Printf.printf "private cvc5: unsat parsed; sat, malformed input, oversized output rejected\n%!"
+  (try ignore (EunoiaSolver.run
+     ~limits:{EunoiaSolver.default_limits with wall_seconds=1e-9} solver_input);
+     failwith "wall limit not enforced" with EunoiaSolver.Error _ -> ());
+  assert (before=temporaries ());
+  Printf.printf "private cvc5: unsat parsed; sat, malformed input, oversized output and wall timeout rejected; temporary files cleaned\n%!"
