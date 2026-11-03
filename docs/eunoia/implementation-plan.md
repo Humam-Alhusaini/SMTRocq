@@ -286,3 +286,49 @@ tests pass, including unknown-dependency rejection and detached solver cleanup.
 The same actual congruence goal closed for all three backends with exactly the
 allowed 52 assumptions in
 `/tmp/smtrocq-benchmark-assumption-congruence-smoke/results.json`.
+
+## Checked-certificate and Boolean UF integration checkpoint
+
+At frozen `4f87e02`, private toolchain verification, `dune build -j2 @install`,
+full `dune build -j2`, and forced full `dune runtest -j2` exited 0. Fresh copies
+of the unchanged UF22 and LIA15 suites independently compiled with exit 0.
+All 65 main/helper/export assumption audits and all 37 saved checker-certificate
+body audits matched the existing baseline. Recursive kernel checking exited 0
+in 87.099 seconds, with no imported artifact changes. Exact commands and logs:
+`/tmp/smtrocq-reused-certificate-checkpoint/status.json`.
+
+That driver's final whitespace check exited 2 on one upstream license-notice
+trailing space; it did not mark the checkpoint fully verified. Commit `83c0ee4`
+removes that space and clarifies historical signature provenance. All 35 `.eo`
+SHA256 values still match the manifest, and the full branch diff now passes
+`git diff --check`. Final composed token/build/proof audits remain required.
+The independent bounded certificate-reuse review is in
+`certificate-reuse-review.md`, with invalid-body rejection, rollback, assumption
+and recursive kernel evidence; it found no new P0–P2 issue in its stated scope.
+
+The unchanged 18-positive workload diagnostic at `4f87e02` checked 12 positives
+(10/12 UF, 2/6 LIA), timed out on six, and rejected both false controls. Its
+exit 1 and all raw proofs, timings, load metadata and diagnostics are retained
+at `/tmp/smtrocq-certificate-reuse-workload-diagnostic/`. This is not the final
+matched comparison or an efficiency-bar claim. Solver granularity probes at
+`/tmp/smtrocq-proof-granularity-investigation/` found incomplete proofs in macro,
+rewrite and theory-rewrite modes; DSL modes retained the complete proofs.
+No proof-checking flags were relaxed.
+
+The typed Boolean congruence integration retains every existing local operation
+and adds a checked conditional clause operation. Its child checked 95 typed
+native/gate cases, all original UF22/LIA15 proofs, and eleven additional public
+Boolean UF positives with three false controls. Baseline audits and recursive
+kernel checks passed; see `boolean-uf-integration.md`. Commit `75af686` registers
+its public suite and theory tests. The parent composed Boolean/Local build and
+public Boolean suite target also exited 0:
+`/tmp/smtrocq-integrated-boolean-uf-build.log` and
+`/tmp/smtrocq-boolean-integer-source-integration.log`.
+
+Generated integer-cast source support is integrated by `055ae6e`: 51 selected
+rules, 53 helpers, 47 Python tests, 1,158 computed source steps in 32 actual
+captures. All original 994 steps remain. Its 61 additional assumption audits
+were closed under the global context; independent kernel checks passed. See
+`integer-cast-signature-coverage.md`. This is source computation evidence;
+faithful raw-term metadata/binding and integer-only semantic embedding remain
+necessary for live parity/coefficient-bound acceptance.

@@ -6,7 +6,8 @@ interpreter, checks a semantic certificate for every inference, and applies a
 proved goal-checker correctness lemma. It uses SMTCoq's existing SMT-LIB
 interpretation and CNF/EUF/LIA checkers.
 
-The functional suites contain 22 public UF proofs and 15 integer/mixed proofs,
+The functional suites contain 22 public UF proofs, 11 additional Boolean UF
+proofs and 15 integer/mixed proofs,
 with false-goal and corrupted-proof controls. They have passed compilation and
 baseline assumption audits. Final composed performance acceptance is still in
 progress: larger valid benchmark goals exceed the current 30-second compiler
@@ -57,8 +58,8 @@ with `cvc5_eunoia`.
 The committed signature is cvc5 1.4.2's complete 35-file CPC include closure.
 The compiler follows its declarations, patterns, binder types, ordered helper
 cases, requirements, aliases and computed conclusions. Selection in
-`tools/eunoia/rules.txt` currently includes 49 rules and 53 helpers; the manifest
-lists all source hashes and 560 excluded rules. There is no rule-name-dependent
+`tools/eunoia/rules.txt` currently includes 51 rules and 53 helpers; the manifest
+lists all source hashes and 558 excluded rules. There is no rule-name-dependent
 execution switch implementing the selected CPC inferences.
 
 ```sh
@@ -68,11 +69,16 @@ EUNOIA_KEEP_TEST_DIR=1 tools/eunoia/check-generated.sh
 
 Regeneration updates `theories/checker/eunoia/CpcGenerated.v` and
 `tools/eunoia/cpc-manifest.json`. Validation checks deterministic regeneration,
-42 Python tests, source/helper/guard mutations, all 994 steps in 29 actual
+47 Python tests, source/helper/guard mutations, all 1,158 steps in 32 actual
 original/reduced solver captures, and independent kernel checks. These fixture
 replays establish source computation coverage; semantic proof acceptance uses
 the additional gate described below. See the [compiler interface](../../tools/eunoia/INTERFACE.md)
 and [integer-tightening capture](../../tools/eunoia/STRICT-SHIFT-VALIDATION.md).
+The [integer-cast captures](integer-cast-signature-coverage.md) add generated
+parity/coefficient-bound computations, including nested scopes. Their raw
+Real-valued intermediates still need a checked integer representation before
+the live tactic can accept them. Source-declared polymorphic operators are
+generated metadata; distinct applications may use distinct type instances.
 
 The runtime's argument-conversion optimization has a pointwise refinement proof
 for arbitrary fuel, nil/type queries, operator lists and terms. Both lemmas are
@@ -94,7 +100,7 @@ flowchart TD
     Steps --> Syntax
     Tables --> Syntax
     Steps --> Search[Untrusted local certificate search]
-    Search --> Gate[Existing checked CNF / EUF / LIA operations]
+    Search --> Gate[Checked CNF / EUF / LIA and typed Boolean congruence]
     Tables --> Gate
     Syntax --> Trace[Reflective trace and scope checker]
     Gate --> Trace
@@ -123,6 +129,13 @@ rejects failure fallbacks. Candidate search cannot authorize a clause. The
 scoped checker uses the actual pushed literal and endpoint, checks the guarded
 consequence, and restores parent state so local facts expire. See
 [the local gate](local-certificate.md) and [the scoped backend](scoped-backend.md).
+
+Typed Boolean UF congruence reuses the same Atom/Form interpretation. It checks
+the actual endpoint types before turning positive Boolean `Fiff` operands into
+conditional atom equalities. Default Boolean projection of a non-Boolean value
+cannot supply this evidence. Existing checked resolutions discharge the equality
+conditions. See [the Boolean UF integration](boolean-uf-integration.md) for the
+contracts, public proofs, mutations and remaining source-format gaps.
 
 The fixed concrete correctness wrappers use the existing interpretation.
 Within each tactic invocation, Rocq synchronously kernel-checks a private proof
@@ -153,7 +166,7 @@ Final comparisons must use the same integrated revision and workload. Published
 versions and timing boundaries; it supplies no speed ratio for this backend.
 
 Known limits include excluded source rules, finite generation/search budgets,
-Boolean equality as an argument to uninterpreted functions, and proofs requiring
+some purification and Boolean-constant argument cases, and proofs requiring
 object-level Real/`to_real`/`to_int` intermediates. Rational/decimal metadata
 support does not add real-arithmetic semantics. Bitvectors and arrays remain
 stretch work after UF/LIA acceptance and performance are verified.
