@@ -1,0 +1,12 @@
+(rule
+ (alias runtest)
+ (deps
+  cpc_inventory.py
+  dump_cpc.py
+  verify_toolchain.py
+  test_tooling.py
+  cvc5-1.4.2.json
+  (source_tree ../../unit-tests/eunoia-fixtures)
+  (source_tree ../../unit-tests/files))
+ (action
+  (run python3 -B %{dep:test_tooling.py})))
