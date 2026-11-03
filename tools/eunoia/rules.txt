@@ -1,6 +1,9 @@
 aci_norm
 and_elim
 and_intro
+bool-double-not-elim
+bool-eq-false
+bool-eq-true
 chain_m_resolution
 chain_resolution
 cnf_and_pos

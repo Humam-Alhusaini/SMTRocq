@@ -32,7 +32,7 @@ class CompileTests(unittest.TestCase):
     def test_snapshot_regenerates_exactly(self):
         code, manifest = eoc.Compiler(INITIAL).compile(RULES)
         self.assertEqual(code, (ROOT / "theories/checker/eunoia/CpcGenerated.v").read_text())
-        self.assertEqual(len(manifest["excluded_rules"]), 582)
+        self.assertEqual(len(manifest["excluded_rules"]), 609 - len(set(RULES)))
         self.assertEqual(len(manifest["sources"]), 35)
         self.assertIn("$mk_cong_rhs", manifest["programs"])
         self.assertIn("$run_evaluate", manifest["programs"])
