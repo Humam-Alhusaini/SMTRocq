@@ -131,3 +131,29 @@ TACTIC EXTEND Tactic_cvc4
 | [ "cvc4_bool_no_check" ] -> { Lfsc.tactic_no_check () }
 | [ "cvc5_bool_abduct" int_or_var(i) constr(lpl) ] -> { Lfsc.tactic_abduct i lpl (get_lemmas ()) }
 END
+
+{
+
+let eunoia_witness ~atoms ~forms ~premises ~conclusion =
+  match Eunoia_witness.Search.produce ~atoms ~forms ~premises ~conclusion () with
+  | Error error -> Error (Eunoia_witness.Search.string_of_failure error)
+  | Ok candidate ->
+      Ok (Eunoia_witness.Certificate.to_coq
+        ~local:(fun name -> Eunoia_backend.EunoiaRocq.global
+          ("SMTCoq.checker.eunoia.EunoiaLocal.EunoiaLocal." ^ name))
+        ~step:(fun name -> Eunoia_backend.EunoiaRocq.global
+          ("SMTCoq.checker.MainChecker.Checker_Ext." ^ name)) candidate)
+
+let eunoia_tactic lpl =
+  let lpl = EConstr.Unsafe.to_constr lpl in
+  let lemmas = match CoqTerms.option_of_constr_option lpl with
+    | None -> []
+    | Some tuple -> CoqTerms.list_of_constr_tuple tuple
+  in
+  Eunoia_backend.EunoiaBackend.tactic ~witness:eunoia_witness ~lemmas ()
+
+}
+
+TACTIC EXTEND Tactic_cvc5_eunoia
+| [ "cvc5_eunoia_bool_base" constr(lpl) ] -> { eunoia_tactic lpl }
+END
