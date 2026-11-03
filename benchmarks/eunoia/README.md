@@ -140,6 +140,19 @@ sets differ. Compare per-case rows on a common solved set for latency analysis;
 do not use aggregate sums to rank backend speed. No published comparative claim
 is justified by these small local measurements alone.
 
+Generate a Markdown results table from one run with:
+
+```sh
+python3 benchmarks/eunoia/report.py /path/to/results.json
+```
+
+The first table reports positive coverage and false-control rejection separately.
+A second table compares each backend pair only on matching case/repeat attempts
+that both checked. It reports no latency when that shared set is empty. Duplicate
+attempts, inconsistent solved flags and invalid successful timings reject rather
+than silently inflating a denominator. The report consumes one run and does not
+combine differently configured workloads or revisions.
+
 The metadata probe checks local availability of `lean`, `lake`, and `isabelle`
 on the private wrapped PATH. In the initial environment all three resolved to
 null. There is consequently no locally runnable Lean-SMT or Sledgehammer
