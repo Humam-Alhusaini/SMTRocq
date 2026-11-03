@@ -24,6 +24,7 @@ let string_of_failure = function
   | Unsupported -> "no local witness found"
 exception Fail of failure
 exception Conflict of int
+let profile_sequence = ref 0
 let pos f = if Form.is_pos f then f else Form.neg f
 let lit = Form.to_lit
 let neg l = l lxor 1
@@ -81,6 +82,15 @@ let congr_args a b = match Atom.atom a, Atom.atom b with
   | _ -> None
 
 let produce ?(limits=default_limits) ~atoms ~forms ~premises ~conclusion () =
+  let profiling = Sys.getenv_opt "EUNOIA_WITNESS_PROFILE" = Some "1" in
+  let sequence = if profiling then (incr profile_sequence; !profile_sequence) else 0 in
+  let started = if profiling then Sys.time () else 0. in
+  if profiling then begin
+    let clause c = String.concat " " (List.map
+      (fun f -> Format.asprintf "%a" (Form.to_smt ~debug:true) f) c) in
+    Printf.eprintf "EUNOIA_WITNESS id=%d premises=[%s] conclusion=[%s]\n%!"
+      sequence (String.concat "; " (List.map clause premises)) (clause conclusion)
+  end;
   try
     if limits.max_clauses <= 0 || limits.max_resolution_pairs < 0 ||
        limits.max_theory_rounds < 0 || limits.max_terms < 0 || limits.max_formulas < 0 ||
@@ -135,6 +145,17 @@ let produce ?(limits=default_limits) ~atoms ~forms ~premises ~conclusion () =
     let pending = Queue.create () and units = Queue.create () in
     let index = Hashtbl.create 127 and pairs = Hashtbl.create 127 in
     let pair_count = ref 0 in
+    let profile stage f =
+      if not profiling then f () else begin
+        let report event = Printf.eprintf
+          "EUNOIA_WITNESS id=%d stage=%s event=%s cpu_s=%.6f slots=%d pairs=%d formulas=%d\n%!"
+          sequence stage event (Sys.time () -. started) !next !pair_count
+          (Hashtbl.length relevant) in
+        report "begin";
+        match f () with
+        | result -> report "end"; result
+        | exception e -> report "raise"; raise e
+      end in
     let register id c =
       Hashtbl.add clauses id c;
       if not (Hashtbl.mem known c) then Hashtbl.add known c id;
@@ -340,23 +361,25 @@ let produce ?(limits=default_limits) ~atoms ~forms ~premises ~conclusion () =
           remember f; f) premises in
         Some (List.map Form.neg pforms @ conclusion)
       end else None in
-      List.iter cnf (form_list ());
+      profile "cnf" (fun () -> List.iter cnf (form_list ()));
       let rec rounds n =
-        resolve_pending ~units_only:true ();
+        profile "resolve_units" (fun () -> resolve_pending ~units_only:true ());
         if n >= limits.max_theory_rounds then begin
           resolve_pending (); raise (Fail (Resource_limit "theory rounds"))
         end;
         let before = !next in
-        theory ();
+        profile "theory" theory;
         (* Congruence/Boolean steps are often arithmetic-shaped. Finish their
            cheap checked EUF/CNF proof before expanding an iff for Micromega. *)
-        resolve_pending ();
-        if n = 0 then Stdlib.Option.iter try_lia arithmetic_clause;
-        try_lia (List.map Form.neg (List.filter (fun f ->
-          lia_count := 0; lia_form f) (unit_forms ())));
+        profile "resolve_before_lia" resolve_pending;
+        if n = 0 then profile "lia_exact" (fun () ->
+          Stdlib.Option.iter try_lia arithmetic_clause);
+        profile "lia_units" (fun () ->
+          try_lia (List.map Form.neg (List.filter (fun f ->
+            lia_count := 0; lia_form f) (unit_forms ()))));
         (* Conditional EUF clauses must be available before unrestricted
            propositional saturation of the Boolean definitions. *)
-        resolve_pending ();
+        profile "resolve_after_lia" resolve_pending;
         if !next = before then raise (Fail Unsupported);
         rounds (n+1) in rounds 0 in
     (try run () with Conflict id -> Ok (finish id))
