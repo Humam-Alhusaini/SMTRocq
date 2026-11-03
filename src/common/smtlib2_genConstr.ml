@@ -158,7 +158,7 @@ type atom_form = | Atom of SmtAtom.Atom.t | Form of SmtAtom.Form.t
 let startwith prefix s =
   try Scanf.sscanf s (prefix ^^ "%_s") true with _ -> false
 
-let make_root ?(eqsym=true) ra rf t =
+let make_root ?(eqsym=true) ?(preserve_not=false) ra rf t =
 
   let hlets = Hashtbl.create 17 in
 
@@ -369,7 +369,13 @@ let make_root ?(eqsym=true) ra rf t =
         Form (Form.get rf (Fapp (Fimp, Array.of_list (List.map make_root l))))
       | "ite", _ ->
         Form (Form.get rf (Fapp (Fite, Array.of_list (List.map make_root l))))
-      | "not", [a] -> Form (Form.neg (make_root a))
+      | "not", [a] ->
+        let inner = make_root a in
+        (* CPC rule conclusions retain explicit double negations. Fnot2 is
+           the existing Form representation of those two syntax nodes. *)
+        if preserve_not && Form.is_neg inner then
+          Form (Form.get rf (Fapp (Fnot2 1, [|Form.neg inner|])))
+        else Form (Form.neg inner)
 
       | _, [a] when startwith "extract_" v ->
         (try
