@@ -39,6 +39,11 @@ let check name atoms forms premises conclusion w =
     failwith (name ^ ": gate accepted bad capacity");
   if w.root_claims <> [] && eval premises conclusion {w with root_claims=List.tl w.root_claims}
   then failwith (name ^ ": gate accepted missing root");
+  (match w.root_claims with
+   | (i,a)::(j,b)::rest when a <> b ->
+     if eval premises conclusion {w with root_claims=(i,b)::(j,a)::rest} then
+       failwith (name ^ ": gate accepted reordered root contents")
+   | _ -> ());
   (match w.program with
    | [] -> ()
    | cmd::rest ->
@@ -50,6 +55,22 @@ let check name atoms forms premises conclusion w =
     failwith (name ^ ": gate accepted changed premises");
   if conclusion <> [] && eval premises [] w then
     failwith (name ^ ": gate accepted changed conclusion");
+  (* Corrupt a theory operation's evidence while preserving its claimed output
+     and every root. This must be caught by actual EUF recomputation. *)
+  let corrupted = ref false in
+  let program = List.map (fun cmd ->
+    if !corrupted then cmd else match cmd.Certificate.action with
+    | Certificate.EqTr (p,l,_::_) ->
+      corrupted := true; {cmd with action=Certificate.EqTr (p,l,[])}
+    | Certificate.EqCgr (p,l,es) when List.exists Stdlib.Option.is_some es ->
+      corrupted := true;
+      {cmd with action=Certificate.EqCgr (p,l,List.map (fun _ -> None) es)}
+    | Certificate.EqCgrP (p,a,b,es) when List.exists Stdlib.Option.is_some es ->
+      corrupted := true;
+      {cmd with action=Certificate.EqCgrP (p,a,b,List.map (fun _ -> None) es)}
+    | _ -> cmd) w.program in
+  if !corrupted && eval premises conclusion {w with program} then
+    failwith (name ^ ": gate accepted corrupted EUF evidence");
   if name = "lia-scaling" then begin
     let program = List.map (fun cmd -> match cmd.Certificate.action with
       | Certificate.LiaMicromega (p,c,_) ->

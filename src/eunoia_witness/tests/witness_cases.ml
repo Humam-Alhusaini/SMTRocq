@@ -41,6 +41,7 @@ let run ~check =
   positive "resolution" atoms forms [[a;b];[Form.neg a]] [b];
   positive "resolution-common-prefix" atoms forms [[a;b];[a;Form.neg b]] [a];
   positive "multi-premise-resolution" atoms forms [[a;b];[Form.neg a;c];[Form.neg b]] [c];
+  positive "ordered-duplicate-roots" atoms forms [[b];[a;b];[a;b];[Form.neg a]] [b];
   negative "premise-clause-is-not-split" atoms forms [[a;b]] [a];
   negative "missing-premise" atoms forms [] [a];
   negative "changed-conclusion" atoms forms [[a]] [b];
@@ -107,12 +108,30 @@ let run ~check =
   positive "euf-equality-predicate-local-clause" atoms forms []
     [Form.neg xy;Form.neg xz;yz];
   positive "euf-symmetry-iff" atoms forms [] [binary forms Fiff xy yx];
+  positive "euf-conditional-transitivity-nonunit" atoms forms []
+    [binary forms Fiff (binary forms Fand xy yz) (binary forms Fand xy xz)];
   positive "euf-disjunctive-congruence-root" atoms forms [[xy;xz]]
     [equal (f x) (f y);equal (f x) (f z)];
   negative "euf-nonunit-equality-is-not-assumed" atoms forms [[xy;xz]] [xy];
+  negative ~limits:{Search.default_limits with max_terms=0}
+    "euf-term-budget" atoms forms [[xy]] [xy];
+  negative ~limits:{Search.default_limits with max_theory_rounds=0}
+    "euf-theory-round-budget" atoms forms [[xy]] [yx];
   negative "euf-predicate-without-equality" atoms forms [[p x]] [p y];
   let other x = symbol atoms 6 [|ty|] ty [x] in
   negative "euf-different-function" atoms forms [[xy]] [equal (f x) (other y)];
+  let other_p x = form forms (symbol atoms 7 [|ty|] SmtBtype.Tbool [x]) in
+  negative "euf-different-predicate" atoms forms [[xy];[p x]] [other_p y];
+  let ty2 = SmtBtype.Tindex (SmtBtype.dummy_indexed_type 1) in
+  let a = symbol atoms 8 [||] ty2 [] and b = symbol atoms 9 [||] ty2 [] in
+  let equal2 a b = form forms (Atom.get atoms (Abop (BO_eq ty2,a,b))) in
+  let cross x a = symbol atoms 10 [|ty;ty2|] ty [x;a] in
+  positive "euf-two-sort-binary-congruence" atoms forms [[xy];[equal2 a b]]
+    [equal (cross x a) (cross y b)];
+  let to_other x = symbol atoms 11 [|ty|] ty2 [x] in
+  let from_other a = symbol atoms 12 [|ty2|] ty [a] in
+  positive "euf-two-sort-nested-congruence" atoms forms [[xy]]
+    [equal (from_other (to_other x)) (from_other (to_other y))];
   let atoms,forms = fresh () in
   let x = symbol atoms 0 [||] SmtBtype.TZ [] in
   let zero = Atom.hatom_Z_of_int atoms 0 and one = Atom.hatom_Z_of_int atoms 1
