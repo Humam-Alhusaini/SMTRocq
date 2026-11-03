@@ -6,4 +6,9 @@
 
 (alias
  (name runtest)
- (deps EunoiaCheckerTests.vo))
+ (deps
+  EunoiaCheckerTests.vo
+  EunoiaUf.vo
+  EunoiaLiaTests.vo
+  EoRuntime.vo
+  CpcGenerated.vo))

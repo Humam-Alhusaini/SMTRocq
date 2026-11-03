@@ -8,9 +8,11 @@ output is retained at `/tmp/smtrocq-assumptions/baseline.log` on the build host.
 The list consists of proof irrelevance and primitive integer declarations and
 specifications. It is a comparison baseline, not permission to add assumptions.
 
-After building the modules, audit explicitly named theorems with:
+After building the modules and their local install links, audit explicitly named
+theorems with:
 
 ```sh
+/home/charles/code/friends/.toolchains/smtrocq-env dune build @install -j2
 python3 tools/audit-eunoia-assumptions.py \
   --import SMTCoq.checker.MainChecker \
   --theorem Euf_Checker.checker_correct \

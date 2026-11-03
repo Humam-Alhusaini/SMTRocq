@@ -1,0 +1,5 @@
+(rule
+ (alias runtest)
+ (deps run.py cases.json test_run.py)
+ (action
+  (run python3 -B -m unittest discover -s . -p test_run.py -v)))
