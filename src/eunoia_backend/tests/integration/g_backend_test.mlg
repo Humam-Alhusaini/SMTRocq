@@ -86,6 +86,17 @@ let lia_scale_prefix = "(declare-const op_0 Int)" ^
   "(assume a (not (=> (and (< -2 0) (>= op_0 0)) (<= (* -2 op_0) (* -2 0)))))"
 let lia_scale_step = "(step b :rule arith_mult_neg :args (-2 (>= op_0 0)))"
 let lia_scale () = lia_replay (lia_scale_prefix ^ lia_scale_step ^ lia_final)
+let lia_scoped () = lia_replay (
+  "(declare-const op_0 Int)" ^
+  "(assume root (not (=> (>= op_0 0) (<= (* -2 op_0) (* -2 0)))))" ^
+  "(assume-push a (>= op_0 0))" ^
+  "(step scale :rule arith_mult_neg :args (-2 (>= op_0 0)))" ^
+  "(step negative :rule evaluate :args ((< -2 0)))" ^
+  "(step negative_true :rule true_elim :premises (negative))" ^
+  "(step conditions :rule and_intro :premises (negative_true a))" ^
+  "(step endpoint :rule modus_ponens :premises (conditions scale))" ^
+  "(step-pop exported :rule scope :premises (endpoint))" ^
+  "(step conflict false :rule contra :premises (exported root))")
 let lia_mutated_witness unused =
   let calls = ref 0 in
   let produce ~atoms ~forms ~premises ~conclusion =
@@ -186,6 +197,7 @@ TACTIC EXTEND Backend_replay
 | [ "backend_scope_bad_endpoint" ] -> { scoped_replay scope_bad_endpoint }
 | [ "backend_scope_bad_unused" ] -> { scoped_replay scope_bad_unused }
 | [ "backend_metadata_replay" ] -> { metadata_replay () }
+| [ "backend_lia_scoped" ] -> { lia_scoped () }
 | [ "backend_lia_replay" ] -> { lia_valid () }
 | [ "backend_lia_bad_coefficient" ] -> { lia_bad_coefficient () }
 | [ "backend_lia_bad_premise" ] -> { lia_bad_premise () }

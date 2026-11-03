@@ -30,3 +30,8 @@ Proof.
   backend_lia_scale_replay.
 Qed.
 Print Assumptions backend_lia_certificate_mutations.
+
+Lemma backend_lia_scoped_replay (x : Z) :
+  implb (x >=? 0) (-2*x <=? -2*0) = true.
+Proof. backend_lia_scoped. Qed.
+Print Assumptions backend_lia_scoped_replay.

@@ -78,6 +78,25 @@ let () =
   ignore (elaborate ~declarations:decl ~roots:[p;np] ~derive
     ~signature_names:["@list";"@list.nil"]
     (parse ("(define @t1 () (@list true @list.nil))" ^ prefix ^ final)));
+  (* A mock validator tests only elaboration's callback boundary. Production
+     uses the loaded EoArithmetic normalizer, never this finite test set. *)
+  let metadata s = List.mem s ["1/2";"0.5"] in
+  let metadata_defs = "(define @t1 () 1/2)(define @t2 () 0.5)" in
+  rejected (fun () -> run (metadata_defs ^ prefix ^ final));
+  ignore (elaborate ~declarations:decl ~roots:[p;np] ~derive
+    ~is_metadata_literal:metadata (parse (metadata_defs ^ prefix ^ final)));
+  rejected (fun () -> elaborate ~declarations:decl ~roots:[p;np] ~derive
+    ~is_metadata_literal:metadata
+    (parse ("(define @t1 () 1/0)" ^ prefix ^ final)));
+  List.iter (fun number ->
+    rejected (fun () -> elaborate
+      ~declarations:({name=number;typ=Symbol "Int"}::decl) ~roots:[p;np] ~derive
+      ~is_metadata_literal:metadata
+      (parse ("(declare-const |" ^ number ^ "| Int)" ^ prefix ^ final)));
+    rejected (fun () -> elaborate ~declarations:decl ~roots:[p;np] ~derive
+      ~is_metadata_literal:metadata
+      (parse ("(define @t1 ((|" ^ number ^ "| Bool)) |" ^ number ^ "|)" ^ prefix ^ final))))
+    ["1/2";"0.5"];
   Printf.printf "elaboration: scope-free/scoped positives and corruption/resource cases passed\n%!";
   let solver_input = "(set-logic QF_UF)(declare-fun op_0 () Bool)" ^
     "(assert op_0)(assert (not op_0))(check-sat)(exit)" in

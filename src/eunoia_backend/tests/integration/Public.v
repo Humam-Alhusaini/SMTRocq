@@ -42,3 +42,12 @@ Section MissingInstance.
     intros H; now subst.
   Qed.
 End MissingInstance.
+
+(* The benchmark's UF-shaped formula has integer carriers, so cvc5 also
+   uses generated arithmetic normalization within its actual CPC proof. *)
+From Stdlib Require Import ZArith.
+Local Open Scope Z_scope.
+Lemma backend_uf_integer_carrier (x y z : Z) (f : Z -> Z) :
+  (x =? y) && (y =? z) && negb (f x =? f z) = false.
+Proof. cvc5_eunoia. Qed.
+Print Assumptions backend_uf_integer_carrier.
