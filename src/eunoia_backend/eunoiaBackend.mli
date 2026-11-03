@@ -18,8 +18,10 @@ type witness_producer =
     adapter bindings, and [EunoiaLocal.gate] for the whole trace. *)
 
 val create_tables : unit -> tables
-val export : tables -> SmtAtom.Form.t list -> string
-(** Existing SMTCoq type/formula printers; no solver declarations are imported. *)
+val export : ?env:Environ.env -> tables -> SmtAtom.Form.t list -> string
+(** Export the checked adapter's exact surface syntax. Supply the current
+    proof environment, including its universe context, for local carriers.
+    No solver declarations are imported. *)
 
 val build_refutation :
   ?limits:EunoiaSolver.limits -> ?fuel:int -> witness:witness_producer ->
@@ -29,7 +31,7 @@ val build_refutation :
     EunoiaTactic, EunoiaAdapter, EunoiaLocal, generated syntax/evaluator modules,
     and EunoiaScopedAdapter for proofs containing scopes. Scope-free proofs keep
     EunoiaTactic.checker; nested proofs use EunoiaScopedAdapter.checker. Both fix
-    the proved multi-operation semantic gate and no_extension primitives. *)
+    the proved multi-operation semantic gate and generated default primitives. *)
 
 val build_refutation_from_cpc :
   ?fuel:int -> witness:witness_producer -> Environ.env -> tables ->

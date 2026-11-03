@@ -51,7 +51,23 @@ let names t =
 let snapshot t =
   let ti = make_t_i t.sorts in
   [ti;make_t_func t.functions ti;Atom.interp_tbl t.atoms;snd (Form.interp_tbl t.forms)]
-let export t roots =
+let register_instances env t =
+  (* Intermediate carriers need CompDec even when no source equality mentions
+     that carrier. Reuse actual context proof terms before snapshot can create
+     delayed cuts; never submit an undeclared CompDec variable to VM reduction. *)
+  let source_sorts = List.map (fun (i,_) -> SmtBtype.get_coq_type_op i)
+    (SmtBtype.to_list t.sorts) in
+  List.iter (fun d ->
+    let head,args = R.decompose_app_list (Context.Named.Declaration.get_type d) in
+    match args with
+    | [ty] when R.eq_constr head (Lazy.force CoqTerms.cCompDec) &&
+        List.exists (R.eq_constr ty) source_sorts ->
+      ignore (SmtBtype.of_coq_compdec t.sorts ty
+        (R.mkVar (Context.Named.Declaration.get_id d)))
+    | _ -> ()) (Environ.named_context env)
+
+let export ?(env=Global.env ()) t roots =
+  register_instances env t;
   ignore (declarations t);
   let b = Buffer.create 4096 in
   let fmt = Format.formatter_of_buffer b in
@@ -62,7 +78,17 @@ let export t roots =
     Format.fprintf fmt "(declare-fun %s (%a) %a)@." (name_function i)
       (Format.pp_print_list ~pp_sep:(fun fmt () -> Format.pp_print_space fmt ()) SmtBtype.to_smt)
       (Array.to_list args) SmtBtype.to_smt ret) (Op.to_list t.functions);
-  List.iter (fun f -> Format.fprintf fmt "(assert %a)@." (Form.to_smt ~debug:false) f) roots;
+  (* Export the same surface representation that the checked adapter binds.
+     The legacy printer changes signed literals such as -3 into (- 3), which
+     cvc5 faithfully retains in source assumptions. Both are integer terms,
+     but they are different CPC trees. *)
+  let tables = snapshot t and ns = names t in
+  List.iter (fun f ->
+    let encoded = C.compute_term_option env (C.call (adapter "encode_clause")
+      (tables @ [ns;CoqTerms.mkNat 10000;clause [f]])) in
+    match encoded with
+    | Some term -> Format.fprintf fmt "(assert %a)@." E.pp_term term
+    | None -> R.raise_error "Eunoia: exported root has no exact adapter encoding") roots;
   Format.fprintf fmt "(check-sat)@.(exit)@."; Format.pp_print_flush fmt (); Buffer.contents b
 
 (* Translate syntax into the existing SMT-LIB reifier, never declarations or
@@ -78,9 +104,14 @@ let reify t term =
         with _ -> R.raise_error "Eunoia: invalid generated integer %s" s);
       A.TermSpecConst(loc,A.SpecConstNum(loc,s))
     | E.Symbol s,[] -> A.TermQualIdentifier(loc,ident s)
+    | E.Symbol (("+" | "*") as s), (a::b::c::rest) ->
+      let rec chain x = function
+        | [] -> ast x
+        | y::ys -> A.TermQualIdTerm(loc,ident s,(loc,[ast x;chain y ys])) in
+      chain a (b::c::rest)
     | E.Symbol s,xs -> A.TermQualIdTerm(loc,ident s,(loc,List.map ast xs))
     | _ -> R.raise_error "Eunoia: higher-order generated result unsupported" in
-  Smtlib2_genConstr.make_root ~eqsym:false t.atoms t.forms (ast term)
+  Smtlib2_genConstr.make_root ~eqsym:false ~preserve_not:true t.atoms t.forms (ast term)
 
 type prepared = {
   table_args : R.constr list;
@@ -93,19 +124,7 @@ type prepared = {
 
 let prepare ?(fuel=10000) ~witness env t roots parsed =
   if roots=[] || fuel<=0 || fuel>100000 then R.raise_error "Eunoia: invalid roots or computation fuel";
-  (* Intermediate carriers need CompDec even when no source equality mentions
-     that carrier. Reuse actual context proof terms before snapshot can create
-     delayed cuts; never submit an undeclared CompDec variable to VM reduction. *)
-  let source_sorts = List.map (fun (i,_) -> SmtBtype.get_coq_type_op i)
-    (SmtBtype.to_list t.sorts) in
-  List.iter (fun d ->
-    let head,args = R.decompose_app_list (Context.Named.Declaration.get_type d) in
-    match args with
-    | [ty] when R.eq_constr head (Lazy.force CoqTerms.cCompDec) &&
-        List.exists (R.eq_constr ty) source_sorts ->
-      ignore (SmtBtype.of_coq_compdec t.sorts ty
-        (R.mkVar (Context.Named.Declaration.get_id d)))
-    | _ -> ()) (Environ.named_context env);
+  register_instances env t;
   let ns = names t in
   let fuel = CoqTerms.mkNat fuel in
   let table_args = snapshot t in
@@ -124,7 +143,20 @@ let prepare ?(fuel=10000) ~witness env t roots parsed =
   let derive_assuming rule assumption args premises =
     C.compute_term_option env (C.call "SMTCoq.checker.eunoia.CpcGenerated.derive_assuming"
       [fuel;query;C.string rule;C.term assumption;C.term_list args;C.term_list premises]) in
-  let proof = E.elaborate ~signature_names:(C.signature_names env)
+  let metadata_literals = Hashtbl.create 17 in
+  let is_metadata_literal s =
+    (* Lexical prefilter only. Actual admission is EoArithmetic's exact
+       normalization/category contract, with source spelling retained. *)
+    let numeric = String.length s > 0 &&
+      (s.[0]='-' || (s.[0]>='0' && s.[0]<='9')) &&
+      String.for_all (fun c -> (c>='0' && c<='9') || c='-' || c='.' || c='/') s in
+    numeric && match Hashtbl.find_opt metadata_literals s with
+      | Some b -> b
+      | None ->
+        let b = Stdlib.Option.is_some (C.compute_term_option env
+          (C.call "SMTCoq.checker.eunoia.EoArithmetic.normalize" [C.term (E.Symbol s)])) in
+        Hashtbl.add metadata_literals s b; b in
+  let proof = E.elaborate ~signature_names:(C.signature_names env) ~is_metadata_literal
     ~declarations:(declarations t) ~roots:root_terms ~derive ~derive_assuming parsed in
   SmtMaps.clear ();
   List.iter (fun (i,ty) -> SmtMaps.add_btype (name_sort i) (SmtBtype.Tindex ty))
@@ -207,8 +239,44 @@ let prepare ?(fuel=10000) ~witness env t roots parsed =
           (C.call (adapter "bind_terms") (tables @ [ns;fuel;clauses syntax_cs;C.term_list st.premise_terms]));
         check (context "conclusion syntax binding failed")
           (C.call (adapter "binds") (tables @ [ns;fuel;clause c;C.term st.result]));
-        check (context "local semantic certificate failed")
-          (C.call (local "gate") (tables @ [clauses cs;clause c;evidence]))) (List.rev !checked_steps) in
+        let gate = C.call (local "gate") (tables @ [clauses cs;clause c;evidence]) in
+        (match R.vm_conv Conversion.CUMUL env gate (Lazy.force CoqTerms.ctrue) with
+        | Result.Ok () -> ()
+        | Result.Error () ->
+          let machine_ty = C.global (local "machine") in
+          let option_ty = SmtMisc.mklApp CoqTerms.coption [|machine_ty|] in
+          let machine computation =
+            match R.decompose_app_list (R.cbv_vm env computation option_ty) with
+            | h,[_;m] when R.eq_constr h (Lazy.force CoqTerms.cSome) -> Some m
+            | _ -> None in
+          let roots = C.call (local "local_roots") [clauses cs;clause c] in
+          let initial = C.call (local "initial") [C.call (local "capacity") [evidence]] in
+          let loaded = C.call (local "load_roots")
+            [mkint (Array.length (Form.pform_tbl t.forms));initial;roots;
+             C.call (local "root_claims") [evidence]] in
+          let command_ty = C.global (local "command") in
+          let commands_ty = SmtMisc.mklApp CoqTerms.clist [|command_ty|] in
+          let rec decode_commands list = match R.decompose_app_list list with
+            | h,[_] when R.eq_constr h (Lazy.force CoqTerms.cnil) -> []
+            | h,[_;x;xs] when R.eq_constr h (Lazy.force CoqTerms.ccons) -> x::decode_commands xs
+            | _ -> R.raise_error "Eunoia: malformed computed local program" in
+          let commands = decode_commands (R.cbv_vm env
+            (C.call (local "program") [evidence]) commands_ty) in
+          let rec inspect i m = function
+            | [] -> ()
+            | cmd::rest -> match machine (C.call (local "execute") (tables @ [m;cmd])) with
+              | Some m -> inspect (i+1) m rest
+              | None ->
+                let action = C.call (local "action") [cmd] in
+                let action = R.cbv_vm env action
+                  (C.global "SMTCoq.checker.MainChecker.Checker_Ext.step") in
+                let printed = Pp.string_of_ppcmds
+                  (Printer.pr_constr_env env (Evd.from_env env) action) in
+                R.raise_error "Eunoia: %s, local command %d: %s; source result: %a"
+                  (context "local semantic certificate failed") i printed E.pp_term st.result in
+          Stdlib.Option.iter (fun m -> inspect 0 m commands) (machine loaded);
+          R.raise_error "Eunoia: %s; source result: %a"
+            (context "local semantic certificate failed") E.pp_term st.result)) (List.rev !checked_steps) in
     {table_args=tables;
      common_args=tables @ [ns;fuel;mkint proof.capacity];
      roots_arg=clauses root_clauses;
@@ -259,7 +327,7 @@ let tactic_using produce ?fuel ?(preprocess=Tactics.intros) ~witness ?(lemmas=[]
       if SmtBtype.get_cuts t.sorts <> [] then
         R.raise_error "Eunoia: supply CompDec instances through existing preprocessing";
       let roots = ng :: List.map (fun (f,_,_) -> f) ls in
-      let parsed = produce t roots in
+      let parsed = produce env t roots in
       let prepared = prepare ?fuel ~witness env t roots parsed in
       if lemmas=[] then begin
         let name,args = if boolean_result then
@@ -309,9 +377,9 @@ let tactic_using produce ?fuel ?(preprocess=Tactics.intros) ~witness ?(lemmas=[]
       R.raise_error "Eunoia: %s" s))
 
 let build_refutation ?limits ?fuel ~witness env t roots =
-  let parsed = EunoiaSolver.run ?limits (export t roots) in
+  let parsed = EunoiaSolver.run ?limits (export ~env t roots) in
   build_refutation_from_cpc ?fuel ~witness env t roots parsed
 
-let tactic ?limits = tactic_using (fun t roots ->
-  EunoiaSolver.run ?limits (export t roots))
-let tactic_from_cpc parsed = tactic_using (fun _ _ -> parsed)
+let tactic ?limits = tactic_using (fun env t roots ->
+  EunoiaSolver.run ?limits (export ~env t roots))
+let tactic_from_cpc parsed = tactic_using (fun _ _ _ -> parsed)

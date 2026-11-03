@@ -8,10 +8,10 @@
 (rocq.theory
  (name SMTCoq.eunoia_backend_tests)
  (package rocq-smtcoq)
- (modules Proof Public)
+ (modules Proof Public Lia)
  (theories Stdlib SMTCoq.checker.eunoia SMTCoq)
  (plugins rocq-smtcoq.eunoia_backend_test))
 
 (alias
  (name runtest)
- (deps Proof.vo Public.vo))
+ (deps Proof.vo Public.vo Lia.vo))

@@ -32,6 +32,7 @@ let numeral s =
 
 type value = Value of term | Macro of P.definition
 let elaborate ?(max_expansion=1000000) ?(signature_names=[])
+    ?(is_metadata_literal=(fun _ -> false))
     ?(derive_assuming=(fun _ _ _ _ -> None))
     ~declarations ~roots ~derive (parsed:P.proof) =
   if max_expansion <= 0 then fail "Invalid elaboration expansion limit";
@@ -44,7 +45,8 @@ let elaborate ?(max_expansion=1000000) ?(signature_names=[])
   let reserved s = List.mem s builtins || List.mem s signature_names ||
     List.exists (fun (d:declaration) -> d.name=s) declarations in
   let binder (s:P.symbol) =
-    if reserved s.text || numeral s.text then fail "CPC binder shadows reserved name %s" s.text in
+    if reserved s.text || numeral s.text || is_metadata_literal s.text then
+      fail "CPC binder shadows reserved name %s" s.text in
   let alloc () = let i = !next in incr next; i in
   (* cvc5 prints identical assertions once. Retain every authoritative root
      claim/slot, but match its source assumption to the first exact occurrence. *)
@@ -72,6 +74,7 @@ let elaborate ?(max_expansion=1000000) ?(signature_names=[])
       if not s.quoted && (List.mem s.text builtins || List.mem s.text signature_names || numeral s.text)
       then Symbol s.text else fail "Unknown CPC symbol %s" s.text
     | P.Literal (P.Numeral s) -> Symbol s
+    | P.Literal (P.Decimal s | P.Rational s) when is_metadata_literal s -> Symbol s
     | P.Literal _ -> fail "Unsupported non-integer CPC literal"
     | P.Apply (h,args) ->
       let values = List.map (term locals) args in
@@ -97,7 +100,8 @@ let elaborate ?(max_expansion=1000000) ?(signature_names=[])
       | P.Fun (args,ret) -> if args=[] then read ret
           else app "->" (List.map read args @ [read ret]) in
     let name = d.name.text in
-    if List.mem name builtins || List.mem name signature_names || numeral name then
+    if List.mem name builtins || List.mem name signature_names || numeral name ||
+       is_metadata_literal name then
       fail "CPC declaration shadows signature name %s" name;
     (match List.find_opt (fun (x:declaration) -> x.name = name) !remaining with
     | Some x when x.typ = typ -> remaining := List.filter (fun (x:declaration) -> x.name <> name) !remaining
@@ -124,7 +128,8 @@ let elaborate ?(max_expansion=1000000) ?(signature_names=[])
           (Format.pp_print_list ~pp_sep:Format.pp_print_space pp_term) arguments
           (Format.pp_print_list ~pp_sep:Format.pp_print_space pp_term) premise_terms in
     (match s.conclusion with
-    | Some t when read t <> result -> fail "CPC claimed result differs at %s" s.name.text
+    | Some t when read t <> result -> fail "CPC claimed result differs at %s: source %a; generated %a"
+        s.name.text pp_term (read t) pp_term result
     | _ -> ());
     let st = {id=alloc (); name=s.name.text; rule=s.rule.text; arguments;
       premises=List.map fst ps; premise_terms; result} in
@@ -151,7 +156,9 @@ let elaborate ?(max_expansion=1000000) ?(signature_names=[])
       let t = read a.formula in
       let id = match !expected_roots with
       | (id,x)::xs when x=t -> expected_roots := xs; id
-      | _ -> fail "CPC root %s differs from exported root order/content" a.name.text in
+      | (_,expected)::_ -> fail "CPC root %s differs from exported root order/content: source %a; expected %a"
+          a.name.text pp_term t pp_term expected
+      | [] -> fail "Unexpected CPC root %s" a.name.text in
       Hashtbl.add proofs a.id (id,t);
       commands closing rest
     | P.Step s ->
