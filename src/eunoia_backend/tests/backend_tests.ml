@@ -87,7 +87,7 @@ let () =
     ~is_metadata_literal:metadata (parse (metadata_defs ^ prefix ^ final)));
   rejected (fun () -> elaborate ~declarations:decl ~roots:[p;np] ~derive
     ~is_metadata_literal:metadata
-    (parse ("(define @t1 () 1/0)" ^ prefix ^ final)));
+    (parse ("(define @t1 () 1/3)" ^ prefix ^ final)));
   List.iter (fun number ->
     rejected (fun () -> elaborate
       ~declarations:({name=number;typ=Symbol "Int"}::decl) ~roots:[p;np] ~derive
