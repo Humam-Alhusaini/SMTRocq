@@ -1,0 +1,20 @@
+{
+  "version": "1.4.2",
+  "git_revision": "282d5e0",
+  "platform": "Linux-x86_64-static",
+  "install_directory": "cvc5-1.4.2",
+  "binary": "cvc5-Linux-x86_64-static/bin/cvc5",
+  "signature": "cvc5-cvc5-1.4.2/proofs/eo/cpc/Cpc.eo",
+  "archives": {
+    "binary": {
+      "filename": "cvc5-1.4.2-Linux-x86_64-static.zip",
+      "url": "https://github.com/cvc5/cvc5/releases/download/cvc5-1.4.2/cvc5-Linux-x86_64-static.zip",
+      "sha256": "7eb18f8c814c36a46c5a7d003983e9cfbc4b0a9828d6dd596239291bd4cc61d8"
+    },
+    "source": {
+      "filename": "cvc5-1.4.2-source.tar.gz",
+      "url": "https://github.com/cvc5/cvc5/archive/refs/tags/cvc5-1.4.2.tar.gz",
+      "sha256": "795099b277bfa79a3c9a11c8d3fec780452031dc89ddcc170003963aa3521343"
+    }
+  }
+}
