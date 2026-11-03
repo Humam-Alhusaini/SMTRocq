@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
-# The coordinator registers eunoia_uf in unit-tests/dune. Until then, compile
-# its unchanged source against the built install tree, with all outputs in /tmp.
+# Independently compile the unchanged UF suite against the built install tree
+# and audit its exported theorems, with all outputs in /tmp.
 repo=$(cd "$(dirname "$0")/../../.." && pwd)
 env=/home/charles/code/friends/.toolchains/smtrocq-env
 scratch=$(mktemp -d /tmp/smtrocq-live-uf.XXXXXX)

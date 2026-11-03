@@ -112,9 +112,10 @@ paths. No Logos/Ethos checkout, dependency install, network, push or PR was used
 
 ## Registration and reproduction
 
-The coordinator must add `eunoia_uf` to the existing `unit-tests/dune` module
-list. This child does not edit that shared stanza. Until registration, run the
-standalone script above. It uses the private toolchain wrapper, builds with
+Coordinator commit `13161ee` registers `eunoia_uf` in the existing
+`unit-tests/dune` module list, so the default build and test aliases compile it.
+The child did not edit that shared stanza. The standalone script remains useful
+for a separate exported-theorem audit. It uses the private toolchain wrapper, builds with
 `dune -j2 @install`, compiles the unchanged source under a temporary `EunoiaUF`
 loadpath, and automatically audits every `Lemma` in the file. All outputs stay
 under `/tmp/smtrocq-live-uf.XXXXXX/`.

@@ -200,7 +200,12 @@ negations and the local producer emits checked `ImmFlatten` operations from
 exact singleton roots. The original negative-predicate goal now closes with
 `Qed` and adds no assumptions
 (`/tmp/smtrocq-negative-predicate-assumptions/summary.json`). The full 22-goal
-file, its audits and final regression still must pass before suite acceptance.
+file has since passed: all 22 public-tactic positive theorems close in one file,
+both false controls reject, and all 22 exported-theorem audits add no assumptions.
+The child evidence is `/tmp/smtrocq-live-uf.rjFR6E/assumptions/summary.json` and
+`/tmp/smtrocq-uf-complete-suite.log`. Integration `51847bb` merges the suite;
+`13161ee` registers it in the default unit-test theory. Final composed regression
+still must pass after all pending LIA and performance changes.
 
 The same integration adds deterministic right-fold lowering for n-ary integer
 `+`/`*` while retaining each raw source payload. The generated rule computation
