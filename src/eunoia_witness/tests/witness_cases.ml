@@ -68,6 +68,17 @@ let run ~check =
   positive "iff-transitive-congruence" atoms forms
     [[binary forms Fiff b c];[binary forms Fiff a c]]
     [binary forms Fiff (binary forms Fiff b a) (binary forms Fiff c c)];
+  let e = bool atoms forms 4 and f = bool atoms forms 5 in
+  let p = binary forms Fand a (binary forms For b c)
+  and p' = binary forms Fand d (binary forms For e f)
+  and q = binary forms For (Form.neg a) (Form.neg b)
+  and q' = binary forms For (Form.neg d) (Form.neg e) in
+  positive "nested-implication-congruence" atoms forms
+    [[binary forms Fiff p p'];[binary forms Fiff q q']]
+    [binary forms Fiff (binary forms Fimp p q) (binary forms Fimp p' q')];
+  negative "nested-implication-missing-premise" atoms forms
+    [[binary forms Fiff p p']]
+    [binary forms Fiff (binary forms Fimp p q) (binary forms Fimp p' q')];
   let ite = Form.get forms (Fapp (Fite,[|a;b;c|])) in
   positive "ite-then" atoms forms [[ite];[a]] [b];
   positive "ite-else" atoms forms [[ite];[Form.neg a]] [c];
@@ -177,11 +188,14 @@ let run ~check =
   Printf.printf "%d witness search cases passed\n%!" !count
 
 let check_shape _name _atoms _forms _premises _conclusion (w:Certificate.witness) =
+  (* Sliced candidates retain every root, but allocate only retained commands. *)
+  assert (w.capacity = List.length w.root_claims + List.length w.program);
   let live = Hashtbl.create 31 in
   let load id c = assert (id >= 0 && id < w.capacity && not (Hashtbl.mem live id));
     assert (c = Certificate.canonical c); Hashtbl.add live id c in
   List.iter (fun (id,c) -> load id c) w.root_claims;
-  List.iter (fun cmd ->
+  List.iteri (fun offset cmd ->
+    assert (Certificate.output cmd.Certificate.action = List.length w.root_claims + offset);
     List.iter (fun id -> assert (Hashtbl.mem live id)) (Certificate.reads cmd.Certificate.action);
     assert (cmd.expected <> [0] || (match cmd.action with Certificate.CTrue _ -> true | _ -> false));
     (match cmd.action with

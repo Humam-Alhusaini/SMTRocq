@@ -159,6 +159,11 @@ let produce ?(limits=default_limits) ~atoms ~forms ~premises ~conclusion () =
     let register id c =
       Hashtbl.add clauses id c;
       if not (Hashtbl.mem known c) then Hashtbl.add known c id;
+      (* Unit propagation must see clauses which have not yet been selected
+         for saturation. Otherwise units_only only compares units with units,
+         leaving all Boolean propagation behind unrestricted resolution. *)
+      List.iter (fun l -> Hashtbl.replace index l
+        (id :: Stdlib.Option.value ~default:[] (Hashtbl.find_opt index l))) c;
       Queue.add id (if List.length c = 1 then units else pending) in
     List.iter (fun (id,c) -> register id c) root_claims;
     let subsumed ?(strict=false) c = Hashtbl.fold (fun d _ found ->
@@ -173,7 +178,33 @@ let produce ?(limits=default_limits) ~atoms ~forms ~premises ~conclusion () =
           List.iter (fun id -> Hashtbl.replace needed id ()) (reads cmd.action);
           cmd::acc
         end else acc) [] !program in
-      { capacity = !next;root_claims;program;conflict } in
+      (* Pruning commands should also prune their state allocation. Keep root
+         slots (including unused/duplicate roots) exactly as claimed, then
+         densely relocate retained command slots and all their reads. This
+         changes only the untrusted candidate; the gate checks it as usual. *)
+      let relocated = Hashtbl.create (List.length program) in
+      List.iter (fun (id,_) -> Hashtbl.add relocated id id) root_claims;
+      let capacity = ref (List.length root_claims) in
+      let slot id = Hashtbl.find relocated id in
+      let program = List.map (fun cmd ->
+        let p = !capacity in incr capacity;
+        Hashtbl.add relocated (output cmd.action) p;
+        let action = match cmd.action with
+          | Res (_,a,b) -> Res (p,slot a,slot b)
+          | CFalse _ -> CFalse p | CTrue _ -> CTrue p
+          | BuildDef (_,l) -> BuildDef (p,l)
+          | BuildDef2 (_,l) -> BuildDef2 (p,l)
+          | BuildProj (_,l,i) -> BuildProj (p,l,i)
+          | ImmFlatten (_,a,l) -> ImmFlatten (p,slot a,l)
+          | EqTr (_,l,ls) -> EqTr (p,l,ls)
+          | EqCgr (_,l,ls) -> EqCgr (p,l,ls)
+          | EqCgrP (_,a,b,ls) -> EqCgrP (p,a,b,ls)
+          | LiaMicromega (_,c,proof) -> LiaMicromega (p,c,proof) in
+        {cmd with action}) program in
+      if profiling then Printf.eprintf
+        "EUNOIA_WITNESS id=%d event=finish cpu_s=%.6f searched_slots=%d capacity=%d commands=%d pairs=%d\n%!"
+        sequence (Sys.time () -. started) !next !capacity (List.length program) !pair_count;
+      { capacity = !capacity;root_claims;program;conflict=slot conflict } in
     let add mk c =
       let c = canonical c in
       let explicit_true = match mk !next with CTrue _ -> true | _ -> false in
@@ -196,7 +227,7 @@ let produce ?(limits=default_limits) ~atoms ~forms ~premises ~conclusion () =
             let partners = Stdlib.Option.value ~default:[] (Hashtbl.find_opt index (neg l)) in
             List.iter (fun other ->
               let a,b = if id < other then id,other else other,id in
-              if not (Hashtbl.mem pairs (a,b)) then begin
+              if a <> b && not (Hashtbl.mem pairs (a,b)) then begin
                 if !pair_count >= limits.max_resolution_pairs then
                   raise (Fail (Resource_limit "resolution pairs"));
                 incr pair_count; Hashtbl.add pairs (a,b) ();
@@ -205,9 +236,7 @@ let produce ?(limits=default_limits) ~atoms ~forms ~premises ~conclusion () =
                 (* A genuine pivot exists; a tautological resolvent is useless.
                    Match the checker's order, including its fallback behavior. *)
                 if canonical result = result then add (fun p -> Res (p,a,b)) result
-              end) partners) c;
-          List.iter (fun l -> Hashtbl.replace index l
-            (id :: Stdlib.Option.value ~default:[] (Hashtbl.find_opt index l))) c
+              end) partners) c
         end
       done in
     let form_list () = Hashtbl.fold (fun _ f acc -> f::acc) relevant []
@@ -369,9 +398,10 @@ let produce ?(limits=default_limits) ~atoms ~forms ~premises ~conclusion () =
         end;
         let before = !next in
         profile "theory" theory;
-        (* Congruence/Boolean steps are often arithmetic-shaped. Finish their
-           cheap checked EUF/CNF proof before expanding an iff for Micromega. *)
-        profile "resolve_before_lia" resolve_pending;
+        (* First propagate the new EUF/CNF units. Try the exact arithmetic
+           implication before saturating unrelated nonunit Boolean clauses.
+           Whole disjunctive premises remain intact in arithmetic_clause. *)
+        profile "resolve_before_lia" (fun () -> resolve_pending ~units_only:true ());
         if n = 0 then profile "lia_exact" (fun () ->
           Stdlib.Option.iter try_lia arithmetic_clause);
         profile "lia_units" (fun () ->
