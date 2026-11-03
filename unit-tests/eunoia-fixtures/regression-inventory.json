@@ -1,0 +1,1665 @@
+{
+  "common_options": [
+    "--dump-proofs",
+    "--proof-format=cpc",
+    "--proof-granularity=dsl-rewrite",
+    "--no-proof-allow-trust",
+    "--proof-check=eager",
+    "--check-proofs-complete"
+  ],
+  "max_dump_bytes": 16777216,
+  "profiles": {
+    "default": [],
+    "reduced": [
+      "--simplification=none",
+      "--no-static-learning",
+      "--no-ite-simp",
+      "--no-unconstrained-simp",
+      "--no-repeat-simp"
+    ]
+  },
+  "rule_declarations": {
+    "aci_norm": {
+      "contains_sorry": false,
+      "file": "Cpc.eo"
+    },
+    "and_elim": {
+      "contains_sorry": false,
+      "file": "rules/Booleans.eo"
+    },
+    "and_intro": {
+      "contains_sorry": false,
+      "file": "rules/Booleans.eo"
+    },
+    "arith-elim-gt": {
+      "contains_sorry": false,
+      "file": "rules/Rewrites.eo"
+    },
+    "arith-elim-leq": {
+      "contains_sorry": false,
+      "file": "rules/Rewrites.eo"
+    },
+    "arith-elim-lt": {
+      "contains_sorry": false,
+      "file": "rules/Rewrites.eo"
+    },
+    "arith-eq-elim-int": {
+      "contains_sorry": false,
+      "file": "rules/Rewrites.eo"
+    },
+    "arith-leq-norm": {
+      "contains_sorry": false,
+      "file": "rules/Rewrites.eo"
+    },
+    "arith_mult_neg": {
+      "contains_sorry": false,
+      "file": "rules/Arith.eo"
+    },
+    "arith_poly_norm": {
+      "contains_sorry": false,
+      "file": "rules/Arith.eo"
+    },
+    "arith_poly_norm_rel": {
+      "contains_sorry": false,
+      "file": "rules/Arith.eo"
+    },
+    "arith_sum_ub": {
+      "contains_sorry": false,
+      "file": "rules/Arith.eo"
+    },
+    "bool-double-not-elim": {
+      "contains_sorry": false,
+      "file": "rules/Rewrites.eo"
+    },
+    "chain_m_resolution": {
+      "contains_sorry": false,
+      "file": "rules/Booleans.eo"
+    },
+    "chain_resolution": {
+      "contains_sorry": false,
+      "file": "rules/Booleans.eo"
+    },
+    "cnf_and_neg": {
+      "contains_sorry": false,
+      "file": "rules/Booleans.eo"
+    },
+    "cnf_and_pos": {
+      "contains_sorry": false,
+      "file": "rules/Booleans.eo"
+    },
+    "cnf_or_pos": {
+      "contains_sorry": false,
+      "file": "rules/Booleans.eo"
+    },
+    "cong": {
+      "contains_sorry": false,
+      "file": "rules/Uf.eo"
+    },
+    "contra": {
+      "contains_sorry": false,
+      "file": "rules/Booleans.eo"
+    },
+    "eq-refl": {
+      "contains_sorry": false,
+      "file": "rules/Rewrites.eo"
+    },
+    "eq_resolve": {
+      "contains_sorry": false,
+      "file": "rules/Booleans.eo"
+    },
+    "evaluate": {
+      "contains_sorry": false,
+      "file": "Cpc.eo"
+    },
+    "implies_elim": {
+      "contains_sorry": false,
+      "file": "rules/Booleans.eo"
+    },
+    "int_tight_ub": {
+      "contains_sorry": false,
+      "file": "rules/Arith.eo"
+    },
+    "modus_ponens": {
+      "contains_sorry": false,
+      "file": "rules/Booleans.eo"
+    },
+    "nary_cong": {
+      "contains_sorry": false,
+      "file": "rules/Uf.eo"
+    },
+    "not_and": {
+      "contains_sorry": false,
+      "file": "rules/Booleans.eo"
+    },
+    "not_implies_elim1": {
+      "contains_sorry": false,
+      "file": "rules/Booleans.eo"
+    },
+    "not_implies_elim2": {
+      "contains_sorry": false,
+      "file": "rules/Booleans.eo"
+    },
+    "not_not_elim": {
+      "contains_sorry": false,
+      "file": "rules/Booleans.eo"
+    },
+    "not_or_elim": {
+      "contains_sorry": false,
+      "file": "rules/Booleans.eo"
+    },
+    "process_scope": {
+      "contains_sorry": false,
+      "file": "rules/Builtin.eo"
+    },
+    "refl": {
+      "contains_sorry": false,
+      "file": "rules/Uf.eo"
+    },
+    "reordering": {
+      "contains_sorry": false,
+      "file": "rules/Booleans.eo"
+    },
+    "resolution": {
+      "contains_sorry": false,
+      "file": "rules/Booleans.eo"
+    },
+    "scope": {
+      "contains_sorry": false,
+      "file": "rules/Builtin.eo"
+    },
+    "symm": {
+      "contains_sorry": false,
+      "file": "rules/Uf.eo"
+    },
+    "trans": {
+      "contains_sorry": false,
+      "file": "rules/Uf.eo"
+    },
+    "true_elim": {
+      "contains_sorry": false,
+      "file": "rules/Uf.eo"
+    },
+    "true_intro": {
+      "contains_sorry": false,
+      "file": "rules/Uf.eo"
+    }
+  },
+  "runs": [
+    {
+      "argv": [
+        "/home/charles/code/friends/.toolchains/cvc5-1.4.2/cvc5-Linux-x86_64-static/bin/cvc5",
+        "--dump-proofs",
+        "--proof-format=cpc",
+        "--proof-granularity=dsl-rewrite",
+        "--no-proof-allow-trust",
+        "--proof-check=eager",
+        "--check-proofs-complete",
+        "unit-tests/files/lia1.smt2"
+      ],
+      "commands": {
+        "assume": 1,
+        "assume-push": 6,
+        "declare-const": 3,
+        "define": 44,
+        "step": 125,
+        "step-pop": 6
+      },
+      "cwd": "repository root",
+      "exit_code": 0,
+      "input": "unit-tests/files/lia1.smt2",
+      "input_sha256": "ce55bb3625d2a731f0d1131641bc76134937999cd32fad715a0d3ce774992b21",
+      "logic": "QF_LIA",
+      "profile": "default",
+      "proof": "default/lia1.cpc",
+      "proof_bytes": 8278,
+      "proof_sha256": "e9288f5a03f1b53d21869a3a7d0cf75f251a9a8c59500c4748525e49bc0a8a35",
+      "rules": {
+        "and_elim": 2,
+        "and_intro": 2,
+        "arith-elim-lt": 6,
+        "arith-leq-norm": 5,
+        "arith_mult_neg": 2,
+        "arith_poly_norm": 4,
+        "arith_sum_ub": 2,
+        "bool-double-not-elim": 3,
+        "chain_m_resolution": 3,
+        "cong": 16,
+        "eq_resolve": 9,
+        "evaluate": 15,
+        "int_tight_ub": 2,
+        "modus_ponens": 2,
+        "nary_cong": 9,
+        "not_and": 2,
+        "not_implies_elim1": 1,
+        "not_implies_elim2": 1,
+        "not_not_elim": 2,
+        "not_or_elim": 2,
+        "process_scope": 2,
+        "refl": 10,
+        "reordering": 2,
+        "scope": 6,
+        "symm": 4,
+        "trans": 15,
+        "true_elim": 2
+      },
+      "solver_result": "unsat",
+      "stderr": "default/lia1.stderr",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "steps": 131
+    },
+    {
+      "argv": [
+        "/home/charles/code/friends/.toolchains/cvc5-1.4.2/cvc5-Linux-x86_64-static/bin/cvc5",
+        "--dump-proofs",
+        "--proof-format=cpc",
+        "--proof-granularity=dsl-rewrite",
+        "--no-proof-allow-trust",
+        "--proof-check=eager",
+        "--check-proofs-complete",
+        "--simplification=none",
+        "--no-static-learning",
+        "--no-ite-simp",
+        "--no-unconstrained-simp",
+        "--no-repeat-simp",
+        "unit-tests/files/lia1.smt2"
+      ],
+      "commands": {
+        "assume": 1,
+        "assume-push": 6,
+        "declare-const": 3,
+        "define": 44,
+        "step": 125,
+        "step-pop": 6
+      },
+      "cwd": "repository root",
+      "exit_code": 0,
+      "input": "unit-tests/files/lia1.smt2",
+      "input_sha256": "ce55bb3625d2a731f0d1131641bc76134937999cd32fad715a0d3ce774992b21",
+      "logic": "QF_LIA",
+      "profile": "reduced",
+      "proof": "reduced/lia1.cpc",
+      "proof_bytes": 8278,
+      "proof_sha256": "e9288f5a03f1b53d21869a3a7d0cf75f251a9a8c59500c4748525e49bc0a8a35",
+      "rules": {
+        "and_elim": 2,
+        "and_intro": 2,
+        "arith-elim-lt": 6,
+        "arith-leq-norm": 5,
+        "arith_mult_neg": 2,
+        "arith_poly_norm": 4,
+        "arith_sum_ub": 2,
+        "bool-double-not-elim": 3,
+        "chain_m_resolution": 3,
+        "cong": 16,
+        "eq_resolve": 9,
+        "evaluate": 15,
+        "int_tight_ub": 2,
+        "modus_ponens": 2,
+        "nary_cong": 9,
+        "not_and": 2,
+        "not_implies_elim1": 1,
+        "not_implies_elim2": 1,
+        "not_not_elim": 2,
+        "not_or_elim": 2,
+        "process_scope": 2,
+        "refl": 10,
+        "reordering": 2,
+        "scope": 6,
+        "symm": 4,
+        "trans": 15,
+        "true_elim": 2
+      },
+      "solver_result": "unsat",
+      "stderr": "reduced/lia1.stderr",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "steps": 131
+    },
+    {
+      "argv": [
+        "/home/charles/code/friends/.toolchains/cvc5-1.4.2/cvc5-Linux-x86_64-static/bin/cvc5",
+        "--dump-proofs",
+        "--proof-format=cpc",
+        "--proof-granularity=dsl-rewrite",
+        "--no-proof-allow-trust",
+        "--proof-check=eager",
+        "--check-proofs-complete",
+        "unit-tests/files/lia2.smt2"
+      ],
+      "commands": {
+        "assume": 1,
+        "declare-const": 1,
+        "define": 9,
+        "step": 27
+      },
+      "cwd": "repository root",
+      "exit_code": 0,
+      "input": "unit-tests/files/lia2.smt2",
+      "input_sha256": "f53a940c03f865f88370d23d295c0a7e9489638e0f8bbc7b86416af1542c24f2",
+      "logic": "QF_LIA",
+      "profile": "default",
+      "proof": "default/lia2.cpc",
+      "proof_bytes": 1655,
+      "proof_sha256": "5bed555d0b8f6a58daa78bebbd8eff8a29ad16e22ab8fc3504f9d498dc88d73a",
+      "rules": {
+        "arith_poly_norm": 3,
+        "arith_poly_norm_rel": 1,
+        "cong": 6,
+        "eq_resolve": 3,
+        "evaluate": 3,
+        "nary_cong": 1,
+        "not_implies_elim1": 1,
+        "not_implies_elim2": 1,
+        "refl": 4,
+        "trans": 4
+      },
+      "solver_result": "unsat",
+      "stderr": "default/lia2.stderr",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "steps": 27
+    },
+    {
+      "argv": [
+        "/home/charles/code/friends/.toolchains/cvc5-1.4.2/cvc5-Linux-x86_64-static/bin/cvc5",
+        "--dump-proofs",
+        "--proof-format=cpc",
+        "--proof-granularity=dsl-rewrite",
+        "--no-proof-allow-trust",
+        "--proof-check=eager",
+        "--check-proofs-complete",
+        "--simplification=none",
+        "--no-static-learning",
+        "--no-ite-simp",
+        "--no-unconstrained-simp",
+        "--no-repeat-simp",
+        "unit-tests/files/lia2.smt2"
+      ],
+      "commands": {
+        "assume": 1,
+        "declare-const": 1,
+        "define": 15,
+        "step": 33
+      },
+      "cwd": "repository root",
+      "exit_code": 0,
+      "input": "unit-tests/files/lia2.smt2",
+      "input_sha256": "f53a940c03f865f88370d23d295c0a7e9489638e0f8bbc7b86416af1542c24f2",
+      "logic": "QF_LIA",
+      "profile": "reduced",
+      "proof": "reduced/lia2.cpc",
+      "proof_bytes": 2313,
+      "proof_sha256": "83a0d0ec94c4dab704f976084032a395b91c78dea2f7bfcf81a3b57899b3e597",
+      "rules": {
+        "aci_norm": 1,
+        "and_elim": 1,
+        "arith-eq-elim-int": 1,
+        "arith-leq-norm": 1,
+        "arith_poly_norm": 4,
+        "arith_poly_norm_rel": 2,
+        "chain_m_resolution": 1,
+        "cong": 8,
+        "eq_resolve": 1,
+        "evaluate": 1,
+        "nary_cong": 2,
+        "not_implies_elim1": 1,
+        "not_implies_elim2": 1,
+        "refl": 3,
+        "trans": 5
+      },
+      "solver_result": "unsat",
+      "stderr": "reduced/lia2.stderr",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "steps": 33
+    },
+    {
+      "argv": [
+        "/home/charles/code/friends/.toolchains/cvc5-1.4.2/cvc5-Linux-x86_64-static/bin/cvc5",
+        "--dump-proofs",
+        "--proof-format=cpc",
+        "--proof-granularity=dsl-rewrite",
+        "--no-proof-allow-trust",
+        "--proof-check=eager",
+        "--check-proofs-complete",
+        "unit-tests/files/lia3.smt2"
+      ],
+      "commands": {
+        "assume": 1,
+        "declare-const": 2,
+        "define": 9,
+        "step": 28
+      },
+      "cwd": "repository root",
+      "exit_code": 0,
+      "input": "unit-tests/files/lia3.smt2",
+      "input_sha256": "f471ba198a41eee31d9fb1723a38d20b3ffe2bc50412063b910f12668cd14e18",
+      "logic": "QF_LIA",
+      "profile": "default",
+      "proof": "default/lia3.cpc",
+      "proof_bytes": 1792,
+      "proof_sha256": "94a1fa315f9ee3472cc7068c804f20a497e8c3ea92b4a55be89ce174e370bd2d",
+      "rules": {
+        "arith-elim-gt": 1,
+        "arith-elim-leq": 2,
+        "arith-leq-norm": 1,
+        "arith_poly_norm": 3,
+        "arith_poly_norm_rel": 2,
+        "bool-double-not-elim": 1,
+        "cong": 6,
+        "contra": 1,
+        "eq_resolve": 1,
+        "not_implies_elim1": 1,
+        "not_implies_elim2": 1,
+        "refl": 1,
+        "symm": 1,
+        "trans": 6
+      },
+      "solver_result": "unsat",
+      "stderr": "default/lia3.stderr",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "steps": 28
+    },
+    {
+      "argv": [
+        "/home/charles/code/friends/.toolchains/cvc5-1.4.2/cvc5-Linux-x86_64-static/bin/cvc5",
+        "--dump-proofs",
+        "--proof-format=cpc",
+        "--proof-granularity=dsl-rewrite",
+        "--no-proof-allow-trust",
+        "--proof-check=eager",
+        "--check-proofs-complete",
+        "--simplification=none",
+        "--no-static-learning",
+        "--no-ite-simp",
+        "--no-unconstrained-simp",
+        "--no-repeat-simp",
+        "unit-tests/files/lia3.smt2"
+      ],
+      "commands": {
+        "assume": 1,
+        "declare-const": 2,
+        "define": 9,
+        "step": 28
+      },
+      "cwd": "repository root",
+      "exit_code": 0,
+      "input": "unit-tests/files/lia3.smt2",
+      "input_sha256": "f471ba198a41eee31d9fb1723a38d20b3ffe2bc50412063b910f12668cd14e18",
+      "logic": "QF_LIA",
+      "profile": "reduced",
+      "proof": "reduced/lia3.cpc",
+      "proof_bytes": 1844,
+      "proof_sha256": "f23b8b5e6d57baf596cfe1c48b64782307e61ff61083f1845fa31f987182c594",
+      "rules": {
+        "arith-elim-gt": 1,
+        "arith-elim-leq": 2,
+        "arith-leq-norm": 1,
+        "arith_poly_norm": 3,
+        "arith_poly_norm_rel": 2,
+        "bool-double-not-elim": 1,
+        "chain_m_resolution": 1,
+        "cong": 6,
+        "eq_resolve": 1,
+        "not_implies_elim1": 1,
+        "not_implies_elim2": 1,
+        "refl": 1,
+        "symm": 1,
+        "trans": 6
+      },
+      "solver_result": "unsat",
+      "stderr": "reduced/lia3.stderr",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "steps": 28
+    },
+    {
+      "argv": [
+        "/home/charles/code/friends/.toolchains/cvc5-1.4.2/cvc5-Linux-x86_64-static/bin/cvc5",
+        "--dump-proofs",
+        "--proof-format=cpc",
+        "--proof-granularity=dsl-rewrite",
+        "--no-proof-allow-trust",
+        "--proof-check=eager",
+        "--check-proofs-complete",
+        "unit-tests/files/lia4.smt2"
+      ],
+      "commands": {
+        "assume": 1,
+        "declare-const": 2,
+        "define": 13,
+        "step": 26
+      },
+      "cwd": "repository root",
+      "exit_code": 0,
+      "input": "unit-tests/files/lia4.smt2",
+      "input_sha256": "a0afdc1187bcfff2db3a5adb5f321cf4648e5d7d4cdd68c93ad99105103e843f",
+      "logic": "QF_LIA",
+      "profile": "default",
+      "proof": "default/lia4.cpc",
+      "proof_bytes": 1783,
+      "proof_sha256": "c91dd1177dc52cf38286fab28dfb86fa8dd29d3b607d9a8108a0ce1c47e116ac",
+      "rules": {
+        "arith-elim-lt": 1,
+        "arith-leq-norm": 1,
+        "arith_poly_norm": 4,
+        "arith_poly_norm_rel": 2,
+        "cong": 5,
+        "eq-refl": 1,
+        "eq_resolve": 1,
+        "evaluate": 2,
+        "nary_cong": 1,
+        "refl": 1,
+        "trans": 7
+      },
+      "solver_result": "unsat",
+      "stderr": "default/lia4.stderr",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "steps": 26
+    },
+    {
+      "argv": [
+        "/home/charles/code/friends/.toolchains/cvc5-1.4.2/cvc5-Linux-x86_64-static/bin/cvc5",
+        "--dump-proofs",
+        "--proof-format=cpc",
+        "--proof-granularity=dsl-rewrite",
+        "--no-proof-allow-trust",
+        "--proof-check=eager",
+        "--check-proofs-complete",
+        "--simplification=none",
+        "--no-static-learning",
+        "--no-ite-simp",
+        "--no-unconstrained-simp",
+        "--no-repeat-simp",
+        "unit-tests/files/lia4.smt2"
+      ],
+      "commands": {
+        "assume": 1,
+        "declare-const": 2,
+        "define": 13,
+        "step": 26
+      },
+      "cwd": "repository root",
+      "exit_code": 0,
+      "input": "unit-tests/files/lia4.smt2",
+      "input_sha256": "a0afdc1187bcfff2db3a5adb5f321cf4648e5d7d4cdd68c93ad99105103e843f",
+      "logic": "QF_LIA",
+      "profile": "reduced",
+      "proof": "reduced/lia4.cpc",
+      "proof_bytes": 1783,
+      "proof_sha256": "c91dd1177dc52cf38286fab28dfb86fa8dd29d3b607d9a8108a0ce1c47e116ac",
+      "rules": {
+        "arith-elim-lt": 1,
+        "arith-leq-norm": 1,
+        "arith_poly_norm": 4,
+        "arith_poly_norm_rel": 2,
+        "cong": 5,
+        "eq-refl": 1,
+        "eq_resolve": 1,
+        "evaluate": 2,
+        "nary_cong": 1,
+        "refl": 1,
+        "trans": 7
+      },
+      "solver_result": "unsat",
+      "stderr": "reduced/lia4.stderr",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "steps": 26
+    },
+    {
+      "argv": [
+        "/home/charles/code/friends/.toolchains/cvc5-1.4.2/cvc5-Linux-x86_64-static/bin/cvc5",
+        "--dump-proofs",
+        "--proof-format=cpc",
+        "--proof-granularity=dsl-rewrite",
+        "--no-proof-allow-trust",
+        "--proof-check=eager",
+        "--check-proofs-complete",
+        "unit-tests/files/lia5.smt2"
+      ],
+      "commands": {
+        "assume": 1,
+        "assume-push": 6,
+        "declare-const": 2,
+        "define": 35,
+        "step": 104,
+        "step-pop": 6
+      },
+      "cwd": "repository root",
+      "exit_code": 0,
+      "input": "unit-tests/files/lia5.smt2",
+      "input_sha256": "076bb4e382639927a80f825bd32ad7e686b28cb45659aa90327f4420b69891f1",
+      "logic": "QF_LIA",
+      "profile": "default",
+      "proof": "default/lia5.cpc",
+      "proof_bytes": 6961,
+      "proof_sha256": "ce9c4fddd2f4e73b6288d8b71adf2051a1936521f13b15319af13273786f6e0f",
+      "rules": {
+        "and_elim": 2,
+        "and_intro": 3,
+        "arith-elim-lt": 4,
+        "arith-leq-norm": 2,
+        "arith_mult_neg": 3,
+        "arith_poly_norm": 3,
+        "arith_sum_ub": 2,
+        "bool-double-not-elim": 2,
+        "chain_m_resolution": 5,
+        "cnf_and_pos": 2,
+        "cong": 11,
+        "contra": 1,
+        "eq_resolve": 9,
+        "evaluate": 13,
+        "modus_ponens": 3,
+        "nary_cong": 6,
+        "not_and": 2,
+        "process_scope": 3,
+        "refl": 6,
+        "reordering": 3,
+        "scope": 6,
+        "symm": 3,
+        "trans": 14,
+        "true_elim": 2
+      },
+      "solver_result": "unsat",
+      "stderr": "default/lia5.stderr",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "steps": 110
+    },
+    {
+      "argv": [
+        "/home/charles/code/friends/.toolchains/cvc5-1.4.2/cvc5-Linux-x86_64-static/bin/cvc5",
+        "--dump-proofs",
+        "--proof-format=cpc",
+        "--proof-granularity=dsl-rewrite",
+        "--no-proof-allow-trust",
+        "--proof-check=eager",
+        "--check-proofs-complete",
+        "--simplification=none",
+        "--no-static-learning",
+        "--no-ite-simp",
+        "--no-unconstrained-simp",
+        "--no-repeat-simp",
+        "unit-tests/files/lia5.smt2"
+      ],
+      "commands": {
+        "assume": 1,
+        "assume-push": 6,
+        "declare-const": 2,
+        "define": 35,
+        "step": 104,
+        "step-pop": 6
+      },
+      "cwd": "repository root",
+      "exit_code": 0,
+      "input": "unit-tests/files/lia5.smt2",
+      "input_sha256": "076bb4e382639927a80f825bd32ad7e686b28cb45659aa90327f4420b69891f1",
+      "logic": "QF_LIA",
+      "profile": "reduced",
+      "proof": "reduced/lia5.cpc",
+      "proof_bytes": 6961,
+      "proof_sha256": "ce9c4fddd2f4e73b6288d8b71adf2051a1936521f13b15319af13273786f6e0f",
+      "rules": {
+        "and_elim": 2,
+        "and_intro": 3,
+        "arith-elim-lt": 4,
+        "arith-leq-norm": 2,
+        "arith_mult_neg": 3,
+        "arith_poly_norm": 3,
+        "arith_sum_ub": 2,
+        "bool-double-not-elim": 2,
+        "chain_m_resolution": 5,
+        "cnf_and_pos": 2,
+        "cong": 11,
+        "contra": 1,
+        "eq_resolve": 9,
+        "evaluate": 13,
+        "modus_ponens": 3,
+        "nary_cong": 6,
+        "not_and": 2,
+        "process_scope": 3,
+        "refl": 6,
+        "reordering": 3,
+        "scope": 6,
+        "symm": 3,
+        "trans": 14,
+        "true_elim": 2
+      },
+      "solver_result": "unsat",
+      "stderr": "reduced/lia5.stderr",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "steps": 110
+    },
+    {
+      "argv": [
+        "/home/charles/code/friends/.toolchains/cvc5-1.4.2/cvc5-Linux-x86_64-static/bin/cvc5",
+        "--dump-proofs",
+        "--proof-format=cpc",
+        "--proof-granularity=dsl-rewrite",
+        "--no-proof-allow-trust",
+        "--proof-check=eager",
+        "--check-proofs-complete",
+        "unit-tests/files/lia6.smt2"
+      ],
+      "commands": {
+        "assume": 1,
+        "declare-const": 1,
+        "define": 12,
+        "step": 30
+      },
+      "cwd": "repository root",
+      "exit_code": 0,
+      "input": "unit-tests/files/lia6.smt2",
+      "input_sha256": "4b710ffdcfd3fc94fcb2d696713a13937923ea99d50a780169f72ffbe5167c62",
+      "logic": "QF_LIA",
+      "profile": "default",
+      "proof": "default/lia6.cpc",
+      "proof_bytes": 1973,
+      "proof_sha256": "7a00eff8aca3c2f37f668aced71b95902406d159548524cec63e7aaed7a570b5",
+      "rules": {
+        "and_elim": 1,
+        "arith-elim-leq": 1,
+        "arith-leq-norm": 1,
+        "arith_poly_norm": 4,
+        "arith_poly_norm_rel": 2,
+        "cong": 5,
+        "contra": 1,
+        "eq_resolve": 1,
+        "evaluate": 1,
+        "nary_cong": 2,
+        "not_implies_elim1": 1,
+        "not_implies_elim2": 1,
+        "refl": 3,
+        "trans": 6
+      },
+      "solver_result": "unsat",
+      "stderr": "default/lia6.stderr",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "steps": 30
+    },
+    {
+      "argv": [
+        "/home/charles/code/friends/.toolchains/cvc5-1.4.2/cvc5-Linux-x86_64-static/bin/cvc5",
+        "--dump-proofs",
+        "--proof-format=cpc",
+        "--proof-granularity=dsl-rewrite",
+        "--no-proof-allow-trust",
+        "--proof-check=eager",
+        "--check-proofs-complete",
+        "--simplification=none",
+        "--no-static-learning",
+        "--no-ite-simp",
+        "--no-unconstrained-simp",
+        "--no-repeat-simp",
+        "unit-tests/files/lia6.smt2"
+      ],
+      "commands": {
+        "assume": 1,
+        "declare-const": 1,
+        "define": 12,
+        "step": 30
+      },
+      "cwd": "repository root",
+      "exit_code": 0,
+      "input": "unit-tests/files/lia6.smt2",
+      "input_sha256": "4b710ffdcfd3fc94fcb2d696713a13937923ea99d50a780169f72ffbe5167c62",
+      "logic": "QF_LIA",
+      "profile": "reduced",
+      "proof": "reduced/lia6.cpc",
+      "proof_bytes": 2025,
+      "proof_sha256": "950c1ffba4e5d0d99d277923981f2ef0e958a4f1ce5c9ed748cf9c5e512b411b",
+      "rules": {
+        "and_elim": 1,
+        "arith-elim-leq": 1,
+        "arith-leq-norm": 1,
+        "arith_poly_norm": 4,
+        "arith_poly_norm_rel": 2,
+        "chain_m_resolution": 1,
+        "cong": 5,
+        "eq_resolve": 1,
+        "evaluate": 1,
+        "nary_cong": 2,
+        "not_implies_elim1": 1,
+        "not_implies_elim2": 1,
+        "refl": 3,
+        "trans": 6
+      },
+      "solver_result": "unsat",
+      "stderr": "reduced/lia6.stderr",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "steps": 30
+    },
+    {
+      "argv": [
+        "/home/charles/code/friends/.toolchains/cvc5-1.4.2/cvc5-Linux-x86_64-static/bin/cvc5",
+        "--dump-proofs",
+        "--proof-format=cpc",
+        "--proof-granularity=dsl-rewrite",
+        "--no-proof-allow-trust",
+        "--proof-check=eager",
+        "--check-proofs-complete",
+        "unit-tests/files/lia7.smt2"
+      ],
+      "commands": {
+        "assume": 1,
+        "declare-const": 1,
+        "define": 9,
+        "step": 27
+      },
+      "cwd": "repository root",
+      "exit_code": 0,
+      "input": "unit-tests/files/lia7.smt2",
+      "input_sha256": "5bc1f60d19a8f4b977e4678682adb14a11cb4e5ba08ef3c1216c22f0e0885122",
+      "logic": "QF_LIA",
+      "profile": "default",
+      "proof": "default/lia7.cpc",
+      "proof_bytes": 1672,
+      "proof_sha256": "0c5debee56fd8a887c79c4ed5e959bda720857afa33836ca7d852ed049cff7c6",
+      "rules": {
+        "arith-elim-leq": 1,
+        "arith_poly_norm": 3,
+        "arith_poly_norm_rel": 1,
+        "cong": 6,
+        "eq_resolve": 3,
+        "evaluate": 3,
+        "nary_cong": 1,
+        "not_implies_elim1": 1,
+        "not_implies_elim2": 1,
+        "refl": 3,
+        "trans": 4
+      },
+      "solver_result": "unsat",
+      "stderr": "default/lia7.stderr",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "steps": 27
+    },
+    {
+      "argv": [
+        "/home/charles/code/friends/.toolchains/cvc5-1.4.2/cvc5-Linux-x86_64-static/bin/cvc5",
+        "--dump-proofs",
+        "--proof-format=cpc",
+        "--proof-granularity=dsl-rewrite",
+        "--no-proof-allow-trust",
+        "--proof-check=eager",
+        "--check-proofs-complete",
+        "--simplification=none",
+        "--no-static-learning",
+        "--no-ite-simp",
+        "--no-unconstrained-simp",
+        "--no-repeat-simp",
+        "unit-tests/files/lia7.smt2"
+      ],
+      "commands": {
+        "assume": 1,
+        "declare-const": 1,
+        "define": 15,
+        "step": 34
+      },
+      "cwd": "repository root",
+      "exit_code": 0,
+      "input": "unit-tests/files/lia7.smt2",
+      "input_sha256": "5bc1f60d19a8f4b977e4678682adb14a11cb4e5ba08ef3c1216c22f0e0885122",
+      "logic": "QF_LIA",
+      "profile": "reduced",
+      "proof": "reduced/lia7.cpc",
+      "proof_bytes": 2366,
+      "proof_sha256": "28f1b464b8b15832fb9529c15b13b20bd72cf24290196c423a7acb1a9f9dac91",
+      "rules": {
+        "aci_norm": 1,
+        "and_elim": 1,
+        "arith-elim-leq": 1,
+        "arith-eq-elim-int": 1,
+        "arith-leq-norm": 1,
+        "arith_poly_norm": 4,
+        "arith_poly_norm_rel": 2,
+        "chain_m_resolution": 1,
+        "cong": 8,
+        "eq_resolve": 1,
+        "evaluate": 1,
+        "nary_cong": 2,
+        "not_implies_elim1": 1,
+        "not_implies_elim2": 1,
+        "refl": 3,
+        "trans": 5
+      },
+      "solver_result": "unsat",
+      "stderr": "reduced/lia7.stderr",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "steps": 34
+    },
+    {
+      "argv": [
+        "/home/charles/code/friends/.toolchains/cvc5-1.4.2/cvc5-Linux-x86_64-static/bin/cvc5",
+        "--dump-proofs",
+        "--proof-format=cpc",
+        "--proof-granularity=dsl-rewrite",
+        "--no-proof-allow-trust",
+        "--proof-check=eager",
+        "--check-proofs-complete",
+        "unit-tests/files/uf1.smt2"
+      ],
+      "commands": {
+        "assume": 1,
+        "declare-const": 5,
+        "declare-sort": 1,
+        "define": 13,
+        "step": 25
+      },
+      "cwd": "repository root",
+      "exit_code": 0,
+      "input": "unit-tests/files/uf1.smt2",
+      "input_sha256": "3fc38ed8217f702ef7f10023b78bfeb7879deff2c6dde0239d9bb7b6a017e474",
+      "logic": "QF_UF",
+      "profile": "default",
+      "proof": "default/uf1.cpc",
+      "proof_bytes": 1880,
+      "proof_sha256": "bde42759cf533ffacd55e1fb2d2558c08353e47e08abb7391bdab3fc384d2515",
+      "rules": {
+        "aci_norm": 1,
+        "and_elim": 5,
+        "chain_m_resolution": 1,
+        "cong": 8,
+        "eq-refl": 1,
+        "eq_resolve": 1,
+        "evaluate": 1,
+        "nary_cong": 3,
+        "refl": 1,
+        "trans": 3
+      },
+      "solver_result": "unsat",
+      "stderr": "default/uf1.stderr",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "steps": 25
+    },
+    {
+      "argv": [
+        "/home/charles/code/friends/.toolchains/cvc5-1.4.2/cvc5-Linux-x86_64-static/bin/cvc5",
+        "--dump-proofs",
+        "--proof-format=cpc",
+        "--proof-granularity=dsl-rewrite",
+        "--no-proof-allow-trust",
+        "--proof-check=eager",
+        "--check-proofs-complete",
+        "--simplification=none",
+        "--no-static-learning",
+        "--no-ite-simp",
+        "--no-unconstrained-simp",
+        "--no-repeat-simp",
+        "unit-tests/files/uf1.smt2"
+      ],
+      "commands": {
+        "assume": 1,
+        "assume-push": 3,
+        "declare-const": 5,
+        "declare-sort": 1,
+        "define": 12,
+        "step": 25,
+        "step-pop": 3
+      },
+      "cwd": "repository root",
+      "exit_code": 0,
+      "input": "unit-tests/files/uf1.smt2",
+      "input_sha256": "3fc38ed8217f702ef7f10023b78bfeb7879deff2c6dde0239d9bb7b6a017e474",
+      "logic": "QF_UF",
+      "profile": "reduced",
+      "proof": "reduced/uf1.cpc",
+      "proof_bytes": 2202,
+      "proof_sha256": "c51b6b2e1694569e8f80e04f7955c58dd2f47642f998cce2b4577d3dee634c48",
+      "rules": {
+        "and_elim": 3,
+        "chain_m_resolution": 4,
+        "cnf_and_neg": 1,
+        "cnf_and_pos": 2,
+        "cong": 2,
+        "implies_elim": 1,
+        "process_scope": 1,
+        "reordering": 3,
+        "resolution": 1,
+        "scope": 3,
+        "symm": 2,
+        "trans": 3,
+        "true_elim": 1,
+        "true_intro": 1
+      },
+      "solver_result": "unsat",
+      "stderr": "reduced/uf1.stderr",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "steps": 28
+    },
+    {
+      "argv": [
+        "/home/charles/code/friends/.toolchains/cvc5-1.4.2/cvc5-Linux-x86_64-static/bin/cvc5",
+        "--dump-proofs",
+        "--proof-format=cpc",
+        "--proof-granularity=dsl-rewrite",
+        "--no-proof-allow-trust",
+        "--proof-check=eager",
+        "--check-proofs-complete",
+        "unit-tests/files/uf2.smt2"
+      ],
+      "commands": {
+        "assume": 1,
+        "declare-const": 4,
+        "declare-sort": 1,
+        "define": 4,
+        "step": 9
+      },
+      "cwd": "repository root",
+      "exit_code": 0,
+      "input": "unit-tests/files/uf2.smt2",
+      "input_sha256": "c545a68a460d48dbb5bf5ee0aa2f3f815e28acfccb2ca7b77332f74191668bcd",
+      "logic": "QF_UF",
+      "profile": "default",
+      "proof": "default/uf2.cpc",
+      "proof_bytes": 778,
+      "proof_sha256": "30fdf59f311c19351a6149e878051936db65775d6fae7fc6fc391690457c37ca",
+      "rules": {
+        "and_elim": 2,
+        "chain_resolution": 1,
+        "cnf_and_pos": 2,
+        "cnf_or_pos": 1,
+        "contra": 1,
+        "resolution": 2
+      },
+      "solver_result": "unsat",
+      "stderr": "default/uf2.stderr",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "steps": 9
+    },
+    {
+      "argv": [
+        "/home/charles/code/friends/.toolchains/cvc5-1.4.2/cvc5-Linux-x86_64-static/bin/cvc5",
+        "--dump-proofs",
+        "--proof-format=cpc",
+        "--proof-granularity=dsl-rewrite",
+        "--no-proof-allow-trust",
+        "--proof-check=eager",
+        "--check-proofs-complete",
+        "--simplification=none",
+        "--no-static-learning",
+        "--no-ite-simp",
+        "--no-unconstrained-simp",
+        "--no-repeat-simp",
+        "unit-tests/files/uf2.smt2"
+      ],
+      "commands": {
+        "assume": 1,
+        "declare-const": 4,
+        "declare-sort": 1,
+        "define": 7,
+        "step": 9
+      },
+      "cwd": "repository root",
+      "exit_code": 0,
+      "input": "unit-tests/files/uf2.smt2",
+      "input_sha256": "c545a68a460d48dbb5bf5ee0aa2f3f815e28acfccb2ca7b77332f74191668bcd",
+      "logic": "QF_UF",
+      "profile": "reduced",
+      "proof": "reduced/uf2.cpc",
+      "proof_bytes": 943,
+      "proof_sha256": "38ff07d25d06d3cd09bd58dfde0ac9ed6625bacdb321a6df756e4b76c814a933",
+      "rules": {
+        "and_elim": 2,
+        "chain_m_resolution": 3,
+        "cnf_and_pos": 2,
+        "reordering": 2
+      },
+      "solver_result": "unsat",
+      "stderr": "reduced/uf2.stderr",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "steps": 9
+    },
+    {
+      "argv": [
+        "/home/charles/code/friends/.toolchains/cvc5-1.4.2/cvc5-Linux-x86_64-static/bin/cvc5",
+        "--dump-proofs",
+        "--proof-format=cpc",
+        "--proof-granularity=dsl-rewrite",
+        "--no-proof-allow-trust",
+        "--proof-check=eager",
+        "--check-proofs-complete",
+        "unit-tests/files/uf3.smt2"
+      ],
+      "commands": {
+        "assume": 1,
+        "declare-const": 4,
+        "declare-sort": 1,
+        "define": 4,
+        "step": 14
+      },
+      "cwd": "repository root",
+      "exit_code": 0,
+      "input": "unit-tests/files/uf3.smt2",
+      "input_sha256": "8b763d2b9e6002b53b0e1f09ab606566a99a1b80b689f5bf9c4b1d0e15ad6f14",
+      "logic": "QF_UF",
+      "profile": "default",
+      "proof": "default/uf3.cpc",
+      "proof_bytes": 937,
+      "proof_sha256": "a54c37c1287fa24082840eba02fcdd063eb2079e9f3ef973b97b3abf3cd8b94d",
+      "rules": {
+        "and_elim": 3,
+        "cong": 4,
+        "eq-refl": 1,
+        "eq_resolve": 1,
+        "evaluate": 1,
+        "refl": 1,
+        "trans": 3
+      },
+      "solver_result": "unsat",
+      "stderr": "default/uf3.stderr",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "steps": 14
+    },
+    {
+      "argv": [
+        "/home/charles/code/friends/.toolchains/cvc5-1.4.2/cvc5-Linux-x86_64-static/bin/cvc5",
+        "--dump-proofs",
+        "--proof-format=cpc",
+        "--proof-granularity=dsl-rewrite",
+        "--no-proof-allow-trust",
+        "--proof-check=eager",
+        "--check-proofs-complete",
+        "--simplification=none",
+        "--no-static-learning",
+        "--no-ite-simp",
+        "--no-unconstrained-simp",
+        "--no-repeat-simp",
+        "unit-tests/files/uf3.smt2"
+      ],
+      "commands": {
+        "assume": 1,
+        "assume-push": 2,
+        "declare-const": 4,
+        "declare-sort": 1,
+        "define": 5,
+        "step": 11,
+        "step-pop": 2
+      },
+      "cwd": "repository root",
+      "exit_code": 0,
+      "input": "unit-tests/files/uf3.smt2",
+      "input_sha256": "8b763d2b9e6002b53b0e1f09ab606566a99a1b80b689f5bf9c4b1d0e15ad6f14",
+      "logic": "QF_UF",
+      "profile": "reduced",
+      "proof": "reduced/uf3.cpc",
+      "proof_bytes": 1098,
+      "proof_sha256": "296f62819aa9490e99257c9ea4ceaff58e6a9a90121c1a0b16c56a1601601295",
+      "rules": {
+        "and_elim": 3,
+        "chain_m_resolution": 1,
+        "cnf_and_neg": 1,
+        "cong": 1,
+        "implies_elim": 1,
+        "process_scope": 1,
+        "reordering": 1,
+        "resolution": 1,
+        "scope": 2,
+        "trans": 1
+      },
+      "solver_result": "unsat",
+      "stderr": "reduced/uf3.stderr",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "steps": 13
+    },
+    {
+      "argv": [
+        "/home/charles/code/friends/.toolchains/cvc5-1.4.2/cvc5-Linux-x86_64-static/bin/cvc5",
+        "--dump-proofs",
+        "--proof-format=cpc",
+        "--proof-granularity=dsl-rewrite",
+        "--no-proof-allow-trust",
+        "--proof-check=eager",
+        "--check-proofs-complete",
+        "unit-tests/files/uf4.smt2"
+      ],
+      "commands": {
+        "assume": 1,
+        "declare-const": 4,
+        "declare-sort": 1,
+        "define": 6,
+        "step": 15
+      },
+      "cwd": "repository root",
+      "exit_code": 0,
+      "input": "unit-tests/files/uf4.smt2",
+      "input_sha256": "c857584d9c6973f0060c212fff925db0f8b29e2468c1ca74f009efc962110574",
+      "logic": "QF_UF",
+      "profile": "default",
+      "proof": "default/uf4.cpc",
+      "proof_bytes": 1068,
+      "proof_sha256": "d1c63e1376b08984c71f31ab3ce59b44c5c5bd294689cf0367468ddd229b976c",
+      "rules": {
+        "and_elim": 3,
+        "cong": 6,
+        "eq-refl": 1,
+        "eq_resolve": 2,
+        "evaluate": 1,
+        "trans": 2
+      },
+      "solver_result": "unsat",
+      "stderr": "default/uf4.stderr",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "steps": 15
+    },
+    {
+      "argv": [
+        "/home/charles/code/friends/.toolchains/cvc5-1.4.2/cvc5-Linux-x86_64-static/bin/cvc5",
+        "--dump-proofs",
+        "--proof-format=cpc",
+        "--proof-granularity=dsl-rewrite",
+        "--no-proof-allow-trust",
+        "--proof-check=eager",
+        "--check-proofs-complete",
+        "--simplification=none",
+        "--no-static-learning",
+        "--no-ite-simp",
+        "--no-unconstrained-simp",
+        "--no-repeat-simp",
+        "unit-tests/files/uf4.smt2"
+      ],
+      "commands": {
+        "assume": 1,
+        "assume-push": 1,
+        "declare-const": 4,
+        "declare-sort": 1,
+        "define": 3,
+        "step": 7,
+        "step-pop": 1
+      },
+      "cwd": "repository root",
+      "exit_code": 0,
+      "input": "unit-tests/files/uf4.smt2",
+      "input_sha256": "c857584d9c6973f0060c212fff925db0f8b29e2468c1ca74f009efc962110574",
+      "logic": "QF_UF",
+      "profile": "reduced",
+      "proof": "reduced/uf4.cpc",
+      "proof_bytes": 765,
+      "proof_sha256": "93909d8783b3eed799245de34ce2bbf6fc6b0354edf3c660872479e49a8c1a84",
+      "rules": {
+        "and_elim": 2,
+        "chain_m_resolution": 1,
+        "cong": 1,
+        "implies_elim": 1,
+        "process_scope": 1,
+        "reordering": 1,
+        "scope": 1
+      },
+      "solver_result": "unsat",
+      "stderr": "reduced/uf4.stderr",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "steps": 8
+    },
+    {
+      "argv": [
+        "/home/charles/code/friends/.toolchains/cvc5-1.4.2/cvc5-Linux-x86_64-static/bin/cvc5",
+        "--dump-proofs",
+        "--proof-format=cpc",
+        "--proof-granularity=dsl-rewrite",
+        "--no-proof-allow-trust",
+        "--proof-check=eager",
+        "--check-proofs-complete",
+        "unit-tests/files/uf5.smt2"
+      ],
+      "commands": {
+        "assume": 1,
+        "declare-const": 6,
+        "declare-sort": 1,
+        "define": 3,
+        "step": 22
+      },
+      "cwd": "repository root",
+      "exit_code": 0,
+      "input": "unit-tests/files/uf5.smt2",
+      "input_sha256": "0242849099b229ec07239933ff6829384f8eeed8233286d8bbdeb96655477f74",
+      "logic": "QF_UF",
+      "profile": "default",
+      "proof": "default/uf5.cpc",
+      "proof_bytes": 1343,
+      "proof_sha256": "8d070cdef7927a24a698447c6867303faf7aa6503a0a375b9a453f6200808577",
+      "rules": {
+        "and_elim": 6,
+        "cong": 4,
+        "eq-refl": 1,
+        "eq_resolve": 2,
+        "evaluate": 1,
+        "refl": 2,
+        "trans": 6
+      },
+      "solver_result": "unsat",
+      "stderr": "default/uf5.stderr",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "steps": 22
+    },
+    {
+      "argv": [
+        "/home/charles/code/friends/.toolchains/cvc5-1.4.2/cvc5-Linux-x86_64-static/bin/cvc5",
+        "--dump-proofs",
+        "--proof-format=cpc",
+        "--proof-granularity=dsl-rewrite",
+        "--no-proof-allow-trust",
+        "--proof-check=eager",
+        "--check-proofs-complete",
+        "--simplification=none",
+        "--no-static-learning",
+        "--no-ite-simp",
+        "--no-unconstrained-simp",
+        "--no-repeat-simp",
+        "unit-tests/files/uf5.smt2"
+      ],
+      "commands": {
+        "assume": 1,
+        "assume-push": 4,
+        "declare-const": 6,
+        "declare-sort": 1,
+        "define": 6,
+        "step": 12,
+        "step-pop": 4
+      },
+      "cwd": "repository root",
+      "exit_code": 0,
+      "input": "unit-tests/files/uf5.smt2",
+      "input_sha256": "0242849099b229ec07239933ff6829384f8eeed8233286d8bbdeb96655477f74",
+      "logic": "QF_UF",
+      "profile": "reduced",
+      "proof": "reduced/uf5.cpc",
+      "proof_bytes": 1425,
+      "proof_sha256": "1f48f0b2d1b04908403ac767a5fc7c15a45ea570008520091c129d588c019a03",
+      "rules": {
+        "and_elim": 5,
+        "chain_m_resolution": 1,
+        "cnf_and_neg": 1,
+        "implies_elim": 1,
+        "process_scope": 1,
+        "reordering": 1,
+        "resolution": 1,
+        "scope": 4,
+        "trans": 1
+      },
+      "solver_result": "unsat",
+      "stderr": "reduced/uf5.stderr",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "steps": 16
+    },
+    {
+      "argv": [
+        "/home/charles/code/friends/.toolchains/cvc5-1.4.2/cvc5-Linux-x86_64-static/bin/cvc5",
+        "--dump-proofs",
+        "--proof-format=cpc",
+        "--proof-granularity=dsl-rewrite",
+        "--no-proof-allow-trust",
+        "--proof-check=eager",
+        "--check-proofs-complete",
+        "unit-tests/files/uf6.smt2"
+      ],
+      "commands": {
+        "assume": 2,
+        "declare-const": 4,
+        "declare-sort": 1,
+        "define": 4,
+        "step": 10
+      },
+      "cwd": "repository root",
+      "exit_code": 0,
+      "input": "unit-tests/files/uf6.smt2",
+      "input_sha256": "123ed2045ff709103ffe257b0a7f128ba1ec3f842ed55587da3d20ddd32f863b",
+      "logic": "QF_UF",
+      "profile": "default",
+      "proof": "default/uf6.cpc",
+      "proof_bytes": 737,
+      "proof_sha256": "23d21cb9f5711e9a56dd4f94960fa50e3472e7466e2337f30f912b2b17abf44c",
+      "rules": {
+        "cong": 4,
+        "eq-refl": 1,
+        "eq_resolve": 1,
+        "evaluate": 1,
+        "refl": 1,
+        "trans": 2
+      },
+      "solver_result": "unsat",
+      "stderr": "default/uf6.stderr",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "steps": 10
+    },
+    {
+      "argv": [
+        "/home/charles/code/friends/.toolchains/cvc5-1.4.2/cvc5-Linux-x86_64-static/bin/cvc5",
+        "--dump-proofs",
+        "--proof-format=cpc",
+        "--proof-granularity=dsl-rewrite",
+        "--no-proof-allow-trust",
+        "--proof-check=eager",
+        "--check-proofs-complete",
+        "--simplification=none",
+        "--no-static-learning",
+        "--no-ite-simp",
+        "--no-unconstrained-simp",
+        "--no-repeat-simp",
+        "unit-tests/files/uf6.smt2"
+      ],
+      "commands": {
+        "assume": 2,
+        "assume-push": 1,
+        "declare-const": 4,
+        "declare-sort": 1,
+        "define": 3,
+        "step": 5,
+        "step-pop": 1
+      },
+      "cwd": "repository root",
+      "exit_code": 0,
+      "input": "unit-tests/files/uf6.smt2",
+      "input_sha256": "123ed2045ff709103ffe257b0a7f128ba1ec3f842ed55587da3d20ddd32f863b",
+      "logic": "QF_UF",
+      "profile": "reduced",
+      "proof": "reduced/uf6.cpc",
+      "proof_bytes": 647,
+      "proof_sha256": "0a527b5c41a49fdd1d2b0b7a9fce48261ef474152060dd226c03d3198178c859",
+      "rules": {
+        "chain_m_resolution": 1,
+        "cong": 1,
+        "implies_elim": 1,
+        "process_scope": 1,
+        "reordering": 1,
+        "scope": 1
+      },
+      "solver_result": "unsat",
+      "stderr": "reduced/uf6.stderr",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "steps": 6
+    },
+    {
+      "argv": [
+        "/home/charles/code/friends/.toolchains/cvc5-1.4.2/cvc5-Linux-x86_64-static/bin/cvc5",
+        "--dump-proofs",
+        "--proof-format=cpc",
+        "--proof-granularity=dsl-rewrite",
+        "--no-proof-allow-trust",
+        "--proof-check=eager",
+        "--check-proofs-complete",
+        "unit-tests/files/uf7.smt2"
+      ],
+      "commands": {
+        "assume": 3,
+        "declare-const": 4,
+        "declare-sort": 1,
+        "define": 2,
+        "step": 3
+      },
+      "cwd": "repository root",
+      "exit_code": 0,
+      "input": "unit-tests/files/uf7.smt2",
+      "input_sha256": "3c4e8fd6d5e36cea18316f5389f0ca2ba41b49a9d761abfbda27546cc221987f",
+      "logic": "QF_UF",
+      "profile": "default",
+      "proof": "default/uf7.cpc",
+      "proof_bytes": 430,
+      "proof_sha256": "5d8bd8d8d081b87ec96e6ca63cadb73e630685621c5067eb203f8a3fe0cac34a",
+      "rules": {
+        "chain_m_resolution": 1,
+        "cong": 1,
+        "eq_resolve": 1
+      },
+      "solver_result": "unsat",
+      "stderr": "default/uf7.stderr",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "steps": 3
+    },
+    {
+      "argv": [
+        "/home/charles/code/friends/.toolchains/cvc5-1.4.2/cvc5-Linux-x86_64-static/bin/cvc5",
+        "--dump-proofs",
+        "--proof-format=cpc",
+        "--proof-granularity=dsl-rewrite",
+        "--no-proof-allow-trust",
+        "--proof-check=eager",
+        "--check-proofs-complete",
+        "--simplification=none",
+        "--no-static-learning",
+        "--no-ite-simp",
+        "--no-unconstrained-simp",
+        "--no-repeat-simp",
+        "unit-tests/files/uf7.smt2"
+      ],
+      "commands": {
+        "assume": 3,
+        "assume-push": 2,
+        "declare-const": 4,
+        "declare-sort": 1,
+        "define": 4,
+        "step": 11,
+        "step-pop": 2
+      },
+      "cwd": "repository root",
+      "exit_code": 0,
+      "input": "unit-tests/files/uf7.smt2",
+      "input_sha256": "3c4e8fd6d5e36cea18316f5389f0ca2ba41b49a9d761abfbda27546cc221987f",
+      "logic": "QF_UF",
+      "profile": "reduced",
+      "proof": "reduced/uf7.cpc",
+      "proof_bytes": 1068,
+      "proof_sha256": "aacdd94601de5abedba7aba1e941bd42f9aff2f618de47bfc38ae2c08eb36fe2",
+      "rules": {
+        "chain_m_resolution": 1,
+        "cnf_and_neg": 1,
+        "cong": 1,
+        "implies_elim": 1,
+        "process_scope": 1,
+        "reordering": 1,
+        "resolution": 1,
+        "scope": 2,
+        "symm": 1,
+        "trans": 1,
+        "true_elim": 1,
+        "true_intro": 1
+      },
+      "solver_result": "unsat",
+      "stderr": "reduced/uf7.stderr",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "steps": 13
+    }
+  ],
+  "schema": 1,
+  "semantic_verification": "not performed; syntax inventory is not a checker",
+  "source_revision": "9f3abbf215ef2a75e1ba572f2648427465a63aeb",
+  "status": "UNVERIFIED_SOLVER_OUTPUT",
+  "timeout_seconds_per_run": 30,
+  "toolchain": {
+    "archives": {
+      "binary": {
+        "filename": "cvc5-1.4.2-Linux-x86_64-static.zip",
+        "sha256": "7eb18f8c814c36a46c5a7d003983e9cfbc4b0a9828d6dd596239291bd4cc61d8",
+        "url": "https://github.com/cvc5/cvc5/releases/download/cvc5-1.4.2/cvc5-Linux-x86_64-static.zip"
+      },
+      "source": {
+        "filename": "cvc5-1.4.2-source.tar.gz",
+        "sha256": "795099b277bfa79a3c9a11c8d3fec780452031dc89ddcc170003963aa3521343",
+        "url": "https://github.com/cvc5/cvc5/archive/refs/tags/cvc5-1.4.2.tar.gz"
+      }
+    },
+    "binary": "/home/charles/code/friends/.toolchains/cvc5-1.4.2/cvc5-Linux-x86_64-static/bin/cvc5",
+    "binary_sha256": "6aecddf466552b83bb5883756c7955e0c9d5ddcc6d7f45b48c2f6e06a741b102",
+    "manifest_sha256": "19924245ed159ed706ca5febc300c38b2179415b68c065db21c8f81063cfa525",
+    "signature": "/home/charles/code/friends/.toolchains/cvc5-1.4.2/cvc5-cvc5-1.4.2/proofs/eo/cpc/Cpc.eo",
+    "signature_sha256": "d13767eb873649c9f40482c99242c42081cf25308962f11c1981ce8e878770ad",
+    "signature_tree_files": 51,
+    "signature_tree_sha256": "851569e9ec889d1747054ea014279c43bc02c1585f0468ab0773e65663fd1f8c",
+    "version": "cvc5 1.4.2 [git 282d5e0 on branch HEAD]"
+  },
+  "totals": {
+    "default": {
+      "aci_norm": 1,
+      "and_elim": 24,
+      "and_intro": 5,
+      "arith-elim-gt": 1,
+      "arith-elim-leq": 4,
+      "arith-elim-lt": 11,
+      "arith-leq-norm": 10,
+      "arith_mult_neg": 5,
+      "arith_poly_norm": 24,
+      "arith_poly_norm_rel": 8,
+      "arith_sum_ub": 4,
+      "bool-double-not-elim": 6,
+      "chain_m_resolution": 10,
+      "chain_resolution": 1,
+      "cnf_and_pos": 4,
+      "cnf_or_pos": 1,
+      "cong": 82,
+      "contra": 4,
+      "eq-refl": 6,
+      "eq_resolve": 35,
+      "evaluate": 42,
+      "int_tight_ub": 2,
+      "modus_ponens": 5,
+      "nary_cong": 23,
+      "not_and": 4,
+      "not_implies_elim1": 5,
+      "not_implies_elim2": 5,
+      "not_not_elim": 2,
+      "not_or_elim": 2,
+      "process_scope": 5,
+      "refl": 33,
+      "reordering": 5,
+      "resolution": 2,
+      "scope": 12,
+      "symm": 8,
+      "trans": 72,
+      "true_elim": 4
+    },
+    "reduced": {
+      "aci_norm": 2,
+      "and_elim": 22,
+      "and_intro": 5,
+      "arith-elim-gt": 1,
+      "arith-elim-leq": 4,
+      "arith-elim-lt": 11,
+      "arith-eq-elim-int": 2,
+      "arith-leq-norm": 12,
+      "arith_mult_neg": 5,
+      "arith_poly_norm": 26,
+      "arith_poly_norm_rel": 10,
+      "arith_sum_ub": 4,
+      "bool-double-not-elim": 6,
+      "chain_m_resolution": 24,
+      "cnf_and_neg": 4,
+      "cnf_and_pos": 6,
+      "cong": 65,
+      "contra": 1,
+      "eq-refl": 1,
+      "eq_resolve": 23,
+      "evaluate": 33,
+      "implies_elim": 6,
+      "int_tight_ub": 2,
+      "modus_ponens": 5,
+      "nary_cong": 22,
+      "not_and": 4,
+      "not_implies_elim1": 5,
+      "not_implies_elim2": 5,
+      "not_not_elim": 2,
+      "not_or_elim": 2,
+      "process_scope": 11,
+      "refl": 27,
+      "reordering": 15,
+      "resolution": 4,
+      "scope": 25,
+      "symm": 11,
+      "trans": 64,
+      "true_elim": 6,
+      "true_intro": 2
+    }
+  }
+}

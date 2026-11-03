@@ -1,7 +1,7 @@
 # Private cvc5 / CPC capture tools
 
-These Python 3.9+ standard-library tools provision **verification evidence** for
-an existing private installation. They do not install, download, extract, modify
+These Python 3.9+ standard-library tools verify an existing private installation
+and capture CPC output. They do not install, download, extract, modify
 the toolchain, change `PATH`, or search for a system solver. The versioned
 [manifest](cvc5-1.4.2.json) pins upstream download URLs and both supplied SHA256
 checksums. Verification is offline and idempotent. Keep the cached archives:

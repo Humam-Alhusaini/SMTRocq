@@ -13,7 +13,7 @@ from unittest.mock import patch
 
 import dump_cpc
 from cpc_inventory import expressions, input_logic, inventory, signature_rules
-from verify_toolchain import MANIFEST, verify_toolchain
+from verify_toolchain import MANIFEST, file_sha256, verify_toolchain
 
 
 RULES = {name: {"contains_sorry": False} for name in ("cong", "scope")}
@@ -139,6 +139,29 @@ class ToolchainTests(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError, "checksum mismatch"):
                     verify_toolchain(directory)
                 execute.assert_not_called()
+
+
+class FixtureTests(unittest.TestCase):
+    def test_retained_bytes_inputs_and_step_counts_match_provenance(self):
+        base = dump_cpc.REPOSITORY / "unit-tests/eunoia-fixtures"
+        selection = json.loads((base / "fixtures.json").read_text())
+        report_path = base / selection["capture_inventory"]
+        self.assertEqual(file_sha256(report_path), selection["capture_inventory_sha256"])
+        report = json.loads(report_path.read_text())
+        self.assertEqual(report["status"], "UNVERIFIED_SOLVER_OUTPUT")
+        rows = {row["proof"]: row for row in report["runs"]}
+        for name in selection["fixtures"]:
+            row = rows[name]
+            proof = base / name
+            with self.subTest(fixture=name):
+                self.assertEqual(file_sha256(proof), row["proof_sha256"])
+                self.assertEqual(proof.stat().st_size, row["proof_bytes"])
+                self.assertEqual(file_sha256(dump_cpc.REPOSITORY / row["input"]), row["input_sha256"])
+                counts = inventory(proof.read_text(), report["rule_declarations"])
+                for field in ("commands", "rules", "steps"):
+                    self.assertEqual(counts[field], row[field])
+                self.assertEqual(counts["steps"], counts["commands"].get("step", 0) +
+                                 counts["commands"].get("step-pop", 0))
 
 
 if __name__ == "__main__":
