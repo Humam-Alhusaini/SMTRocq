@@ -1,0 +1,4 @@
+(library
+ (name eunoia_backend)
+ (public_name rocq-smtcoq.eunoia_backend)
+ (libraries common eunoia_frontend unix))
