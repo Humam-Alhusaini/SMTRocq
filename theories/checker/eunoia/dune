@@ -3,3 +3,7 @@
  (generate_project_file)
  (package rocq-smtcoq)
  (theories Stdlib SMTCoq.utils SMTCoq.structures SMTCoq.checker.fol SMTCoq.checker))
+
+(alias
+ (name runtest)
+ (deps EunoiaCheckerTests.vo))
