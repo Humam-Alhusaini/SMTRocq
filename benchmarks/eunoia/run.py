@@ -4,6 +4,7 @@
 import argparse
 from collections import Counter
 import csv
+import ctypes
 from datetime import datetime, timezone
 import hashlib
 import json
@@ -31,6 +32,30 @@ DONE = "EUNOIA_BENCH_CHECKED"
 TIMING = re.compile(r"(?:Finished|Completed)(?: (?:failing|successfully))? transaction in "
                     r"([0-9.]+) secs? \(([0-9.]+)u,([0-9.]+)s\)")
 
+# Some Python distributions omit these Linux APIs even when libc has them.
+PIDFD_LIBC = None
+if sys.platform == "linux" and not (hasattr(os, "pidfd_open") and
+                                       hasattr(signal, "pidfd_send_signal")):
+    candidate = ctypes.CDLL(None, use_errno=True)
+    if hasattr(candidate, "pidfd_open") and hasattr(candidate, "pidfd_send_signal"):
+        candidate.pidfd_open.argtypes = [ctypes.c_int, ctypes.c_uint]
+        candidate.pidfd_send_signal.argtypes = [ctypes.c_int, ctypes.c_int,
+                                                ctypes.c_void_p, ctypes.c_uint]
+        candidate.pidfd_open.restype = candidate.pidfd_send_signal.restype = ctypes.c_int
+        PIDFD_LIBC = candidate
+
+
+def pidfd_call(name, *arguments):
+    if PIDFD_LIBC is None:
+        api = os.pidfd_open if name == "pidfd_open" else signal.pidfd_send_signal
+        return api(*arguments)
+    arguments = arguments + ((0,) if name == "pidfd_open" else (None, 0))
+    result = getattr(PIDFD_LIBC, name)(*arguments)
+    if result < 0:
+        error = ctypes.get_errno()
+        raise OSError(error, os.strerror(error))
+    return result
+
 
 def write_json(path, value):
     path.write_text(json.dumps(value, indent=2, sort_keys=True) + "\n")
@@ -40,8 +65,58 @@ def sha256(path):
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+def process_identity(pid):
+    """Read Linux parent/start identifiers without assuming a simple comm field."""
+    try:
+        fields = Path(f"/proc/{pid}/stat").read_text().rsplit(")", 1)[1].split()
+        return int(fields[1]), int(fields[19])
+    except (OSError, ValueError, IndexError):
+        return None
+
+
+def kill_process_tree(proc):
+    # cvc5 deliberately calls setsid, escaping the compiler's process group.
+    # Pin each observed descendant with a pidfd before killing the compiler;
+    # checking its start identifier avoids signalling a reused numeric PID.
+    handles = []
+    if PIDFD_LIBC is not None or (hasattr(os, "pidfd_open") and
+                                   hasattr(signal, "pidfd_send_signal")):
+        snapshot = {int(p.name): identity for p in Path("/proc").glob("[0-9]*")
+                    if (identity := process_identity(p.name)) is not None}
+        descendants = {proc.pid}
+        pending = set(snapshot) - descendants
+        while True:
+            children = {pid for pid in pending if snapshot[pid][0] in descendants}
+            if not children:
+                break
+            descendants.update(children)
+            pending.difference_update(children)
+        for pid in descendants - {proc.pid}:
+            try:
+                handle = pidfd_call("pidfd_open", pid)
+            except ProcessLookupError:
+                continue
+            if process_identity(pid) == snapshot[pid]:
+                handles.append(handle)
+            else:
+                os.close(handle)
+    try:
+        try:
+            os.killpg(proc.pid, signal.SIGKILL)
+        except ProcessLookupError:
+            pass
+        for handle in handles:
+            try:
+                pidfd_call("pidfd_send_signal", handle, signal.SIGKILL)
+            except ProcessLookupError:
+                pass
+    finally:
+        for handle in handles:
+            os.close(handle)
+
+
 def execute(command, cwd, timeout):
-    """Kill the whole process group (including the external solver) on timeout."""
+    """Kill the compiler group and observed Linux descendants on timeout."""
     start = time.perf_counter()
     try:
         proc = subprocess.Popen(command, cwd=cwd, stdout=subprocess.PIPE,
@@ -56,10 +131,10 @@ def execute(command, cwd, timeout):
         output, _ = proc.communicate(timeout=timeout)
     except subprocess.TimeoutExpired:
         timed_out = True
-        os.killpg(proc.pid, signal.SIGKILL)
+        kill_process_tree(proc)
         output, _ = proc.communicate()
     except BaseException:
-        os.killpg(proc.pid, signal.SIGKILL)
+        kill_process_tree(proc)
         proc.communicate()
         raise
     return {"command": command, "cwd": str(cwd), "exit_code": proc.returncode,

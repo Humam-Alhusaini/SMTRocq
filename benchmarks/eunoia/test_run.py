@@ -1,7 +1,9 @@
 """Regression checks for solved-count integrity and the timeout boundary."""
 
 from pathlib import Path
+import os
 import signal
+import subprocess
 import sys
 import tempfile
 import time
@@ -82,6 +84,28 @@ class BenchmarkIntegrity(unittest.TestCase):
             child = f"import time; from pathlib import Path; time.sleep(0.5); Path({str(marker)!r}).touch()"
             parent = f"import subprocess, sys, time; subprocess.Popen([sys.executable, '-c', {child!r}]); time.sleep(30)"
             result = run.execute([sys.executable, "-c", parent], directory, 0.1)
+            self.assertTrue(result["timeout"])
+            self.assertEqual(result["exit_code"], -signal.SIGKILL)
+            time.sleep(0.6)
+            self.assertFalse(marker.exists())
+
+    @unittest.skipUnless(run.PIDFD_LIBC is not None or
+                         (hasattr(os, "pidfd_open") and hasattr(signal, "pidfd_send_signal")),
+                         "Detached descendant cleanup uses Linux pidfds")
+    def test_timeout_kills_detached_solver_descendants(self):
+        with tempfile.TemporaryDirectory(prefix="eunoia-detached-timeout-") as directory:
+            marker = Path(directory) / "detached_solver_survived"
+            child = f"import time; from pathlib import Path; time.sleep(0.5); Path({str(marker)!r}).touch()"
+            parent = (f"import subprocess, sys, time; subprocess.Popen([sys.executable, '-c', {child!r}], "
+                      "start_new_session=True); time.sleep(30)")
+            unrelated = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(30)"],
+                                         start_new_session=True)
+            try:
+                result = run.execute([sys.executable, "-c", parent], directory, 0.1)
+                self.assertIsNone(unrelated.poll())
+            finally:
+                unrelated.kill()
+                unrelated.wait()
             self.assertTrue(result["timeout"])
             self.assertEqual(result["exit_code"], -signal.SIGKILL)
             time.sleep(0.6)

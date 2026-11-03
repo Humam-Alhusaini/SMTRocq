@@ -113,8 +113,12 @@ a fresh working artifact directory and `TMPDIR`. There are no solver warmups;
 the import/name preflight occurs once per backend. File caches and machine load
 can still affect results. This runner does not clear OS caches or constrain
 other jobs. The timeout covers the whole per-case compiler process, not just
-the solver; on expiration the entire process group is killed, including solver
-children. The safety test exercises that behavior with a child process.
+the solver. On expiration the compiler process group is killed. On Linux with
+pidfd support, cleanup also pins and kills observed descendants that started a
+separate session, as the cvc5 runner does. Python's native pidfd APIs or libc's
+equivalent APIs provide this support; other hosts only get process-group cleanup.
+The timeout tests exercise both ordinary and detached solver children. Descendant
+discovery uses a snapshot at expiration, so this is not a process sandbox.
 
 Artifacts are outside Git by default:
 
