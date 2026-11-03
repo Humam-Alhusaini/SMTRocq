@@ -7,6 +7,11 @@ semantic certificate gate. In particular the relational normalization tests
 can supply a syntactically shaped but unproved premise: signature computation
 alone does not establish that premise.
 
+This report records the preceding 48-rule LIA tranche. The subsequent minimal
+integer-tightening extension brings the current selection to 49 rules without
+changing its 53 helpers; see [STRICT-SHIFT-VALIDATION.md](STRICT-SHIFT-VALIDATION.md)
+for the added actual trace, checks and remaining integration work.
+
 ## Source and scope
 
 * Child branch: `t3/lia-signature-computation`.

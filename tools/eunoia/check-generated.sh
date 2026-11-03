@@ -60,6 +60,15 @@ forms = parse(source.replace(old, old.replace('(<= a b)', '(= a b)')), decl.path
 compiler.decls['$arith_rel_sum'] = next(n for n in forms if n.kind == 'list' and len(n.value) > 1 and n.value[1].value == '$arith_rel_sum')
 code, _ = compiler.compile(Path('tools/eunoia/rules.txt').read_text().split())
 Path(sys.argv[1]).with_name('LiaMutatedGenerated.v').write_text(code)
+compiler = Compiler(Path('tools/eunoia/signatures/cpc/Cpc.eo'))
+decl = compiler.decls['arith-geq-tighten']
+source = decl.path.read_text()
+old = ':conclusion (= (not (>= t1 s1)) (>= s1 (+ t1 1)))'
+assert source.count(old) == 1
+forms = parse(source.replace(old, old.replace('(+ t1 1)', '(+ t1 2)')), decl.path)
+compiler.decls['arith-geq-tighten'] = next(n for n in forms if n.kind == 'list' and len(n.value) > 1 and n.value[1].value == 'arith-geq-tighten')
+code, _ = compiler.compile(Path('tools/eunoia/rules.txt').read_text().split())
+Path(sys.argv[1]).with_name('TightenMutatedGenerated.v').write_text(code)
 PYMUT
 python3 tools/eunoia/replay_fixtures.py --scoped tools/eunoia/tests/fixtures/lia*.cpc \
   --output "$task_tmp/LiaFixtureTests.v"
@@ -69,14 +78,16 @@ cp theories/checker/eunoia/EoSyntax.v theories/checker/eunoia/EoRuntime.v \
   theories/checker/eunoia/EoArithmetic.v theories/checker/eunoia/EoOrder.v \
   tools/eunoia/tests/LiaTraceReplay.v tools/eunoia/tests/LiaRuntimeTests.v \
   tools/eunoia/tests/LiaTraceNegativeTests.v \
+  tools/eunoia/tests/StrictShiftTests.v \
   tools/eunoia/tests/RuntimeTests.v tools/eunoia/tests/TraceReplay.v \
   tools/eunoia/tests/TraceNegativeTests.v "$task_tmp/"
 cd "$task_tmp"
-for task_module in EoSyntax EoRuntime EoArithmetic EoOrder CpcGenerated TestGenerated MutatedGenerated MutatedCpcGenerated LiaMutatedGenerated TraceReplay RuntimeTests FixtureTests TraceNegativeTests LiaTraceReplay LiaRuntimeTests LiaFixtureTests LiaTraceNegativeTests ReducedFixtureTests; do
+for task_module in EoSyntax EoRuntime EoArithmetic EoOrder CpcGenerated TestGenerated MutatedGenerated MutatedCpcGenerated LiaMutatedGenerated TightenMutatedGenerated TraceReplay RuntimeTests FixtureTests TraceNegativeTests LiaTraceReplay LiaRuntimeTests LiaFixtureTests LiaTraceNegativeTests StrictShiftTests ReducedFixtureTests; do
   "$task_env" rocq compile -q -Q . SMTCoq.checker.eunoia "$task_module.v"
 done
 "$task_env" rocq check -silent -Q . SMTCoq.checker.eunoia \
   SMTCoq.checker.eunoia.RuntimeTests SMTCoq.checker.eunoia.FixtureTests \
   SMTCoq.checker.eunoia.TraceNegativeTests SMTCoq.checker.eunoia.LiaRuntimeTests \
   SMTCoq.checker.eunoia.LiaFixtureTests SMTCoq.checker.eunoia.LiaTraceNegativeTests \
+  SMTCoq.checker.eunoia.StrictShiftTests \
   SMTCoq.checker.eunoia.ReducedFixtureTests
