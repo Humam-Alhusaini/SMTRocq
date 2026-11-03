@@ -1,0 +1,4 @@
+(test
+ (name proof_reader_tests)
+ (libraries eunoia_frontend)
+ (deps (glob_files fixtures/*)))

@@ -192,3 +192,11 @@ The suite exercises exact AST content, source locations, local/global and lexica
 bindings, reused names, scope lifetime, directive policies, malformed syntax,
 mutations of actual dumps, and input/depth/node/command bounds. It also asserts
 that rule names and `trust` steps are retained for later validation.
+
+Validation on the child branch (2026-11-03): both private-wrapper build/test
+commands above returned exit code 0. The standalone runner reported
+`CPC text frontend: 111 regression cases passed (parsing only).` This includes
+100,000-command and 100,000-argument inputs and every incomplete prefix of the
+actual UF solver response. All three regeneration commands and `cmp` checks
+returned 0. `git diff --check` returned 0. These checks cover only the frontend;
+no end-to-end tactic or checker validation is claimed.
