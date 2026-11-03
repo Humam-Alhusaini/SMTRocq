@@ -1,4 +1,7 @@
 {
+  "assumption_rules": [
+    "scope"
+  ],
   "binary_only_attributed_operators": [
     "-",
     "/",
@@ -425,7 +428,6 @@
     "not_xor_elim1",
     "not_xor_elim2",
     "pairwise_cong",
-    "process_scope",
     "quant-dt-split",
     "quant-merge-prenex",
     "quant-miniscope-and",
@@ -475,7 +477,6 @@
     "re_unfold_neg_concat_fixed",
     "re_unfold_pos",
     "reordering",
-    "scope",
     "seq-eval-op",
     "seq-len-rev",
     "seq-len-unit",
@@ -737,7 +738,7 @@
     "String"
   ],
   "format": 2,
-  "generated_sha256": "f6b61cba7105a54d47c98f5f4f4d64a13dd527c3815e1647a06605454a5857d4",
+  "generated_sha256": "c378dd4e94301a3694759052527bc8d9791eca252996f54213cdafb3d9ddcecd",
   "native_operations": [
     "eo::add",
     "eo::and",
@@ -792,6 +793,8 @@
     "$chain_m_resolve_final",
     "$chain_m_resolve_rec",
     "$chain_m_resolve_rec_step",
+    "$extract_antec",
+    "$extract_antec_rec",
     "$from_clause",
     "$get_a_norm",
     "$get_a_norm_rec",
@@ -804,6 +807,7 @@
     "$mk_symm",
     "$mk_trans",
     "$run_evaluate",
+    "$run_process_scope",
     "$seq_empty",
     "$str_case_conv_rec",
     "$str_collect",
@@ -838,8 +842,10 @@
     "modus_ponens",
     "nary_cong",
     "not_not_elim",
+    "process_scope",
     "refl",
     "resolution",
+    "scope",
     "symm",
     "trans",
     "true_elim",

@@ -51,6 +51,7 @@ Record rule := {
   rule_binders : binder_types;
   rule_arguments : list pattern;
   rule_premises : list pattern;
+  rule_assumption : option pattern;
   rule_premise_list : option string;
   rule_requires : list (expression * expression);
   rule_conclusion : expression

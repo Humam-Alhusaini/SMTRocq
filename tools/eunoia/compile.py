@@ -262,7 +262,8 @@ class Compiler:
                 if candidates:
                     subs[tname] = Node((Node("eo::typeof", "symbol", n.path, n.line), candidates[0]), "list", n.path, n.line)
         # Expansion is lexical: eo::define's local names are freshened before substitution.
-        body = self.freshen(ds[3], set(subs), [0])
+        avoid = set(subs).union(*(self.symbols(a) for a in subs.values()))
+        body = self.freshen(ds[3], avoid, [0])
         return self.expand(self.substitute(body, subs), active + (name,))
 
     def freshen(self, n, avoid, counter):
@@ -471,7 +472,7 @@ class Compiler:
         fields, i = {}, 3
         while i < len(fs):
             k = atom(fs[i])
-            if k not in {":args", ":premises", ":premise-list", ":requires", ":conclusion"}:
+            if k not in {":args", ":premises", ":premise-list", ":assumption", ":requires", ":conclusion"}:
                 fs[i].error(f"unsupported rule field {k}")
             if k in fields:
                 fs[i].error(f"duplicate rule field {k}")
@@ -486,6 +487,7 @@ class Compiler:
             decl.error("conflicting premise declarations")
         args = [self.pattern(p, scope) for p in seq(fields[":args"][0])] if ":args" in fields else []
         prems = [self.pattern(p, scope) for p in seq(fields[":premises"][0])] if ":premises" in fields else []
+        assumption = f"(Some {self.pattern(fields[':assumption'][0], scope)})" if ':assumption' in fields else "None"
         premise_op = "None"
         if ":premise-list" in fields:
             pat, op = fields[":premise-list"]
@@ -503,7 +505,7 @@ class Compiler:
                 reqs.append(f"({self.expression(pair[0], scope)}, {self.expression(pair[1], scope)})")
         conclusion = self.expression(fields[":conclusion"][0], scope)
         self.rules[name] = (f"{{| rule_binders := {bs}; rule_arguments := {lst(args)}; "
-                            f"rule_premises := {lst(prems)}; rule_premise_list := {premise_op}; rule_requires := {lst(reqs)}; "
+                            f"rule_premises := {lst(prems)}; rule_assumption := {assumption}; rule_premise_list := {premise_op}; rule_requires := {lst(reqs)}; "
                             f"rule_conclusion := {conclusion} |}}")
 
     def compile(self, selected):
@@ -556,20 +558,29 @@ class Compiler:
                 f"Definition cpc_operators : list (string * term) := {operator_code}.\n\n"
                 f"Definition cpc_programs : list (string * program) :=\n  {programs}.\n\n"
                 f"Definition cpc_rules : list (string * rule) :=\n  {rules}.\n\n"
-                "Definition derive_with (extra : primitive_hook) (fuel : nat) (typeof : term -> option term)\n"
-                "    (name : string) (args premises : list term) : option term :=\n"
+                "Definition derive_context_with (extra : primitive_hook) (fuel : nat) (typeof : term -> option term)\n"
+                "    (name : string) (assumption : option term) (args premises : list term) : option term :=\n"
                 "  let canon := rename_symbols cpc_aliases in\n"
                 "  let surface := rename_symbols cpc_surface_names in\n"
-                "  if forallb (surface_supported cpc_blocked_operators cpc_binary_operators) (map canon (args ++ premises)) then\n"
-                "  option_map surface (run_surface_rule_with extra fuel\n"
+                "  let all_inputs := ((match assumption with Some a => [a] | None => [] end) ++ args ++ premises)%list in\n"
+                "  if forallb (surface_supported cpc_blocked_operators cpc_binary_operators) (map canon all_inputs) then\n"
+                "  option_map surface (run_surface_rule_assuming_with extra fuel\n"
                 "    (fun t => option_map canon (typeof (surface t)))\n"
-                "    cpc_operators cpc_programs cpc_rules name (map canon args) (map canon premises)) else None.\n\n"
-                "Definition derive := derive_with no_extension.\n")
+                "    cpc_operators cpc_programs cpc_rules name (option_map canon assumption) (map canon args) (map canon premises)) else None.\n\n"
+                "Definition derive_with (extra : primitive_hook) (fuel : nat) (typeof : term -> option term)\n"
+                "    (name : string) (args premises : list term) : option term :=\n"
+                "  derive_context_with extra fuel typeof name None args premises.\n"
+                "Definition derive_assuming_with (extra : primitive_hook) (fuel : nat) (typeof : term -> option term)\n"
+                "    (name : string) (assumption : term) (args premises : list term) : option term :=\n"
+                "  derive_context_with extra fuel typeof name (Some assumption) args premises.\n\n"
+                "Definition derive := derive_with no_extension.\n"
+                "Definition derive_assuming := derive_assuming_with no_extension.\n")
         all_rules = sorted(n for n, d in self.decls.items() if atom(seq(d)[0]) == "declare-rule")
         manifest = {
             "format": 2,
             "scope": "explicit subset; excluded rules are unavailable at runtime",
             "selected_rules": sorted(self.rules),
+            "assumption_rules": sorted(n for n in self.rules if any(x.kind == "symbol" and x.value == ":assumption" for x in seq(self.decls[n])[3:])),
             "excluded_rules": sorted(set(all_rules) - set(self.rules)),
             "programs": sorted(self.programs),
             "expanded_definitions": sorted(self.definitions),

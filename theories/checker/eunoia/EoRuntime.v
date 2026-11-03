@@ -384,10 +384,10 @@ Fixpoint evaluate_with (extra : primitive_hook) (ops : list (string * term))
   end.
 Definition evaluate := evaluate_with no_extension [].
 
-Definition run_rule_with (extra : primitive_hook) (ops : list (string * term))
+Definition run_rule_assuming_with (extra : primitive_hook) (ops : list (string * term))
     (fuel : nat) (typeof : term -> option term)
     (programs : list (string * program)) (rules : list (string * rule))
-    (name : string) (args premises : list term) : option term :=
+    (name : string) (assumption : option term) (args premises : list term) : option term :=
   match named name rules with
   | None => None
   | Some r =>
@@ -396,10 +396,15 @@ Definition run_rule_with (extra : primitive_hook) (ops : list (string * term))
       | None => Some premises
       | Some op => option_map (fun terminator => [make_list (Symbol op) terminator premises]) (named op ops)
       end in
-    match gathered with
-    | None => None
-    | Some ps =>
-    match match_patterns (rule_arguments r ++ rule_premises r) (args ++ ps) [] with
+    let assumed := match rule_assumption r, assumption with
+      | None, None => Some []
+      | Some pat, Some t =>
+          if has_type typeof t (Symbol "Bool") then match_pattern pat t [] else None
+      | _, _ => None
+      end in
+    match gathered, assumed with
+    | Some ps, Some initial =>
+    match match_patterns (rule_arguments r ++ rule_premises r) (args ++ ps) initial with
     | None => None
     | Some env =>
       if Nat.eqb (List.length args) (List.length (rule_arguments r)) &&
@@ -418,14 +423,17 @@ Definition run_rule_with (extra : primitive_hook) (ops : list (string * term))
         end
       else None
     end
+    | _, _ => None
     end
   end.
+Definition run_rule_with extra ops fuel typeof programs rules name args premises :=
+  run_rule_assuming_with extra ops fuel typeof programs rules name None args premises.
 Definition run_rule := run_rule_with no_extension [].
 
-Definition run_surface_rule_with (extra : primitive_hook) (fuel : nat)
+Definition run_surface_rule_assuming_with (extra : primitive_hook) (fuel : nat)
     (typeof : term -> option term) (ops : list (string * term))
     (programs : list (string * program)) (rules : list (string * rule))
-    (name : string) (args premises : list term) : option term :=
+    (name : string) (assumption : option term) (args premises : list term) : option term :=
   let fix visit xs :=
     match xs with
     | [] => Some []
@@ -436,12 +444,18 @@ Definition run_surface_rule_with (extra : primitive_hook) (fuel : nat)
     | Some s => typeof s
     | _ => None
     end in
-  match visit args, visit premises with
-  | Some xs, Some ps =>
-    match run_rule_with extra ops fuel internal_type programs rules name xs ps with
+  let assumed := match assumption with
+    | None => Some None
+    | Some t => option_map (@Some term) (surface_in fuel ops t)
+    end in
+  match visit args, visit premises, assumed with
+  | Some xs, Some ps, Some a =>
+    match run_rule_assuming_with extra ops fuel internal_type programs rules name a xs ps with
     | Some t => surface_out fuel ops t
     | _ => None
     end
-  | _, _ => None
+  | _, _, _ => None
   end.
+Definition run_surface_rule_with extra fuel typeof ops programs rules name args premises :=
+  run_surface_rule_assuming_with extra fuel typeof ops programs rules name None args premises.
 Definition run_surface_rule := run_surface_rule_with no_extension.

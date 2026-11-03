@@ -17,7 +17,7 @@ cmp theories/checker/eunoia/CpcGenerated.v "$task_tmp/CpcGenerated.v"
 cmp tools/eunoia/cpc-manifest.json "$task_tmp/manifest.json"
 python3 tools/eunoia/compile.py tools/eunoia/tests/Programs.eo \
   --rules require_equal guarded peel choose inspect first_match output_type \
-  unused_failure lazy_branch failed_values_not_equal failure_predicates failure_ok definition_capture parallel_shadow \
+  unused_failure lazy_branch failed_values_not_equal failure_predicates failure_ok definition_capture parallel_shadow novel_assumption guarded_assumption \
   --output "$task_tmp/TestGenerated.v" --manifest "$task_tmp/test-manifest.json"
 python3 - "$task_tmp/MutatedGenerated.v" <<'PY'
 import importlib.util

@@ -72,3 +72,15 @@
   :conclusion ($lexical x))
 (declare-rule parallel_shadow ((x Bool)) :args (x)
   :conclusion (eo::define ((x true) (y x)) y))
+
+; Novel assumption-bearing rules exercise the generic IR, not a scope switch.
+(declare-rule novel_assumption ((F Bool) (G Bool))
+  :assumption (not F)
+  :premises (G)
+  :args (F)
+  :conclusion (=> F G))
+(declare-rule guarded_assumption ((F Bool) (G Bool))
+  :assumption F
+  :premises (G)
+  :requires (((eo::eq F G) true))
+  :conclusion G)

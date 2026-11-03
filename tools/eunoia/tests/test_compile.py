@@ -32,7 +32,7 @@ class CompileTests(unittest.TestCase):
     def test_snapshot_regenerates_exactly(self):
         code, manifest = eoc.Compiler(INITIAL).compile(RULES)
         self.assertEqual(code, (ROOT / "theories/checker/eunoia/CpcGenerated.v").read_text())
-        self.assertEqual(len(manifest["excluded_rules"]), 584)
+        self.assertEqual(len(manifest["excluded_rules"]), 582)
         self.assertEqual(len(manifest["sources"]), 35)
         self.assertIn("$mk_cong_rhs", manifest["programs"])
         self.assertIn("$run_evaluate", manifest["programs"])
@@ -88,9 +88,17 @@ class CompileTests(unittest.TestCase):
                 self.compile_text(text)
 
     def test_reject_unsupported_rule_constructs(self):
-        for field in [':assumption F', ':sorry', ':conclusion-explicit F']:
+        for field in [':sorry', ':conclusion-explicit F']:
             with self.subTest(field=field):
                 self.reject(RULE.replace(':args (F)', field), 'unsupported')
+
+    def test_assumption_is_source_generated(self):
+        code, manifest = self.compile_text(RULE.replace(':args (F)', ':assumption F'))
+        self.assertIn('rule_assumption := (Some (PVar 0))', code)
+        self.assertEqual(manifest['assumption_rules'], ['brand_new'])
+        changed, _ = self.compile_text(BASE + RULE.replace(':args (F)', ':assumption (not F)'))
+        self.assertIn('rule_assumption := (Some (PApply', changed)
+        self.assertNotEqual(code, changed)
 
     def test_binders_and_function_types(self):
         self.reject(RULE.replace('(F Bool)', '(F Bool :mystery)'), 'unsupported binder')
@@ -144,6 +152,11 @@ class CompileTests(unittest.TestCase):
         code, _ = self.compile_text(RULE.replace(':conclusion F', ':conclusion (eo::define ((x F) (y true)) x)'))
         self.assertIn('rule_conclusion := (EVar 0)', code)
         self.reject(RULE.replace(':conclusion F', ':conclusion (eo::define ((x F) (y x)) y)'), 'unknown symbol x')
+
+    def test_definition_fresh_names_cannot_capture_actual_arguments(self):
+        source = '(define $f ((F Bool)) (eo::define ((x true)) F))\n' + RULE.replace('(F Bool)', '($eoc.local.1 Bool)').replace(':args (F)', ':args ($eoc.local.1)').replace(':conclusion F', ':conclusion ($f $eoc.local.1)')
+        code, _ = self.compile_text(source)
+        self.assertIn('rule_conclusion := (EVar 0)', code)
 
     def test_duplicate_and_missing_fields(self):
         self.reject(RULE.replace(':args (F)', ':args (F) :args (F)'), 'duplicate rule field')

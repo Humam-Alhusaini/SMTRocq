@@ -7,7 +7,7 @@ claimed.
 
 The vendored cvc5 1.4.2 signature is the complete 35-file include closure;
 `cpc-manifest.json` records every source hash and transitive helper dependency.
-The generated subset currently has **25 rules and 31 programs**, covering the
+The generated subset currently has **27 rules and 34 programs**, covering the
 **98 actual steps in all seven repository UF fixtures**. In particular all
 15 `unit-tests/eunoia-fixtures/default/uf4.cpc` steps compute in Rocq. The tests
 include unused steps; they do not merely check isolated hand-written rule
@@ -49,7 +49,7 @@ Programs match their source patterns without imposing additional runtime type
 annotation constraints; rule binder checks and explicit `eo::typeof` still use
 an untrusted query. The default primitive extension hook returns failure.
 
-The 584 excluded rules are listed exactly in the manifest. Arithmetic literal
+The 582 excluded rules are listed exactly in the manifest. Arithmetic literal
 operations and dependent arithmetic nils, most string/BV/datatype native
 operations, `eo::cmp`, broader attributed operator elaboration, scoped commands
 in the **test** decoder, and a production CPC reader/tactic are incomplete.

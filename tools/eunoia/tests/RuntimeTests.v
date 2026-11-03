@@ -160,3 +160,48 @@ Proof. reflexivity. Qed.
 
 Print Assumptions trans_requires_matching_endpoints.
 Print Assumptions list_multiset_rejects_missing_duplicate.
+
+Definition assuming := CpcGenerated.derive_assuming 100 query.
+Definition test_assuming := TestGenerated.derive_assuming 100 query.
+Example source_assumption_scope : assuming "scope" p [] [q] = Some (binary "=>" p q).
+Proof. reflexivity. Qed.
+Example assumption_required_by_source : cpc "scope" [] [q] = None.
+Proof. reflexivity. Qed.
+Example ordinary_rule_rejects_extra_assumption : assuming "refl" p [x] [] = None.
+Proof. reflexivity. Qed.
+Example unknown_assumption_rule_rejects : assuming "unknown" p [] [q] = None.
+Proof. reflexivity. Qed.
+Example assumption_is_checked_boolean : assuming "scope" x [] [q] = None.
+Proof. reflexivity. Qed.
+Example assumption_does_not_supply_premise : assuming "scope" p [] [] = None.
+Proof. reflexivity. Qed.
+Example extra_local_premise_rejects : assuming "scope" p [] [p; q] = None.
+Proof. reflexivity. Qed.
+Example generated_assumption_pattern_accepts :
+  test_assuming "novel_assumption" (unary "not" p) [p] [q] = Some (binary "=>" p q).
+Proof. reflexivity. Qed.
+Example generated_assumption_pattern_rejects :
+  test_assuming "novel_assumption" p [p] [q] = None.
+Proof. reflexivity. Qed.
+Example generated_assumption_repeated_variable_rejects :
+  test_assuming "novel_assumption" (unary "not" p) [q] [q] = None.
+Proof. reflexivity. Qed.
+Example generated_assumption_guard_accepts :
+  test_assuming "guarded_assumption" p [] [p] = Some p.
+Proof. reflexivity. Qed.
+Example generated_assumption_guard_rejects :
+  test_assuming "guarded_assumption" p [] [q] = None.
+Proof. reflexivity. Qed.
+Example process_scope_remains_ordinary : cpc "process_scope" [q] [binary "=>" p q] = Some (binary "=>" p q).
+Proof. reflexivity. Qed.
+Example process_scope_false : cpc "process_scope" [Symbol "false"] [binary "=>" p (Symbol "false")] = Some (unary "not" p).
+Proof. reflexivity. Qed.
+Example process_scope_nested_flat_surface : cpc "process_scope" [Symbol "false"]
+  [binary "=>" p (binary "=>" q (Symbol "false"))] = Some (unary "not" (binary "and" p q)).
+Proof. vm_compute. reflexivity. Qed.
+Example process_scope_wrong_inner_conclusion : cpc "process_scope" [p] [binary "=>" p q] = None.
+Proof. reflexivity. Qed.
+Example process_scope_rejects_extra_assumption : assuming "process_scope" p [q] [binary "=>" p q] = None.
+Proof. reflexivity. Qed.
+Print Assumptions generated_assumption_pattern_rejects.
+Print Assumptions process_scope_nested_flat_surface.

@@ -17,8 +17,10 @@ ite_eq
 modus_ponens
 nary_cong
 not_not_elim
+process_scope
 refl
 resolution
+scope
 symm
 trans
 true_elim

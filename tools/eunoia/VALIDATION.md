@@ -39,9 +39,9 @@ signature coverage, not acceptance by the semantic State checker.
 
 These exercise `aci_norm`, `and_elim`, `chain_m_resolution`, `chain_resolution`,
 `cnf_and_pos`, `cnf_or_pos`, `cong`, `contra`, `eq-refl`, `eq_resolve`, `evaluate`,
-`nary_cong`, `refl`, `resolution`, `trans`. Ten further selected small rules
+`nary_cong`, `refl`, `resolution`, `trans`. Twelve further selected small rules
 retain regression coverage from the initial generator tests or are simple
-source-generated extensions; the manifest lists all 25 selected rules.
+source-generated extensions; the manifest lists all 27 selected rules.
 
 Negative trace tests corrupt an index, congruence's repeated variable, premise
 multiplicity and the explicit final conclusion. Unknown unused steps both
@@ -60,3 +60,11 @@ Atom/Form entries. Neither this replay nor `Print Assumptions` of its computed
 facts establishes soundness of CPC rules or of a full SMT-LIB refutation.
 Unsupported rules, arithmetic/dependent nils, mixed Real/Int semantics,
 production scoped reader/tactic wiring, and full backend coverage remain open.
+
+The dependent scope extension adds generic source `:assumption` patterns,
+`derive_assuming`, source-generated `scope` and ordinary `process_scope`.
+Seventeen additional Rocq examples check exact pushed formula matching,
+Boolean typing, repeated variables, guards, missing/extra premises, rejection
+through the wrong entry point, and nested antecedent collection with exact flat
+surface output. No scoped semantic checker or production scoped reader is
+claimed; the coordinator supplies the proved conditional invariant/discharge.

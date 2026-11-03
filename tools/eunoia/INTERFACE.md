@@ -103,3 +103,37 @@ public `derive` API lets the coordinator use the merged adapter unchanged.
 vendored byte-identical cvc5 signature, replays all actual UF fixture steps,
 and independently kernel-rechecks the tests. Semantic certificate coverage,
 reader/tactic wiring, and full port completion remain coordinator-owned work.
+
+## Assumption-bearing rules (scope adapter dependency)
+
+```
+CpcGenerated.derive_assuming : nat -> (term -> option term) ->
+  string -> term -> list term -> list term -> option term
+```
+
+Arguments are fuel, type query, rule name, **actual pushed formula**, explicit
+arguments, and the exact ordered local premise formulas. The rule IR adds
+`rule_assumption : option pattern`, generated from `:assumption` in the source.
+Matching that pattern seeds the same environment used for argument/premise
+matching and requirements. The pushed formula must query as `Bool`; its exact
+surface tree is matched without Boolean normalization. There is no scope-name
+special case. A novel rule with assumption `(not F)` is tested as well as the
+real source rule.
+
+Ordinary `derive` / `derive_with` pass no assumption and reject any
+assumption-bearing rule. `derive_assuming` rejects ordinary rules, unknown
+rules, mismatched assumption patterns, non-Boolean pushed terms, mismatched or
+extra/missing premises, and failed guards. `derive_assuming_with` additionally
+takes the generic primitive hook as its first argument. The shared internal
+`derive_context_with` accepts an `option term` assumption. Existing ordinary
+public APIs and term constructors are unchanged.
+
+The selected source rule `scope` computes `(=> F G)` from the actual matched
+pushed `F` and exact local premise `G`. The selected source `process_scope`
+remains an ordinary rule; its source helpers collect nested antecedents and
+produce the same flat Boolean surface syntax as the adapter. These are only
+computations. The coordinator's `scope_eval : payload -> pushed_literal ->
+exact_local_clause -> option clause` must faithfully encode both supplied
+arguments from the checked tables, call `derive_assuming`, bind the result,
+and use the proved conditional invariant/discharge in `EunoiaScope`. Neither
+entry point proves a local premise unconditionally or authorizes a State write.
