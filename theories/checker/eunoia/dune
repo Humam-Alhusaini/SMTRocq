@@ -8,7 +8,10 @@
  (name runtest)
  (deps
   EunoiaCheckerTests.vo
+  EunoiaAdapter.vo
   EunoiaUf.vo
   EunoiaLiaTests.vo
+  EunoiaLocalTests.vo
+  EunoiaTacticTests.vo
   EoRuntime.vo
   CpcGenerated.vo))
