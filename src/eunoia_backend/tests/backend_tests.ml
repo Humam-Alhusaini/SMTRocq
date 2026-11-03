@@ -19,6 +19,9 @@ let () =
   let proof = run (prefix ^ "(step c false :rule contra :premises (a b))") in
   assert (proof.capacity=3 && proof.conflict=2);
   assert ((List.hd proof.steps).premises=[0;1]);
+  let duplicate = run ~roots:[p;p;np] (prefix ^ "(step c false :rule contra :premises (a b))") in
+  assert (duplicate.roots=[0,p;1,p;2,np]);
+  assert ((List.hd duplicate.steps).premises=[0;2]);
   rejected (fun () -> run (prefix ^ "(step c :rule contra :premises (b a))"));
   rejected (fun () -> run (prefix ^ "(step c p :rule contra :premises (a b))"));
   rejected (fun () -> run (prefix ^ "(step unused :rule trust)(step c :rule contra :premises (a b))"));
@@ -42,7 +45,36 @@ let () =
   ignore (run ~roots:[Symbol "true"; app "not" [Symbol "true"]] lets);
   rejected (fun () -> run ("(define true () false)" ^ prefix ^
     "(step c false :rule contra :premises (a b))"));
-  Printf.printf "elaboration: positive and 11 corruption/resource cases passed\n%!";
+  (* Syntax-only scope callbacks: real generated checking is covered by Proof.v. *)
+  let derive_assuming name a args ps = match name,args,ps with
+    | "scope",[],[c] -> Some (app "=>" [a;c]) | _ -> None in
+  let scoped body = elaborate ~declarations:decl ~roots:[p;np] ~derive
+    ~derive_assuming (parse (prefix ^ body)) in
+  let inner = "(assume-push x p)(step local :rule copy :args (false))" ^
+    "(step-pop exported :rule scope :premises (local))" in
+  let final = "(step c :rule contra :premises (a b))" in
+  let scoped_proof = scoped (inner ^ final) in
+  (match scoped_proof.trace with
+  | Push(2,Symbol "p",Next(local,Done),exported,Next(last,Done)) ->
+    assert (local.id=3 && exported.id=4 && last.id=5 && exported.premises=[3])
+  | _ -> failwith "scope occurrence/slot mapping changed");
+  (match P.parse_string (prefix ^ inner ^ "(step c :rule contra :premises (a local))") with
+  | Error _ -> () | Ok _ -> failwith "expired scope premise parsed");
+  rejected (fun () -> scoped ("(assume-push x p)" ^
+    "(step-pop exported :rule scope :premises (a b))" ^ final));
+  rejected (fun () -> scoped ("(assume-push x p)(step unused :rule trust)" ^
+    "(step-pop exported :rule scope :premises (x))" ^ final));
+  rejected (fun () -> scoped ("(assume-push x p)(step local :rule copy :args (false))" ^
+    "(step-pop exported :rule scope :premises (local))"));
+  rejected (fun () -> run ("(define @t1 () |123|)" ^ prefix ^ final));
+  rejected (fun () -> run ("(define @t1 ((p Bool)) p)" ^ prefix ^ final));
+  rejected (fun () -> elaborate ~declarations:decl ~roots:[p;np] ~derive
+    ~signature_names:["@list"]
+    (parse ("(define @t1 ((@list Bool)) @list)" ^ prefix ^ final)));
+  ignore (elaborate ~declarations:decl ~roots:[p;np] ~derive
+    ~signature_names:["@list";"@list.nil"]
+    (parse ("(define @t1 () (@list true @list.nil))" ^ prefix ^ final)));
+  Printf.printf "elaboration: scope-free/scoped positives and corruption/resource cases passed\n%!";
   let solver_input = "(set-logic QF_UF)(declare-fun op_0 () Bool)" ^
     "(assert op_0)(assert (not op_0))(check-sat)(exit)" in
   let temporaries () = Sys.readdir (Filename.get_temp_dir_name ()) |> Array.to_list |>
