@@ -2,13 +2,19 @@
  (alias runtest)
  (deps
   compile.py
+  regenerate.py
   replay_fixtures.py
+  check-generated.sh
   rules.txt
   cpc-manifest.json
   (source_tree tests)
   (source_tree signatures)
   (source_tree ../../unit-tests/files)
   ../../unit-tests/eunoia-fixtures/default/uf4.cpc
+  ../../theories/checker/eunoia/EoSyntax.v
+  ../../theories/checker/eunoia/EoArithmetic.v
+  ../../theories/checker/eunoia/EoOrder.v
+  ../../theories/checker/eunoia/EoRuntime.v
   ../../theories/checker/eunoia/CpcGenerated.v)
  (action
-  (run python3 -B -m unittest discover -s tests -p test_*.py -v)))
+  (run bash check-generated.sh)))

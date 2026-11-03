@@ -43,7 +43,7 @@ Section Tables.
   Definition eval_with (extra : EoRuntime.primitive_hook) :=
     EunoiaAdapter.eval_with t_i t_func t_atom t_form names
       (CpcGenerated.derive_with extra).
-  Definition eval := eval_with EoRuntime.no_extension.
+  Definition eval := eval_with CpcGenerated.default_primitive.
 
   Definition scope_eval_with (extra : EoRuntime.primitive_hook) (fuel : nat)
     (p : EunoiaAdapter.rule_payload) (a : _lit) (c : C.t) : option C.t :=
@@ -62,7 +62,7 @@ Section Tables.
         end
       end
     else None.
-  Definition scope_eval := scope_eval_with EoRuntime.no_extension.
+  Definition scope_eval := scope_eval_with CpcGenerated.default_primitive.
 
   Lemma scope_eval_with_binding : forall extra fuel p a c result,
     scope_eval_with extra fuel p a c = Some result ->
@@ -95,7 +95,7 @@ Section Tables.
   Definition run_with extra fuel := EunoiaScope.run (eval_with extra fuel)
     (scope_eval_with extra fuel) (@EunoiaLocal.gate t_i t_func t_atom t_form)
     (PArray.length t_form).
-  Definition run := run_with EoRuntime.no_extension.
+  Definition run := run_with CpcGenerated.default_primitive.
 
   (* This strengthens close_binding with the concrete generated boundary. The
      endpoint is c, never guarded a c; only the semantic gate sees the guard. *)
@@ -136,7 +136,7 @@ Section Tables.
     EunoiaScope.checker (eval_with extra fuel) (scope_eval_with extra fuel)
       (@EunoiaLocal.gate t_i t_func t_atom t_form) (PArray.length t_form)
       capacity roots claims t goal.
-  Definition checker := checker_with EoRuntime.no_extension.
+  Definition checker := checker_with CpcGenerated.default_primitive.
 
   Lemma checker_with_binding : forall extra fuel capacity roots root_terms claims t goal,
     checker_with extra fuel capacity roots root_terms claims t goal = true ->
@@ -164,12 +164,12 @@ Section Tables.
   Theorem checker_correct : forall fuel capacity roots root_terms claims t goal,
     checker fuel capacity roots root_terms claims t goal = true ->
     ~ Forall (C.valid valuation) roots.
-  Proof. exact (checker_with_correct EoRuntime.no_extension). Qed.
+  Proof. exact (checker_with_correct CpcGenerated.default_primitive). Qed.
 
   Definition checker_b_with extra fuel capacity l b root_terms claims t goal :=
     checker_with extra fuel capacity (EunoiaTactic.goal_roots l b)
       root_terms claims t goal.
-  Definition checker_b := checker_b_with EoRuntime.no_extension.
+  Definition checker_b := checker_b_with CpcGenerated.default_primitive.
 
   Theorem checker_b_with_correct : forall extra fuel capacity l b root_terms claims t goal,
     checker_b_with extra fuel capacity l b root_terms claims t goal = true ->
@@ -182,7 +182,7 @@ Section Tables.
   Theorem checker_b_correct : forall fuel capacity l b root_terms claims t goal,
     checker_b fuel capacity l b root_terms claims t goal = true ->
     Lit.interp valuation l = b.
-  Proof. exact (checker_b_with_correct EoRuntime.no_extension). Qed.
+  Proof. exact (checker_b_with_correct CpcGenerated.default_primitive). Qed.
 
   Definition checker_eq_with extra fuel capacity l1 l2 l root_terms claims t goal :=
     if Lit.is_pos l then false else
@@ -191,7 +191,7 @@ Section Tables.
         checker_b_with extra fuel capacity (Lit.neg l) true root_terms claims t goal
       | _ => false
       end.
-  Definition checker_eq := checker_eq_with EoRuntime.no_extension.
+  Definition checker_eq := checker_eq_with CpcGenerated.default_primitive.
 
   Theorem checker_eq_with_correct : forall extra fuel capacity l1 l2 l root_terms claims t goal,
     checker_eq_with extra fuel capacity l1 l2 l root_terms claims t goal = true ->
@@ -224,7 +224,7 @@ Section Tables.
   Theorem checker_eq_correct : forall fuel capacity l1 l2 l root_terms claims t goal,
     checker_eq fuel capacity l1 l2 l root_terms claims t goal = true ->
     Lit.interp valuation l1 = Lit.interp valuation l2.
-  Proof. exact (checker_eq_with_correct EoRuntime.no_extension). Qed.
+  Proof. exact (checker_eq_with_correct CpcGenerated.default_primitive). Qed.
 End Tables.
 
 Print Assumptions scope_eval_with_binding.

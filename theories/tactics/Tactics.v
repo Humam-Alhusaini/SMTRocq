@@ -19,7 +19,7 @@ From SMTCoq.utils Require Import PArray.
 From SMTCoq.structures Require Import CompDecInstances.
 From SMTCoq.checker.fol Require Import State Terms.
 From SMTCoq.checker Require Import MainChecker.
-From SMTCoq.checker.eunoia Require Import EunoiaTactic.
+From SMTCoq.checker.eunoia Require Import EunoiaTactic EunoiaScopedAdapter.
 
 Require Import Conversion QInst.
 
