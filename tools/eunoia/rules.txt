@@ -6,6 +6,8 @@ arith-elim-leq
 arith-elim-lt
 arith-eq-elim-int
 arith-geq-tighten
+arith-int-eq-conflict
+arith-int-geq-tighten
 arith-leq-norm
 arith_mult_neg
 arith_poly_norm

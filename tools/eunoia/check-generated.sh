@@ -74,15 +74,18 @@ python3 tools/eunoia/replay_fixtures.py --scoped tools/eunoia/tests/fixtures/lia
   --output "$task_tmp/LiaFixtureTests.v"
 python3 tools/eunoia/replay_fixtures.py --scoped tools/eunoia/tests/reduced-fixtures/*.cpc \
   --output "$task_tmp/ReducedFixtureTests.v"
+python3 tools/eunoia/tests/integer_mutations.py "$task_tmp"
+python3 tools/eunoia/replay_fixtures.py --scoped tools/eunoia/tests/integer-fixtures/*.cpc \
+  --output "$task_tmp/IntegerFixtureTests.v"
 cp theories/checker/eunoia/EoSyntax.v theories/checker/eunoia/EoRuntime.v \
   theories/checker/eunoia/EoArithmetic.v theories/checker/eunoia/EoOrder.v \
   tools/eunoia/tests/LiaTraceReplay.v tools/eunoia/tests/LiaRuntimeTests.v \
   tools/eunoia/tests/LiaTraceNegativeTests.v \
-  tools/eunoia/tests/StrictShiftTests.v \
+  tools/eunoia/tests/StrictShiftTests.v tools/eunoia/tests/IntegerCastTests.v \
   tools/eunoia/tests/RuntimeTests.v tools/eunoia/tests/TraceReplay.v \
   tools/eunoia/tests/TraceNegativeTests.v "$task_tmp/"
 cd "$task_tmp"
-for task_module in EoSyntax EoRuntime EoArithmetic EoOrder CpcGenerated TestGenerated MutatedGenerated MutatedCpcGenerated LiaMutatedGenerated TightenMutatedGenerated TraceReplay RuntimeTests FixtureTests TraceNegativeTests LiaTraceReplay LiaRuntimeTests LiaFixtureTests LiaTraceNegativeTests StrictShiftTests ReducedFixtureTests; do
+for task_module in EoSyntax EoRuntime EoArithmetic EoOrder CpcGenerated TestGenerated MutatedGenerated MutatedCpcGenerated LiaMutatedGenerated TightenMutatedGenerated IntEqPremiseMutated IntEqResultMutated IntGeqPremiseMutated IntGeqResultMutated IntFloorMutated IntCastMutated IntPolyGuardMutated TraceReplay RuntimeTests FixtureTests TraceNegativeTests LiaTraceReplay LiaRuntimeTests LiaFixtureTests LiaTraceNegativeTests StrictShiftTests ReducedFixtureTests IntegerFixtureTests IntegerCastTests; do
   "$task_env" rocq compile -q -Q . SMTCoq.checker.eunoia "$task_module.v"
 done
 "$task_env" rocq check -silent -Q . SMTCoq.checker.eunoia \
@@ -90,4 +93,6 @@ done
   SMTCoq.checker.eunoia.TraceNegativeTests SMTCoq.checker.eunoia.LiaRuntimeTests \
   SMTCoq.checker.eunoia.LiaFixtureTests SMTCoq.checker.eunoia.LiaTraceNegativeTests \
   SMTCoq.checker.eunoia.StrictShiftTests \
-  SMTCoq.checker.eunoia.ReducedFixtureTests
+  SMTCoq.checker.eunoia.ReducedFixtureTests \
+  SMTCoq.checker.eunoia.IntegerFixtureTests SMTCoq.checker.eunoia.IntegerCastTests
+python3 "$task_root/tools/eunoia/tests/audit_integer_assumptions.py" "$task_tmp"

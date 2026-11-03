@@ -87,3 +87,23 @@ class ReplayTests(unittest.TestCase):
     def test_scoped_generation_is_deterministic(self):
         paths = sorted((ROOT / 'tools/eunoia/tests/fixtures').glob('lia*.cpc'))
         self.assertEqual(generate(paths, scoped=True), generate(paths, scoped=True))
+
+    def test_integer_captures_retain_casts_coefficients_and_nested_scopes(self):
+        fixtures = ROOT / 'tools/eunoia/tests/integer-fixtures'
+        expected = {'lia_parity': (1, 8, 0, 0), 'lia_coefficient_bound': (2, 16, 0, 0),
+                    'lia_coefficient_scoped': (1, 140, 6, 3)}
+        for name, (roots, steps, pushes, max_depth) in expected.items():
+            data = decode(fixtures / (name + '.cpc'), scoped=True)
+            self.assertEqual(len(data[1]), roots)
+            self.assertEqual(sum('TraceStep' in c or 'TracePop' in c for c in data[2]), steps)
+            self.assertEqual(sum('TracePush' in c for c in data[2]), pushes)
+            depth = maximum = 0
+            for c in data[2]:
+                depth += int('TracePush' in c) - int('TracePop' in c)
+                maximum = max(maximum, depth)
+            self.assertEqual((depth, maximum), (0, max_depth))
+            self.assertIn('Symbol "to_real"', ''.join(data[2]))
+            self.assertIn('Symbol "to_int"', ''.join(data[2]))
+        self.assertIn('Symbol "-3/2"', ''.join(decode(fixtures / 'lia_coefficient_bound.cpc', scoped=True)[2]))
+        paths = sorted(fixtures.glob('*.cpc'))
+        self.assertEqual(generate(paths, scoped=True), generate(paths, scoped=True))
