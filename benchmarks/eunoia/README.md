@@ -25,6 +25,9 @@ shared Dune edits, or server is needed. Python uses only its standard library.
 already exist). `--skip-build` is only for a previously successful build in the
 same checkout. The harness derives logical load paths from existing theory
 stanzas rather than adding a benchmark stanza to shared files.
+`--cases PATH` selects a JSON workload manifest for a focused diagnostic run;
+the exact manifest, its source path and hash are retained with the results.
+Compare backends on the same selected manifest.
 
 To exercise the integrated tactic:
 
@@ -54,13 +57,17 @@ gaps therefore produce useful results and exit `1`; examine their logs.
 
 ## Workload and success boundary
 
-`cases.json` has six positive UF-shaped goals, six positive LIA goals, and two
+`cases.json` has six positive UF-shaped goals over integers, six positive
+abstract-carrier UF goals, six positive LIA goals, and two
 negative controls. Sources point to the corresponding blocks in
-`unit-tests/verit_tactics.v`. Goals mix propositional and Boolean presentation,
-as the existing tests do. UF cases use equality and uninterpreted functions or
-predicates over `Z`, without arithmetic operations. These are UF-shaped goals
-over a fixed integer carrier, not a test of arbitrary uninterpreted sorts;
-solver logic selection may still include LIA. The suite is a regression-sized
+the existing and Eunoia integration tests. Goals mix propositional and Boolean
+presentation, as the existing tests do. The integer UF cases use equality and
+uninterpreted functions or predicates without arithmetic operations, but solver
+logic selection may still include LIA and trigger arithmetic normalization.
+The abstract-carrier goals quantify `A : Type` with `HA : CompDec A`, and include
+chains, binary functions, predicates, disjunctive roots and two distinct sorts.
+These exercise proof-local carrier universes as well as genuine QF_UF solver
+problems. The suite is a regression-sized
 sample, not a representative difficulty distribution.
 
 Each attempt starts a new compiler process and calls exactly the named tactic.
