@@ -7,9 +7,9 @@ claimed.
 
 The vendored cvc5 1.4.2 signature is the complete 35-file include closure;
 `cpc-manifest.json` records every source hash and transitive helper dependency.
-The generated subset currently has **48 rules and 53 programs**, covering the
+The generated subset currently has **49 rules and 53 programs**, covering the
 **98 actual steps in all seven repository UF fixtures**, plus
-**379 steps in all seven LIA fixtures** (including 12 scope pops). In particular all
+**411 steps in eight LIA fixtures** (including 12 scope pops). In particular all
 15 `unit-tests/eunoia-fixtures/default/uf4.cpc` steps compute in Rocq. The tests
 include unused steps; they do not merely check isolated hand-written rule
 instances. Actual solver proof bytes and source-input hashes are retained in
@@ -52,7 +52,7 @@ an untrusted query. The production default uses `EoArithmetic.eval` and a determ
 ordering. `derive_with no_extension` remains available for explicit fail-closed
 primitive isolation.
 
-The 561 excluded rules are listed exactly in the manifest. The manifest also
+The 560 excluded rules are listed exactly in the manifest. The manifest also
 lists six unavailable primitives reached in preserved, unexecuted helper
 branches: string/BV conversion, length, concatenation, extraction and find.
 Reaching them returns a missing-primitive diagnostic; no source cases are
@@ -63,3 +63,8 @@ it is no longer the production generation source.
 
 See [LIA-VALIDATION.md](LIA-VALIDATION.md) for source pins, the ordering invariant,
 query examples, scoped computation harness, negative tests and integration limits.
+The minimal `arith-geq-tighten` extension, actual 32-step strict-shift proof,
+mutation checks and compatible semantic-integration handoff are recorded in
+[STRICT-SHIFT-VALIDATION.md](STRICT-SHIFT-VALIDATION.md). Across both original
+and reduced captures, all 994 steps in 29 proofs are computed; this does not
+establish live semantic acceptance of those proofs.

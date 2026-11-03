@@ -159,7 +159,6 @@
     "arith-geq-ite-lift",
     "arith-geq-norm1-int",
     "arith-geq-norm1-real",
-    "arith-geq-tighten",
     "arith-int-div-total",
     "arith-int-div-total-neg",
     "arith-int-div-total-one",
@@ -760,7 +759,7 @@
     "String"
   ],
   "format": 3,
-  "generated_sha256": "5327de8e4e5fef80125520b41baf392057c0d3471dca3f4020b0ef85d3092ea4",
+  "generated_sha256": "a9b6ee0e0c98df2e86b5f10a3327f780698a85161f94d4108dab879add0ae6e5",
   "native_operations": [
     "eo::add",
     "eo::and",
@@ -872,6 +871,7 @@
     "arith-elim-leq",
     "arith-elim-lt",
     "arith-eq-elim-int",
+    "arith-geq-tighten",
     "arith-leq-norm",
     "arith_mult_neg",
     "arith_poly_norm",

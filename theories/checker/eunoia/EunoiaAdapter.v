@@ -462,8 +462,9 @@ Section Tables.
       end
     end.
 
-  Definition typeof (fuel : nat) (t : term) : option term :=
-    if names_wf then syntax_typeof fuel t else None.
+  Definition typeof (fuel : nat) : term -> option term :=
+    let ready := names_wf in
+    fun t => if ready then syntax_typeof fuel t else None.
 
   Definition tables_wf : bool :=
     names_wf && Form.check_form t_form && Atom.check_atom t_atom &&
@@ -481,9 +482,12 @@ Section Tables.
      correctness. The public evaluator below always uses CpcGenerated.derive. *)
   Definition eval_with
       (derive : nat -> (term -> option term) -> string -> list term -> list term -> option term)
-      (fuel : nat) (p : rule_payload) (cs : list C.t) : option C.t :=
-    if tables_wf && bind_terms fuel cs (premise_terms p) then
-      match derive fuel (typeof fuel) (rule_name p) (arguments p) (premise_terms p) with
+      (fuel : nat) : rule_payload -> list C.t -> option C.t :=
+    let ready := tables_wf in
+    let query := typeof fuel in
+    fun p cs =>
+    if ready && bind_terms fuel cs (premise_terms p) then
+      match derive fuel query (rule_name p) (arguments p) (premise_terms p) with
       | Some t =>
         if term_eqb t (result_term p) && binds fuel (result_clause p) t
         then Some (result_clause p) else None

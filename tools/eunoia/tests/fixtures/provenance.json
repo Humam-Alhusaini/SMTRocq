@@ -83,6 +83,25 @@
     "input_sha256": "5bc1f60d19a8f4b977e4678682adb14a11cb4e5ba08ef3c1216c22f0e0885122",
     "proof_sha256": "0c5debee56fd8a887c79c4ed5e959bda720857afa33836ca7d852ed049cff7c6"
   },
+  "lia_strict_shift": {
+    "command": [
+      "/home/charles/code/friends/.toolchains/cvc5-1.4.2/cvc5-Linux-x86_64-static/bin/cvc5",
+      "--lang=smt2",
+      "--dump-proofs",
+      "--proof-format=cpc",
+      "--proof-granularity=dsl-rewrite",
+      "--no-proof-allow-trust",
+      "--proof-check=eager",
+      "--check-proofs-complete",
+      "--tlimit=60000",
+      "--rlimit=10000000",
+      "tools/eunoia/tests/fixtures/lia_strict_shift.smt2"
+    ],
+    "exit_code": 0,
+    "input": "tools/eunoia/tests/fixtures/lia_strict_shift.smt2",
+    "input_sha256": "a8ee41294219f553e3a8e61dacdfc4d2f1110b4c7ac8f93dc48dc61ccc956be6",
+    "proof_sha256": "9df2cf20d525f4d51496b67b27803f98f6d8397371dfe00422f17cb9e4c97f37"
+  },
   "uf1": {
     "command": [
       "/home/charles/code/friends/.toolchains/cvc5-1.4.2/cvc5-Linux-x86_64-static/bin/cvc5",

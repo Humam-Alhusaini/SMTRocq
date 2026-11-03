@@ -58,6 +58,17 @@ class ReplayTests(unittest.TestCase):
             self.assertEqual(sum('TraceStep' in c or 'TracePop' in c for c in data[2]), count)
             self.assertEqual(sum('TracePush' in c for c in data[2]), 6 if i in (1, 5) else 0)
 
+    def test_strict_shift_keeps_every_step_and_exact_tightening_arguments(self):
+        data = decode(ROOT / 'tools/eunoia/tests/fixtures/lia_strict_shift.cpc', scoped=True)
+        self.assertEqual(len(data[1]), 1)
+        self.assertEqual(len(data[2]), 32)
+        self.assertEqual(data[3], 33)
+        step = data[2][18]
+        self.assertIn('step_id := 20; step_rule := "arith-geq-tighten"', step)
+        self.assertIn('step_args := [(Apply (Apply (Symbol "+") (Symbol "op_1")) '
+                      '(Apply (Apply (Symbol "*") (Symbol "-1")) (Symbol "op_0"))); (Symbol "1")]', step)
+        self.assertIn('step_premises := []', step)
+
     def test_scope_ids_are_restored_and_may_be_reused(self):
         source = 'unsat ((assume @p1 true) (assume-push @p2 true) (step @p3 :rule refl :args (true)) (step-pop @p2 :rule scope :premises (@p3)) (step @p3 :rule refl :args (true)))'
         data = self.decode_text(source, scoped=True)
