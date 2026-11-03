@@ -9,13 +9,17 @@ let list ty xs = List.fold_right (fun x tail ->
   SmtMisc.mklApp CoqTerms.ccons [|ty;x;tail|]) xs
   (SmtMisc.mklApp CoqTerms.cnil [|ty|])
 let string s =
+  (* Resolve constructors once per call. These bindings never outlive the
+     current Rocq environment and share no computed proof or checker result. *)
+  let ascii = global "Stdlib.Strings.Ascii.Ascii" in
+  let cons = global "Stdlib.Strings.String.String" in
   let chars = ref (global "Stdlib.Strings.String.EmptyString") in
   for i = String.length s - 1 downto 0 do
     let n = Char.code s.[i] in
     let bits = Array.init 8 (fun b -> Lazy.force
       (if n land (1 lsl b) <> 0 then CoqTerms.ctrue else CoqTerms.cfalse)) in
-    let c = R.mkApp (global "Stdlib.Strings.Ascii.Ascii",bits) in
-    chars := call "Stdlib.Strings.String.String" [c;!chars]
+    let c = R.mkApp (ascii,bits) in
+    chars := R.mkApp (cons,[|c;!chars|])
   done; !chars
 let syntax = "SMTCoq.checker.eunoia.EoSyntax."
 let term_type () = global (syntax ^ "term")
@@ -24,12 +28,15 @@ let rec term = function
   | EunoiaElaborate.Apply(f,a) -> call (syntax ^ "Apply") [term f;term a]
 let term_list xs = list (term_type ()) (List.map term xs)
 let decode_string t =
+  let empty = global "Stdlib.Strings.String.EmptyString" in
+  let cons = global "Stdlib.Strings.String.String" in
+  let ascii = global "Stdlib.Strings.Ascii.Ascii" in
   let buf = Buffer.create 32 in
   let rec go t = match R.decompose_app_list t with
-    | h,[] when R.eq_constr h (global "Stdlib.Strings.String.EmptyString") -> Buffer.contents buf
-    | h,[c;tail] when R.eq_constr h (global "Stdlib.Strings.String.String") ->
+    | h,[] when R.eq_constr h empty -> Buffer.contents buf
+    | h,[c;tail] when R.eq_constr h cons ->
       (match R.decompose_app_list c with
-      | h,bits when R.eq_constr h (global "Stdlib.Strings.Ascii.Ascii") && List.length bits=8 ->
+      | h,bits when R.eq_constr h ascii && List.length bits=8 ->
         let n = List.fold_left (fun (i,n) b ->
           let bit = if R.eq_constr b (Lazy.force CoqTerms.ctrue) then 1
             else if R.eq_constr b (Lazy.force CoqTerms.cfalse) then 0
