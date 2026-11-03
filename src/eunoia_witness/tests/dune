@@ -1,0 +1,20 @@
+(library
+ (name witness_cases)
+ (public_name rocq-smtcoq.eunoia_witness_test_cases)
+ (modules witness_cases)
+ (libraries eunoia_witness))
+
+(test
+ (name search_tests)
+ (modules search_tests)
+ (libraries witness_cases))
+
+; Loaded only by the optional cross-worktree gate probe; see witness-search.md.
+(library
+ (name witness_gate_probe)
+ (public_name rocq-smtcoq.eunoia_witness_gate_probe)
+ (modules probe g_witness_probe)
+ (libraries witness_cases rocq-runtime.plugins.ltac))
+
+(rocq.pp
+ (modules g_witness_probe))
