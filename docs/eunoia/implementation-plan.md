@@ -48,7 +48,9 @@ interfaces early. Neither owner should create a second SMT-LIB semantics.
 * Wrapper: `/home/charles/code/friends/.toolchains/smtrocq-env`.
 * `smtrocq-env dune build theories`: passed after private dependencies finished
   installing. A first overlapping build had failed while they were incomplete.
-* `smtrocq-env dune runtest`: running when parallel work was scheduled.
+* `smtrocq-env dune runtest`: completed with exit code 0. Its log is retained
+  at `/tmp/smtrocq-baseline-tests.log`; existing LFSC hypothesis warnings are
+  present. This is regression evidence, not a soundness claim for a new backend.
 * Logos source surveyed at `89df5909b0e9aabb936b68ee95c75a18f609db7a`,
   `/tmp/smtrocq-logos`. Issue <https://github.com/cvc5/logos/issues/485> was read;
   the web rendering showed the performance question and no maintainer reply.
