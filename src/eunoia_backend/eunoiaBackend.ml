@@ -301,6 +301,26 @@ let build_refutation_from_cpc ?sigma ?fuel ~witness env t roots parsed =
   sigma := checked_sigma;
   proof
 
+(* Cache only a proof of this invocation's complete checker application.
+   [exact_check] validates the VM cast; Abstract's private opaque declaration
+   then kernel-checks its body synchronously before invoking [use]. No Boolean
+   success is cached and no private constant is declared without its body. *)
+let with_checked_acceptance p computation use =
+  let ty = SmtMisc.mklApp CoqTerms.ceq
+    [|Lazy.force CoqTerms.cbool;computation;Lazy.force CoqTerms.ctrue|] in
+  let certificate = R.mkCast (CoqTerms.eq_refl_true (),R.vmcast,ty) in
+  let checked = Abstract.cache_term_by_tactic_then ~opaque:true ~name_op:None
+    ~goal_type:(Some (EConstr.of_constr ty))
+    (Tactics.exact_check (EConstr.of_constr certificate))
+    (fun lemma args -> Proofview.Goal.enter (fun gl ->
+      let sigma = Proofview.Goal.sigma gl in
+      let accepted = EConstr.to_constr sigma
+        (EConstr.mkApp (lemma,Array.of_list args)) in
+      use accepted)) in
+  Proofview.tclORELSE checked (fun (error,info) ->
+    p.diagnose ();
+    Proofview.tclZERO ~info error)
+
 let tactic_using produce ?fuel ?(preprocess=Tactics.intros) ~witness ?(lemmas=[]) () =
   R.tclTHEN preprocess (R.mk_tactic (fun env sigma goal ->
     (* Introduced polymorphic carriers have fresh levels in the proof's evar
@@ -340,11 +360,13 @@ let tactic_using produce ?fuel ?(preprocess=Tactics.intros) ~witness ?(lemmas=[]
           "checker_b",[Form.to_coq fa;b]
         else "checker_eq",[Form.to_coq fa;Form.to_coq fb;Form.to_coq ng] in
         let args = prepared.common_args @ args @ prepared.tail_args in
-        let accepted = C.checked_true ~on_failure:prepared.diagnose env (C.call (prepared.checker_api name) args) in
-        let proof = C.call (prepared.checker_api (name ^ "_correct")) (args @ [accepted]) in
-        Tactics.exact_check (EConstr.of_constr proof)
+        with_checked_acceptance prepared (C.call (prepared.checker_api name) args) (fun accepted ->
+          let proof = C.call (prepared.checker_api (name ^ "_correct")) (args @ [accepted]) in
+          Tactics.exact_check (EConstr.of_constr proof))
       end else begin
-      let refutation, checked_sigma = refutation env sigma prepared in
+      let args = prepared.common_args @ [prepared.roots_arg] @ prepared.tail_args in
+      with_checked_acceptance prepared (C.call (prepared.checker_api "checker") args) (fun accepted ->
+      let refutation = C.call (prepared.checker_api "checker_correct") (args @ [accepted]) in
       let tables = prepared.table_args in
       let rho = C.call (local "valuation") tables in
       let valid = C.call (state "C.valid") [rho] in
@@ -376,8 +398,7 @@ let tactic_using produce ?fuel ?(preprocess=Tactics.intros) ~witness ?(lemmas=[]
       let not_false = R.mkLambda(R.mkName "eunoia_false",hty,contradiction) in
       let is_true = C.call (std "Bool.Bool.not_false_is_true") [eqb;not_false] in
       let proof = C.call (std "Bool.Bool.eqb_prop") [a;b;is_true] in
-      R.tclTHEN (Proofview.Unsafe.tclEVARS checked_sigma)
-        (Tactics.exact_check (EConstr.of_constr proof))
+      Tactics.exact_check (EConstr.of_constr proof))
       end
     with
     | EunoiaSolver.Error s | E.Error s | Failure s | Invalid_argument s ->

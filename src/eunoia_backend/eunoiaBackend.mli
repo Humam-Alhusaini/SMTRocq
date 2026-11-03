@@ -51,7 +51,10 @@ val tactic :
     preprocessing. Reuses existing reification and supplied lemma proofs;
     rejects missing CompDec cuts and quantified lemmas. Uses the concrete
     EunoiaTactic.checker_b/checker_eq correctness targets (or the corresponding
-    EunoiaScopedAdapter targets for scoped proofs) and [exact_check].
+    EunoiaScopedAdapter targets for scoped proofs). Each invocation proves the
+    exact complete checker equality as an opaque private lemma using Rocq's
+    supported abstraction API, which kernel-checks its body before reuse. The
+    final complete correctness application still passes [exact_check].
     There is no no-check variant or legacy trace fallback. *)
 
 val tactic_from_cpc :
