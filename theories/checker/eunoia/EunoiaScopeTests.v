@@ -32,9 +32,7 @@ Definition scope_eval (r : scope_rule) (a : _lit) (c : C.t) : option C.t :=
 Definition trace := @EunoiaScope.trace rule scope_rule EunoiaBridge.witness.
 Definition done : trace := EunoiaScope.Done.
 Definition resolution2 := (PArray.make 2 0).[1 <- 1].
-Definition resolution3 := (PArray.make 3 0).[1 <- 1].[2 <- 2].
 Definition res2 := EunoiaBridge.Witness 3 (Checker_Ext.Res 2 resolution2).
-Definition res3 := EunoiaBridge.Witness 4 (Checker_Ext.Res 3 resolution3).
 Definition weaken (c : C.t) := EunoiaBridge.Witness 2 (Checker_Ext.Weaken 1 0 c).
 Definition resolve (dst : clause_id) (ids : list clause_id) :=
   Step dst ids (Return []) [] res2.
@@ -48,8 +46,11 @@ Definition outer := EunoiaScope.Discharge 7 8 (Export 6 [9] [7;9])
   [7;9] (weaken [7;9]).
 Definition body : trace := EunoiaScope.Next (resolve 6 [0;1]) done.
 Definition inner_trace : trace := EunoiaScope.Push 5 8 body (Some inner) done.
-Definition finish : trace :=
-  EunoiaScope.Next (Step 9 [8;2;3] (Return []) [] res3) done.
+(* Every resolution link has its own fresh result and checked expectation. *)
+Definition finish_with (tail : trace) : trace :=
+  EunoiaScope.Next (Step 10 [8;2] (Return [9]) [9] res2)
+    (EunoiaScope.Next (resolve 9 [10;3]) tail).
+Definition finish : trace := finish_with done.
 Definition nested : trace := EunoiaScope.Push 4 6 inner_trace (Some outer) finish.
 
 Section Context.
@@ -115,12 +116,12 @@ Section Context.
 
   Example outer_local_result_expires :
     check (EunoiaScope.Push 4 6 inner_trace (Some outer)
-      (EunoiaScope.Next (resolve 10 [7;3]) finish)) 9 = false.
+      (EunoiaScope.Next (resolve 11 [7;3]) finish)) 9 = false.
   Proof. vm_compute; reflexivity. Qed.
 
   Example pushed_assumption_expires :
     check (EunoiaScope.Push 4 6 inner_trace (Some outer)
-      (EunoiaScope.Next (resolve 10 [4;1]) finish)) 9 = false.
+      (EunoiaScope.Next (Step 11 [4;8] (Return [9]) [9] res2) finish)) 9 = false.
   Proof. vm_compute; reflexivity. Qed.
 
   Example local_conflict_is_not_global :
@@ -155,8 +156,7 @@ Section Context.
 
   Example unknown_after_global_conflict_rejected :
     check (EunoiaScope.Push 4 6 inner_trace (Some outer)
-      (EunoiaScope.Next (Step 9 [8;2;3] (Return []) [] res3)
-        (EunoiaScope.Next (Step 10 [] Unknown [] res2) done))) 9 = false.
+      (finish_with (EunoiaScope.Next (Step 11 [] Unknown [] res2) done))) 9 = false.
   Proof. vm_compute; reflexivity. Qed.
 
   Example unclosed_scope_rejected :

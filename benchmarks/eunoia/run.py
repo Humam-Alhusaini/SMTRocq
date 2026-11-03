@@ -186,6 +186,8 @@ def rocq_loadpath(repo):
 def parse_args():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--wrapper", type=Path, default=WRAPPER)
+    parser.add_argument("--cases", type=Path, default=HERE / "cases.json",
+                        help="JSON workload manifest; its exact contents are retained")
     parser.add_argument("--backends", nargs="+", choices=BACKENDS, default=["verit", "cvc4"])
     parser.add_argument("--repeat", type=int, default=3)
     parser.add_argument("--timeout", type=float, default=30, help="seconds per compiler process")
@@ -213,13 +215,16 @@ def main():
     if args.output:
         output.mkdir(parents=True, exist_ok=False)
     print(f"Results: {output}", flush=True)
-    cases = load_cases(HERE / "cases.json")
+    cases_path = args.cases.resolve()
+    cases = load_cases(cases_path)
     write_json(output / "cases.json", cases)
     metadata = {
         "schema_version": 1, "started_utc": datetime.now(timezone.utc).isoformat(),
         "repository": str(REPO), "wrapper": str(wrapper), "wrapper_sha256": sha256(wrapper),
         "argv": sys.argv, "python": sys.version, "platform": platform.platform(),
-        "configuration": vars(args) | {"wrapper": str(wrapper), "output": str(output)},
+        "configuration": vars(args) | {"wrapper": str(wrapper), "output": str(output),
+                                       "cases": str(cases_path)},
+        "cases_sha256": sha256(cases_path),
         "source_sha256": {p.name: sha256(p) for p in HERE.iterdir() if p.is_file()},
         "measurements": "Rocq Time backend, Time Qed, and separate compiler process wall time; no solver-only timings",
         "tools": {},

@@ -45,9 +45,10 @@ Section Tables.
       (CpcGenerated.derive_with extra).
   Definition eval := eval_with CpcGenerated.default_primitive.
 
-  Definition scope_eval_with (extra : EoRuntime.primitive_hook) (fuel : nat)
-    (p : EunoiaAdapter.rule_payload) (a : _lit) (c : C.t) : option C.t :=
-    if tables_wf && bind_terms fuel [c] (EunoiaAdapter.premise_terms p) then
+  Definition scope_eval_with (extra : EoRuntime.primitive_hook) (fuel : nat) :=
+    let tables_ready := tables_wf in
+    fun (p : EunoiaAdapter.rule_payload) (a : _lit) (c : C.t) =>
+    if tables_ready && bind_terms fuel [c] (EunoiaAdapter.premise_terms p) then
       match encode_literal fuel a with
       | None => None
       | Some pushed =>

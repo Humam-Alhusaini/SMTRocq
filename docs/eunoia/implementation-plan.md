@@ -1,7 +1,7 @@
 # cvc5 / Eunoia implementation milestones
 
-Status: implementation in progress. A checked `cvc5_eunoia` tactic runs on two
-live smoke goals; meaningful UF/LIA coverage and the acceptance benchmarks are
+Status: implementation in progress. A checked `cvc5_eunoia` tactic runs live
+smoke and UF integration goals; the complete UF/LIA acceptance suites and benchmarks are
 still incomplete.
 
 ## Required outcome
@@ -157,3 +157,60 @@ subsequent full regression command exited 0. Logs are
 `/tmp/smtrocq-generator-dune-regression.log` and
 `/tmp/smtrocq-corrected-generator-full-runtest.log` respectively. A failed first
 run is not reported as a successful full regression.
+
+## Generated arithmetic and scoped backend integration
+
+The LIA source computation and scoped backend branches are merged at
+`604b951` and `e246dcd`. The generated snapshot now has 48 rules and 53 helpers;
+all 962 steps across 28 original/reduced UF/LIA fixtures compute. This is
+signature-computation evidence, independently of semantic checking. The
+production backend now builds nested traces with exact guarded discharge and
+preserves every authoritative root when cvc5 deduplicates source assertions.
+The adapter's default primitive configuration and the tactic's module loading
+were wired in `2dc18f5`; the backend consumes the complete generated signature
+namespace inventory. No proof data chooses native hooks.
+
+The combined `dune build -j2 @install` with backend `Proof.vo` and `Public.vo`
+exited 0 (`/tmp/smtrocq-generated-lia-scoped-backend-build.log`). The default
+generator test alias now runs the standalone compilation and independent
+kernel checks in addition to its 39 Python tests. Its integrated invocation
+`smtrocq-env dune runtest -j2 tools/eunoia` exited 0; output is retained in
+`/tmp/smtrocq-generated-lia-default-runtest.log`. Eight concrete scoped/tactic
+correctness and live public declarations passed the assumption comparison in
+`/tmp/smtrocq-generated-scoped-integrated-assumptions/summary.json`.
+
+The benchmark workload now includes abstract carriers, alongside its original
+integer-carrier UF and LIA goals. Its first diagnostic exposed a proof-local
+universe anomaly when a carrier is quantified inside the theorem; Section
+carrier tests did not expose that bug. The exact commands and failed proofs
+are retained in `/tmp/smtrocq-abstract-uf-development-benchmark/`.
+The active backend job owns that fix; changing the benchmark to avoid the
+quantified carrier is not an acceptance solution.
+
+The live abstract UF suite has a separate explicit-double-negation binding
+failure in negative predicate transport. Shared reifier commit `fbfbe26` adds
+an optional exact-negation mode using the existing `Form.Fnot2` representation;
+`smtrocq-env dune build -j2 src/common` exited 0. Production wiring and semantic
+witness validation remain with the active backend job. The other twenty UF
+cases have separate checked probe evidence from the UF child, but the complete
+file, audits and final regression still must pass before it is accepted.
+
+## Callback sharing
+
+The local gate and scoped evaluator now bind immutable table guards outside
+their changing per-step arguments. This permits reuse when they are passed as
+partially applied callbacks. The Boolean checks and every source/local proof
+step are preserved. `/tmp/EunoiaGateSharingRefinement.v` proves equality with
+the previous gate for every table, premise list, conclusion and witness by
+`reflexivity`; its compilation exited 0 after correcting the temporary file's
+loadpath and implicit-argument invocation.
+
+The integrated build and existing local/scoped regression targets exited 0
+(`/tmp/smtrocq-gate-hoist-build.log`), and four concrete correctness audits
+added no assumptions (`/tmp/smtrocq-gate-hoist-assumptions/summary.json`).
+Three live congruence repetitions before and after all closed with `Qed`.
+Their commands, revisions, timing rows and assumptions are retained in
+`/tmp/smtrocq-gate-hoist-before/` and `/tmp/smtrocq-gate-hoist-after/`.
+These small sequential probes ran alongside other jobs and establish no
+competitive speed claim. Final latency comparisons still need the complete
+integrated backend and the same versioned workload for each solver.

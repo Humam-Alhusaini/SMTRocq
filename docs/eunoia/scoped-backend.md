@@ -23,7 +23,7 @@ ordinary and closing candidates use `Eunoia_witness.Search.produce` in the
 integration tests, without a CPC rule-name switch. The concrete scoped checker
 reruns generated evaluation, exact premise/assumption/result/root bindings and
 the existing multi-operation local semantic gate. Primitive configuration is
-fixed to `EoRuntime.no_extension`; source proof text cannot select hooks.
+fixed to `CpcGenerated.default_primitive`; source proof text cannot select hooks.
 Only the fresh exported result survives in the restored parent. Local
 assumptions, endpoints and nested exports expire. Every command is visited,
 including unused supported/unsupported steps and commands following conflicts.
@@ -44,8 +44,8 @@ are rejected before VM evaluation, with a diagnostic instead of an undeclared
 ## Strict metadata ingestion
 
 `EunoiaRocq.signature_names` computes names from the loaded generated module's
-`cpc_aliases`, `cpc_surface_names`, `cpc_operators`, `cpc_blocked_operators` and
-`cpc_binary_operators`. This admits required `@list`/`@list.nil` metadata and
+`cpc_signature_names` inventory (347 names in the current snapshot). This admits
+required `@list`/`@list.nil` metadata and
 canonical equivalents without accepting arbitrary unresolved identifiers.
 These are syntax admissions, not acceptance of a rule or an object formula.
 Generated derivation and semantic binding still run for every inference.
@@ -54,9 +54,9 @@ name shadowing, unrestricted definitions, and directives still reject.
 Definitions remain confined to the printer's `@t<digits>` namespace. Lexical
 binders cannot shadow known signature names or exported functions/sorts.
 
-This metadata set is the generated executable fragment's metadata, not a full
-inventory of every constant in the 35-file pinned signature closure. A complete
-compiler-exported namespace inventory has been requested from its owner.
+The inventory is generated from the 35-file pinned signature closure. Membership
+reserves a name and permits its parsing; it does not declare its operators or
+rules supported by the evaluator, adapter or semantic gate.
 Decimal/rational source literals and object Real formulas still reject here;
 this child does not implement an alternative arithmetic parser or normalize
 away exact source spelling. Parent metadata type queries are necessary for
@@ -64,10 +64,11 @@ away exact source spelling. Parent metadata type queries are necessary for
 
 ## Wiring and tests
 
-Coordinator integration needs only `Require EunoiaScopedAdapter` in
+Coordinator integration added `Require EunoiaScopedAdapter` in
 `theories/tactics/Tactics.v` before the already registered public tactic runs
-on scoped output. No main `src/dune`, grammar, theory or shared tactic file is
-modified by this child. The isolated backend test stanza now also loads SMTCoq
+on scoped output. The shared wiring commit is `2dc18f5`; the child itself did
+not modify the main `src/dune`, grammar, theory or shared tactic file.
+The isolated backend test stanza now also loads SMTCoq
 for public tactic regressions.
 
 `tests/integration/Proof.v` retains the original four replay proofs, live proof

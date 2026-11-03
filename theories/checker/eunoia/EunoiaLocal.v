@@ -239,8 +239,11 @@ Section Context.
       end
     end.
 
-  Definition gate (cs : list C.t) (c : C.t) (w : witness) : bool :=
-    Form.check_form t_form && Atom.check_atom t_atom &&
+  (* The trace passes this partially applied callback to every step. Keep the
+     immutable table guard outside its changing premise/witness arguments. *)
+  Definition gate : list C.t -> C.t -> witness -> bool :=
+    let tables_ready := Form.check_form t_form && Atom.check_atom t_atom in
+    fun cs c w => tables_ready &&
     clause_wf (PArray.length t_form) c &&
     match load_roots (PArray.length t_form) (initial (capacity w))
       (local_roots cs c) (root_claims w) with
