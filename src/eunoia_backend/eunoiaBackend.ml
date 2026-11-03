@@ -154,7 +154,7 @@ let prepare ?(fuel=10000) ~witness env t roots parsed =
       | Some b -> b
       | None ->
         let b = Stdlib.Option.is_some (C.compute_term_option env
-          (C.call "SMTCoq.checker.eunoia.EoArithmetic.normalize" [C.term (E.Symbol s)])) in
+          (C.call "SMTCoq.checker.eunoia.EoArithmetic.EoArithmetic.normalize" [C.term (E.Symbol s)])) in
         Hashtbl.add metadata_literals s b; b in
   let proof = E.elaborate ~signature_names:(C.signature_names env) ~is_metadata_literal
     ~declarations:(declarations t) ~roots:root_terms ~derive ~derive_assuming parsed in
