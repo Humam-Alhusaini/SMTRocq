@@ -32,9 +32,13 @@ val elaborate :
   ?derive_assuming:(string -> term -> term list -> term list -> term option) -> declarations:declaration list -> roots:term list ->
   derive:(string -> term list -> term list -> term option) ->
   Eunoia_frontend.EunoiaProof.proof -> proof
-(** Exact declaration types and ordered roots must match the export; definitions
-    and parallel lets are expanded with binding IDs. Definitions must use the
-    pinned printer's private [@t<digits>] namespace to prevent signature shadowing. Signature names come from generated Rocq metadata in production. Directives
-    reject. Scoped calls use the actual pushed formula and exactly one endpoint;
-    closed local bindings expire even for caller-constructed parser ASTs. No hard-coded rule table.
-    Derivation failure or a differing claimed conclusion rejects the whole file. *)
+(** Exact declaration types and ordered roots must match the export. Identical
+    exported roots retain distinct claims/slots, while the solver assumption
+    list is matched against their stable first-occurrence projection.
+    Definitions and parallel lets expand using binding IDs. Definitions use
+    the private [@t<digits>] namespace; exported/signature names cannot be
+    shadowed by definitions or lexical binders. Signature metadata names come
+    from CpcGenerated in production. Directives reject. Scoped calls use the
+    actual pushed formula and exactly one endpoint. Closed local bindings
+    expire, also for caller-constructed parser ASTs. No rule table is built
+    here; derivation failure or a differing claimed conclusion rejects. *)

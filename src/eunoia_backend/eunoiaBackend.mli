@@ -12,7 +12,9 @@ type witness_producer =
   premises:SmtAtom.Form.t list list -> conclusion:SmtAtom.Form.t list ->
   (RocqInterface.constr, string) result
 (** Candidate constructor for [EunoiaLocal.witness]. Called for EVERY CPC step,
-    including unused ones. Final checking reruns the generated evaluator, exact
+    including unused ones and scope discharges. A discharge receives solely
+    [[EunoiaScope.guarded actual_pushed_literal exact_endpoint_clause]], while
+    its generated payload retains the unguarded endpoint as sole premise. Final checking reruns the generated evaluator, exact
     adapter bindings, and [EunoiaLocal.gate] for the whole trace. *)
 
 val create_tables : unit -> tables
@@ -24,8 +26,10 @@ val build_refutation :
   Environ.env -> tables -> SmtAtom.Form.t list -> RocqInterface.constr
 (** Returns a checked proof of [~ Forall (C.valid valuation) (map singleton roots)].
     Calls the private solver and elaborates every command. Requires loaded
-    EunoiaTactic, EunoiaAdapter, EunoiaLocal, and generated syntax/evaluator modules.
-    This uses EunoiaTactic.checker with its fixed proved multi-operation gate. *)
+    EunoiaTactic, EunoiaAdapter, EunoiaLocal, generated syntax/evaluator modules,
+    and EunoiaScopedAdapter for proofs containing scopes. Scope-free proofs keep
+    EunoiaTactic.checker; nested proofs use EunoiaScopedAdapter.checker. Both fix
+    the proved multi-operation semantic gate and no_extension primitives. *)
 
 val build_refutation_from_cpc :
   ?fuel:int -> witness:witness_producer -> Environ.env -> tables ->
@@ -39,7 +43,8 @@ val tactic :
 (** Checked Boolean equality/is_true tactic, after optional existing
     preprocessing. Reuses existing reification and supplied lemma proofs;
     rejects missing CompDec cuts and quantified lemmas. Uses the concrete
-    EunoiaTactic.checker_b/checker_eq correctness targets and [exact_check].
+    EunoiaTactic.checker_b/checker_eq correctness targets (or the corresponding
+    EunoiaScopedAdapter targets for scoped proofs) and [exact_check].
     There is no no-check variant or legacy trace fallback. *)
 
 val tactic_from_cpc :

@@ -6,6 +6,8 @@ module E = EunoiaElaborate
 let adapter n = "SMTCoq.checker.eunoia.EunoiaAdapter.EunoiaAdapter." ^ n
 let local n = "SMTCoq.checker.eunoia.EunoiaLocal.EunoiaLocal." ^ n
 let core n = "SMTCoq.checker.eunoia.EunoiaChecker.EunoiaChecker." ^ n
+let scoped n = "SMTCoq.checker.eunoia.EunoiaScopedAdapter.EunoiaScopedAdapter." ^ n
+let scope n = "SMTCoq.checker.eunoia.EunoiaScope.EunoiaScope." ^ n
 let tactic_api n = "SMTCoq.checker.eunoia.EunoiaTactic.EunoiaTactic." ^ n
 let state n = "SMTCoq.checker.fol.State." ^ n
 let std n = "Stdlib." ^ n
@@ -86,24 +88,44 @@ type prepared = {
   roots_arg : R.constr;
   tail_args : R.constr list;
   diagnose : unit -> unit;
+  checker_api : string -> string;
 }
 
 let prepare ?(fuel=10000) ~witness env t roots parsed =
   if roots=[] || fuel<=0 || fuel>100000 then R.raise_error "Eunoia: invalid roots or computation fuel";
+  (* Intermediate carriers need CompDec even when no source equality mentions
+     that carrier. Reuse actual context proof terms before snapshot can create
+     delayed cuts; never submit an undeclared CompDec variable to VM reduction. *)
+  let source_sorts = List.map (fun (i,_) -> SmtBtype.get_coq_type_op i)
+    (SmtBtype.to_list t.sorts) in
+  List.iter (fun d ->
+    let head,args = R.decompose_app_list (Context.Named.Declaration.get_type d) in
+    match args with
+    | [ty] when R.eq_constr head (Lazy.force CoqTerms.cCompDec) &&
+        List.exists (R.eq_constr ty) source_sorts ->
+      ignore (SmtBtype.of_coq_compdec t.sorts ty
+        (R.mkVar (Context.Named.Declaration.get_id d)))
+    | _ -> ()) (Environ.named_context env);
   let ns = names t in
   let fuel = CoqTerms.mkNat fuel in
   let table_args = snapshot t in
+  if SmtBtype.get_cuts t.sorts <> [] then
+    R.raise_error "Eunoia: missing CompDec for an intermediate carrier; supply an existing instance";
   let encode c = match C.compute_term_option env
       (C.call (adapter "encode_clause") (table_args @ [ns;fuel;clause c])) with
     | Some x -> x
     | None -> R.raise_error "Eunoia: exported root has no exact adapter encoding" in
   let root_terms = List.map (fun r -> encode [r]) roots in
+  let query = C.call (adapter "typeof")
+    [List.nth table_args 0;List.nth table_args 1;ns;fuel] in
   let derive rule args premises =
-    let ti = List.nth table_args 0 and tf = List.nth table_args 1 in
-    let query = C.call (adapter "typeof") [ti;tf;ns;fuel] in
     C.compute_term_option env (C.call "SMTCoq.checker.eunoia.CpcGenerated.derive"
       [fuel;query;C.string rule;C.term_list args;C.term_list premises]) in
-  let proof = E.elaborate ~declarations:(declarations t) ~roots:root_terms ~derive parsed in
+  let derive_assuming rule assumption args premises =
+    C.compute_term_option env (C.call "SMTCoq.checker.eunoia.CpcGenerated.derive_assuming"
+      [fuel;query;C.string rule;C.term assumption;C.term_list args;C.term_list premises]) in
+  let proof = E.elaborate ~signature_names:(C.signature_names env)
+    ~declarations:(declarations t) ~roots:root_terms ~derive ~derive_assuming parsed in
   SmtMaps.clear ();
   List.iter (fun (i,ty) -> SmtMaps.add_btype (name_sort i) (SmtBtype.Tindex ty))
     (SmtBtype.to_list t.sorts);
@@ -111,25 +133,58 @@ let prepare ?(fuel=10000) ~witness env t roots parsed =
   Fun.protect ~finally:SmtMaps.clear (fun () ->
     let mapped = Hashtbl.create proof.capacity in
     List.iter2 (fun (i,_) r -> Hashtbl.add mapped i [r]) proof.roots roots;
-    let steps = List.map (fun (st:E.step) ->
-      let cs = List.map (Hashtbl.find mapped) st.premises in
-      let c = if st.result=E.Symbol "false" then [] else [reify t st.result] in
-      let evidence = match witness ~atoms:t.atoms ~forms:t.forms ~premises:cs ~conclusion:c with
+    let checked_steps = ref [] in
+    let result_clause st =
+      if st.E.result=E.Symbol "false" then [] else [reify t st.result] in
+    let evidence st syntax_cs cs c =
+      let w = match witness ~atoms:t.atoms ~forms:t.forms ~premises:cs ~conclusion:c with
         | Ok w -> w
-        | Error e -> R.raise_error "Eunoia: local witness failed at %s (%s): %s" st.name st.rule e in
-      Hashtbl.add mapped st.id c;
-      st,c,evidence) proof.steps in
+        | Error e -> R.raise_error "Eunoia: local witness failed at %s (%s): %s" st.E.name st.rule e in
+      checked_steps := (st,syntax_cs,cs,c,w)::!checked_steps;
+      Hashtbl.add mapped st.id c; w in
+    let witness_ty = C.global (local "witness") in
+    let rule_ty = C.global (adapter "rule_payload") in
+    let parameters = [rule_ty;rule_ty;witness_ty] in
+    let payload st c = C.call (adapter "Payload") [C.string st.E.rule;
+      C.term_list st.arguments;C.term_list st.premise_terms;C.term st.result;clause c] in
+    let ordinary st =
+      let cs = List.map (Hashtbl.find mapped) st.E.premises in
+      let c = result_clause st in
+      let w = evidence st cs cs c in
+      C.call (core "Step") [rule_ty;witness_ty;mkint st.id;
+        C.list (Lazy.force CoqTerms.cint) (List.map mkint st.premises);payload st c;clause c;w] in
+    let rec nested = function
+      | E.Done -> C.call (scope "Done") parameters
+      | E.Next(st,rest) ->
+        let node = ordinary st in
+        let tail = nested rest in
+        C.call (scope "Next") (parameters @ [node;tail])
+      | E.Push(slot,assumption,body,st,rest) ->
+        let pushed = reify t assumption in
+        let saved = Hashtbl.copy mapped in
+        Hashtbl.add mapped slot [pushed];
+        let body = nested body in
+        let endpoint = match st.premises with
+          | [id] -> id | _ -> R.raise_error "Eunoia: discharge needs exactly one endpoint" in
+        let endpoint_clause = Hashtbl.find mapped endpoint in
+        let guarded = List.sort_uniq (fun a b -> Int.compare (Form.to_lit a) (Form.to_lit b))
+          (Form.neg pushed :: endpoint_clause) in
+        let c = result_clause st in
+        let w = evidence st [endpoint_clause] [guarded] c in
+        let discharge = C.call (scope "Discharge") [rule_ty;witness_ty;
+          mkint endpoint;mkint st.id;payload st c;clause c;w] in
+        Hashtbl.clear mapped; Hashtbl.iter (Hashtbl.add mapped) saved;
+        Hashtbl.add mapped st.id c;
+        let tail = nested rest in
+        let some = SmtMisc.mklApp CoqTerms.cSome [|C.global (scoped "discharge");discharge|] in
+        C.call (scope "Push") (parameters @ [mkint slot;mkint (Form.to_lit pushed);body;some;tail]) in
+    let has_scopes = List.exists (fun c -> match c.Eunoia_frontend.EunoiaProof.command with
+      | Eunoia_frontend.EunoiaProof.Assume_push _ -> true | _ -> false) parsed.commands in
+    let trace = if has_scopes then nested proof.trace else
+      C.list (C.call (core "step") [rule_ty;witness_ty]) (List.map ordinary proof.steps) in
     (* Witness search may intern auxiliary equalities. Snapshot only after all
        results and witness candidates have populated the authoritative tables. *)
     let tables = snapshot t in
-    let witness_ty = C.global (local "witness") in
-    let rule_ty = C.global (adapter "rule_payload") in
-    let step_ty = C.call (core "step") [rule_ty;witness_ty] in
-    let trace = C.list step_ty (List.map (fun (st,c,evidence) ->
-      let payload = C.call (adapter "Payload") [C.string st.E.rule;
-        C.term_list st.arguments;C.term_list st.premise_terms;C.term st.result;clause c] in
-      C.call (core "Step") [rule_ty;witness_ty;mkint st.id;
-        C.list (Lazy.force CoqTerms.cint) (List.map mkint st.premises);payload;clause c;evidence]) steps) in
     let root_clauses = List.map (fun r -> [r]) roots in
     (* Recompute individual stages only after the final checker rejects. These
        diagnostics cannot turn rejection into acceptance or omit a step. *)
@@ -142,26 +197,26 @@ let prepare ?(fuel=10000) ~witness env t roots parsed =
         (C.call (adapter "tables_wf") (tables @ [ns]));
       check "CPC roots differ from the authoritative formulas"
         (C.call (adapter "bind_terms") (tables @ [ns;fuel;clauses root_clauses;C.term_list root_terms]));
-      List.iter (fun (st,c,evidence) ->
+      List.iter (fun (st,syntax_cs,cs,c,evidence) ->
         let context stage = Printf.sprintf "%s at %s (%s)" stage st.E.name st.rule in
-        let cs = List.map (Hashtbl.find mapped) st.premises in
         check (context "premise syntax binding failed")
-          (C.call (adapter "bind_terms") (tables @ [ns;fuel;clauses cs;C.term_list st.premise_terms]));
+          (C.call (adapter "bind_terms") (tables @ [ns;fuel;clauses syntax_cs;C.term_list st.premise_terms]));
         check (context "conclusion syntax binding failed")
           (C.call (adapter "binds") (tables @ [ns;fuel;clause c;C.term st.result]));
         check (context "local semantic certificate failed")
-          (C.call (local "gate") (tables @ [clauses cs;clause c;evidence]))) steps in
+          (C.call (local "gate") (tables @ [clauses cs;clause c;evidence]))) (List.rev !checked_steps) in
     {table_args=tables;
      common_args=tables @ [ns;fuel;mkint proof.capacity];
      roots_arg=clauses root_clauses;
      tail_args=[C.term_list root_terms;
        claims (List.map2 (fun (i,_) c -> i,c) proof.roots root_clauses);
-       trace;mkint proof.conflict];diagnose})
+       trace;mkint proof.conflict];diagnose;
+     checker_api=(if has_scopes then scoped else tactic_api)})
 
 let refutation env p =
   let args = p.common_args @ [p.roots_arg] @ p.tail_args in
-  let accepted = C.checked_true ~on_failure:p.diagnose env (C.call (tactic_api "checker") args) in
-  let proof = C.call (tactic_api "checker_correct") (args @ [accepted]) in
+  let accepted = C.checked_true ~on_failure:p.diagnose env (C.call (p.checker_api "checker") args) in
+  let proof = C.call (p.checker_api "checker_correct") (args @ [accepted]) in
   ignore (Typing.type_of env (Evd.from_env env) (EConstr.of_constr proof));
   proof
 
@@ -203,8 +258,8 @@ let tactic_using produce ?fuel ?(preprocess=Tactics.intros) ~witness ?(lemmas=[]
           "checker_b",[Form.to_coq fa;b]
         else "checker_eq",[Form.to_coq fa;Form.to_coq fb;Form.to_coq ng] in
         let args = prepared.common_args @ args @ prepared.tail_args in
-        let accepted = C.checked_true ~on_failure:prepared.diagnose env (C.call (tactic_api name) args) in
-        let proof = C.call (tactic_api (name ^ "_correct")) (args @ [accepted]) in
+        let accepted = C.checked_true ~on_failure:prepared.diagnose env (C.call (prepared.checker_api name) args) in
+        let proof = C.call (prepared.checker_api (name ^ "_correct")) (args @ [accepted]) in
         Tactics.exact_check (EConstr.of_constr proof)
       end else begin
       let refutation = refutation env prepared in

@@ -22,6 +22,10 @@ let () =
   let duplicate = run ~roots:[p;p;np] (prefix ^ "(step c false :rule contra :premises (a b))") in
   assert (duplicate.roots=[0,p;1,p;2,np]);
   assert ((List.hd duplicate.steps).premises=[0;2]);
+  let repeated_source = run ~roots:[p;p;np]
+    ("(declare-const p Bool)(assume a p)(assume duplicate p)" ^
+     "(assume b (not p))(step c false :rule contra :premises (duplicate b))") in
+  assert ((List.hd repeated_source.steps).premises=[1;2]);
   rejected (fun () -> run (prefix ^ "(step c :rule contra :premises (b a))"));
   rejected (fun () -> run (prefix ^ "(step c p :rule contra :premises (a b))"));
   rejected (fun () -> run (prefix ^ "(step unused :rule trust)(step c :rule contra :premises (a b))"));

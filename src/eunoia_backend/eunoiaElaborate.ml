@@ -50,9 +50,13 @@ let elaborate ?(max_expansion=1000000) ?(signature_names=[])
      claim/slot, but match its source assumption to the first exact occurrence. *)
   let root_claims = List.map (fun t -> alloc (),t) roots in
   let seen_roots = Hashtbl.create (List.length roots) in
-  let expected_roots = ref (List.filter (fun (_,t) ->
+  let distinct_roots = List.filter (fun (_,t) ->
     if Hashtbl.mem seen_roots t then false
-    else (Hashtbl.add seen_roots t (); true)) root_claims) in
+    else (Hashtbl.add seen_roots t (); true)) root_claims in
+  let source_root_count = List.fold_left (fun n (c:P.command) ->
+    match c.command with P.Assume _ -> n+1 | _ -> n) 0 parsed.commands in
+  let expected_roots = ref (if source_root_count=List.length root_claims
+    then root_claims else distinct_roots) in
   let rec term locals (t:P.term) =
     spend ();
     match t.view with
