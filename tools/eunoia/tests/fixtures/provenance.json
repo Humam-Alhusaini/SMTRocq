@@ -1,0 +1,86 @@
+{
+  "uf1": {
+    "command": [
+      "/home/charles/code/friends/.toolchains/cvc5-1.4.2/cvc5-Linux-x86_64-static/bin/cvc5",
+      "--dump-proofs",
+      "--proof-format=cpc",
+      "unit-tests/files/uf1.smt2"
+    ],
+    "exit_code": 0,
+    "input": "unit-tests/files/uf1.smt2",
+    "input_sha256": "3fc38ed8217f702ef7f10023b78bfeb7879deff2c6dde0239d9bb7b6a017e474",
+    "proof_sha256": "bde42759cf533ffacd55e1fb2d2558c08353e47e08abb7391bdab3fc384d2515"
+  },
+  "uf2": {
+    "command": [
+      "/home/charles/code/friends/.toolchains/cvc5-1.4.2/cvc5-Linux-x86_64-static/bin/cvc5",
+      "--dump-proofs",
+      "--proof-format=cpc",
+      "unit-tests/files/uf2.smt2"
+    ],
+    "exit_code": 0,
+    "input": "unit-tests/files/uf2.smt2",
+    "input_sha256": "c545a68a460d48dbb5bf5ee0aa2f3f815e28acfccb2ca7b77332f74191668bcd",
+    "proof_sha256": "30fdf59f311c19351a6149e878051936db65775d6fae7fc6fc391690457c37ca"
+  },
+  "uf3": {
+    "command": [
+      "/home/charles/code/friends/.toolchains/cvc5-1.4.2/cvc5-Linux-x86_64-static/bin/cvc5",
+      "--dump-proofs",
+      "--proof-format=cpc",
+      "unit-tests/files/uf3.smt2"
+    ],
+    "exit_code": 0,
+    "input": "unit-tests/files/uf3.smt2",
+    "input_sha256": "8b763d2b9e6002b53b0e1f09ab606566a99a1b80b689f5bf9c4b1d0e15ad6f14",
+    "proof_sha256": "a54c37c1287fa24082840eba02fcdd063eb2079e9f3ef973b97b3abf3cd8b94d"
+  },
+  "uf4": {
+    "command": [
+      "/home/charles/code/friends/.toolchains/cvc5-1.4.2/cvc5-Linux-x86_64-static/bin/cvc5",
+      "--dump-proofs",
+      "--proof-format=cpc",
+      "unit-tests/files/uf4.smt2"
+    ],
+    "exit_code": 0,
+    "input": "unit-tests/files/uf4.smt2",
+    "input_sha256": "c857584d9c6973f0060c212fff925db0f8b29e2468c1ca74f009efc962110574",
+    "proof_sha256": "d1c63e1376b08984c71f31ab3ce59b44c5c5bd294689cf0367468ddd229b976c"
+  },
+  "uf5": {
+    "command": [
+      "/home/charles/code/friends/.toolchains/cvc5-1.4.2/cvc5-Linux-x86_64-static/bin/cvc5",
+      "--dump-proofs",
+      "--proof-format=cpc",
+      "unit-tests/files/uf5.smt2"
+    ],
+    "exit_code": 0,
+    "input": "unit-tests/files/uf5.smt2",
+    "input_sha256": "0242849099b229ec07239933ff6829384f8eeed8233286d8bbdeb96655477f74",
+    "proof_sha256": "8d070cdef7927a24a698447c6867303faf7aa6503a0a375b9a453f6200808577"
+  },
+  "uf6": {
+    "command": [
+      "/home/charles/code/friends/.toolchains/cvc5-1.4.2/cvc5-Linux-x86_64-static/bin/cvc5",
+      "--dump-proofs",
+      "--proof-format=cpc",
+      "unit-tests/files/uf6.smt2"
+    ],
+    "exit_code": 0,
+    "input": "unit-tests/files/uf6.smt2",
+    "input_sha256": "123ed2045ff709103ffe257b0a7f128ba1ec3f842ed55587da3d20ddd32f863b",
+    "proof_sha256": "23d21cb9f5711e9a56dd4f94960fa50e3472e7466e2337f30f912b2b17abf44c"
+  },
+  "uf7": {
+    "command": [
+      "/home/charles/code/friends/.toolchains/cvc5-1.4.2/cvc5-Linux-x86_64-static/bin/cvc5",
+      "--dump-proofs",
+      "--proof-format=cpc",
+      "unit-tests/files/uf7.smt2"
+    ],
+    "exit_code": 0,
+    "input": "unit-tests/files/uf7.smt2",
+    "input_sha256": "3c4e8fd6d5e36cea18316f5389f0ca2ba41b49a9d761abfbda27546cc221987f",
+    "proof_sha256": "5d8bd8d8d081b87ec96e6ca63cadb73e630685621c5067eb203f8a3fe0cac34a"
+  }
+}

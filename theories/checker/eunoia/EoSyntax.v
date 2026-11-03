@@ -22,8 +22,11 @@ Inductive expression : Type :=
 | EVar : nat -> expression
 | ESymbol : string -> expression
 | EApply : expression -> expression -> expression
+| ENative : string -> list expression -> expression
 | ECall : string -> list expression -> expression
 | EIf : expression -> expression -> expression -> expression
+| EIsOk : expression -> expression
+| EIsEq : expression -> expression -> expression
 | EEq : expression -> expression -> expression
 | ERequires : expression -> expression -> expression -> expression
 | ETypeof : expression -> expression
@@ -48,6 +51,8 @@ Record rule := {
   rule_binders : binder_types;
   rule_arguments : list pattern;
   rule_premises : list pattern;
+  rule_assumption : option pattern;
+  rule_premise_list : option string;
   rule_requires : list (expression * expression);
   rule_conclusion : expression
 }.
