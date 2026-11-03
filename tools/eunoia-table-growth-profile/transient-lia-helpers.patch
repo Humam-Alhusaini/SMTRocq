@@ -1,0 +1,46 @@
+--- a/src/eunoia_witness/search.ml
++++ b/src/eunoia_witness/search.ml
+@@ -333,8 +333,13 @@
+        legacy OCaml candidate builder does not. Expand only its input, using
+        precisely LIA.build_hform's Boolean expressions. The emitted command
+        still contains the ORIGINAL clause, checked by the existing gate. *)
++    (* These trees are consumed only by Lia.build_lia_certif, which reads
++       pform/polarity and numbers the original atoms by traversal. Their form
++       indices are never read or emitted. Avoid adding these native-only
++       Boolean expansions to the authoritative tables. Keep the original
++       clause (and its traversal order) in every LiaMicromega command. *)
+     let rec lia_candidate f =
+-      let binary op a b = Form.get forms (Fapp (op,[|a;b|])) in
++      let binary op a b = Form.get ~declare:false forms (Fapp (op,[|a;b|])) in
+       let original = pos f in
+       let expanded = match Form.pform original with
+         | Fapp (Fiff,xs) ->
+@@ -349,7 +354,7 @@
+           binary For (binary Fand a b) (binary Fand (Form.neg a) c)
+         | Fapp (Fnot2 _,xs) -> lia_candidate xs.(0)
+         | Fapp ((Fand | For as op),xs) ->
+-          Form.get forms (Fapp (op,Array.map lia_candidate xs))
++          Form.get ~declare:false forms (Fapp (op,Array.map lia_candidate xs))
+         | _ -> original in
+       if Form.is_pos f then expanded else Form.neg expanded in
+     let try_lia c =
+--- a/src/eunoia_witness/tests/witness_cases.ml
++++ b/src/eunoia_witness/tests/witness_cases.ml
+@@ -168,11 +168,17 @@
+   positive "lia-disjunctive-premise" atoms forms [[x0;strict]] [x1];
+   positive "lia-inconsistent-roots" atoms forms [[x0];[lt zero x]] [];
+   let iff = binary forms Fiff (lt x one) x0 in
++  let before_helpers = Form.nvars forms in
+   positive "lia-integer-gap-iff" atoms forms [] [iff];
++  assert (Form.nvars forms = before_helpers);
+   let xor_gap = binary forms Fxor (lt x one) x0 in
++  let before_helpers = Form.nvars forms in
+   positive "lia-integer-gap-xor" atoms forms [] [Form.neg xor_gap];
++  assert (Form.nvars forms = before_helpers);
+   let ite_gap = Form.get forms (Fapp (Fite,[|x0;lt x one;Form.neg (lt x one)|])) in
++  let before_helpers = Form.nvars forms in
+   positive "lia-integer-gap-ite" atoms forms [] [ite_gap];
++  assert (Form.nvars forms = before_helpers);
+   let normalized = le (Atom.mk_plus atoms x one) two in
+   positive "lia-normalization-iff" atoms forms [] [binary forms Fiff normalized x1];
+   let y = symbol atoms 1 [||] SmtBtype.TZ [] in

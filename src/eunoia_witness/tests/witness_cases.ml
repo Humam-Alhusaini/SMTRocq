@@ -169,6 +169,10 @@ let run ~check =
   positive "lia-inconsistent-roots" atoms forms [[x0];[lt zero x]] [];
   let iff = binary forms Fiff (lt x one) x0 in
   positive "lia-integer-gap-iff" atoms forms [] [iff];
+  let xor_gap = binary forms Fxor (lt x one) x0 in
+  positive "lia-integer-gap-xor" atoms forms [] [Form.neg xor_gap];
+  let ite_gap = Form.get forms (Fapp (Fite,[|x0;lt x one;Form.neg (lt x one)|])) in
+  positive "lia-integer-gap-ite" atoms forms [] [ite_gap];
   let normalized = le (Atom.mk_plus atoms x one) two in
   positive "lia-normalization-iff" atoms forms [] [binary forms Fiff normalized x1];
   let y = symbol atoms 1 [||] SmtBtype.TZ [] in

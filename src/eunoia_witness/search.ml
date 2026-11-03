@@ -81,7 +81,7 @@ let congr_args a b = match Atom.atom a, Atom.atom b with
     Some (Array.to_list xs,Array.to_list ys)
   | _ -> None
 
-let produce ?(limits=default_limits) ~atoms ~forms ~premises ~conclusion () =
+let produce_search ?(limits=default_limits) ~atoms ~forms ~premises ~conclusion () =
   let profiling = Sys.getenv_opt "EUNOIA_WITNESS_PROFILE" = Some "1" in
   let sequence = if profiling then (incr profile_sequence; !profile_sequence) else 0 in
   let started = if profiling then Sys.time () else 0. in
@@ -414,3 +414,75 @@ let produce ?(limits=default_limits) ~atoms ~forms ~premises ~conclusion () =
         rounds (n+1) in rounds 0 in
     (try run () with Conflict id -> Ok (finish id))
   with Fail e -> Error e
+
+(* Opt-in observational tracing. Snapshots and dependency walks never change
+   reification or candidate production. In particular, no indices are recycled.
+   Between calls the backend can reify a result and scoped pushes; the trace
+   reports that aggregate boundary without attributing it to native search. *)
+let table_profile_sequence = ref 0
+let produce ?(limits=default_limits) ~atoms ~forms ~premises ~conclusion () =
+  if Sys.getenv_opt "EUNOIA_TABLE_PROFILE" <> Some "1" then
+    produce_search ~limits ~atoms ~forms ~premises ~conclusion ()
+  else begin
+    incr table_profile_sequence;
+    let sequence = !table_profile_sequence in
+    let counts () = Array.length (Atom.to_array atoms None (fun a -> Some a)) - 1,
+      Form.nvars forms in
+    let before_atoms,before_forms = counts () in
+    let dependencies literals =
+      let aa = Atom.to_array atoms None (fun a -> Some a)
+      and ff = Form.pform_tbl forms in
+      let aset = Hashtbl.create 31 and fset = Hashtbl.create 31 in
+      let rec atom a =
+        let i = Atom.index a in
+        if not (Hashtbl.mem aset i) then begin
+          Hashtbl.add aset i (); List.iter atom (children a)
+        end in
+      let rec form i =
+        if i >= 0 && i < Form.nvars forms && not (Hashtbl.mem fset i) then begin
+          Hashtbl.add fset i ();
+          match ff.(i) with
+          | Fatom a -> atom a
+          | Fapp (_,xs) -> Array.iter (fun f -> form (Form.index f)) xs
+          | FbbT (a,xs) -> atom a; List.iter (fun f -> form (Form.index f)) xs
+        end in
+      List.iter (fun l -> form (l lsr 1)) literals;
+      (* Include nested atoms, but never the default array sentinel. *)
+      let indices set bound = Hashtbl.fold (fun i () acc ->
+        if i >= 0 && i < bound then i::acc else acc) set [] |> List.sort Int.compare in
+      indices aset (Array.length aa - 1), indices fset (Form.nvars forms) in
+    let ints xs = "[" ^ String.concat "," (List.map string_of_int xs) ^ "]" in
+    let source_atoms,source_forms = dependencies
+      (List.concat_map (List.map lit) (conclusion::premises)) in
+    Printf.eprintf
+      "EUNOIA_TABLE {\"id\":%d,\"event\":\"begin\",\"atoms\":%d,\"forms\":%d,\"source_atoms\":%s,\"source_forms\":%s}\n%!"
+      sequence before_atoms before_forms (ints source_atoms) (ints source_forms);
+    let report result =
+      let after_atoms,after_forms = counts () in
+      let status,literals = match result with
+        | Error _ -> "error",[]
+        | Ok w -> "ok", List.concat_map snd w.root_claims @
+          List.concat_map (fun cmd ->
+            let action = match cmd.action with
+              | Res _ | CFalse _ | CTrue _ -> []
+              | BuildDef (_,l) | BuildDef2 (_,l) | BuildProj (_,l,_) -> [l]
+              | ImmFlatten (_,_,l) -> [l]
+              | EqTr (_,l,ls) -> l::ls
+              | EqCgr (_,l,ls) -> l::List.filter_map Fun.id ls
+              | EqCgrP (_,a,b,ls) -> a::b::List.filter_map Fun.id ls
+              | LiaMicromega (_,c,_) -> c in
+            action @ cmd.expected) w.program in
+      let retained_atoms,retained_forms = dependencies literals in
+      Printf.eprintf
+        "EUNOIA_TABLE {\"id\":%d,\"event\":\"end\",\"status\":\"%s\",\"atoms\":%d,\"forms\":%d,\"retained_atoms\":%s,\"retained_forms\":%s}\n%!"
+        sequence status after_atoms after_forms (ints retained_atoms) (ints retained_forms)
+    in
+    match produce_search ~limits ~atoms ~forms ~premises ~conclusion () with
+    | result -> report result; result
+    | exception e ->
+      let after_atoms,after_forms = counts () in
+      Printf.eprintf
+        "EUNOIA_TABLE {\"id\":%d,\"event\":\"exception\",\"atoms\":%d,\"forms\":%d}\n%!"
+        sequence after_atoms after_forms;
+      raise e
+  end
