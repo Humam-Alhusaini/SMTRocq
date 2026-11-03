@@ -1,0 +1,5 @@
+DECLARE PLUGIN "rocq-smtcoq.eunoia_witness_gate_probe"
+
+VERNAC COMMAND EXTEND EunoiaWitnessProbe CLASSIFIED AS QUERY
+| [ "Eunoia_witness_probe" ] -> { Probe.run () }
+END

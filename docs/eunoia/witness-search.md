@@ -133,7 +133,8 @@ for the backend or a claim of an assumption-free existing checker.
 
 ## Local evidence (2026-11-03)
 
-On branch `t3/3895f253`:
+On branch `t3/eunoia-witness-producer`, worktree
+`/home/charles/.t3/worktrees/SMTRocq/t3-3895f253`:
 
 * `/home/charles/code/friends/.toolchains/smtrocq-env dune build -j2`: exit 0.
   Initial full build log `/tmp/smtrocq-witness-full-build.log`; final incremental
@@ -143,7 +144,8 @@ On branch `t3/3895f253`:
   exit 0, 49 native search cases. Log `/tmp/smtrocq-witness-search-tests.log`.
   A final cached run also exited 0.
 * `bash src/eunoia_witness/tests/verify-local-gate.sh /home/charles/.t3/worktrees/SMTRocq/t3-cf2b9cba/theories/checker/eunoia/EunoiaLocal.v`:
-  exit 0, same 49 cases, with every positive candidate actually serialized,
+  exit 0, same 49 cases (33 positive candidates, 16 negative/input cases),
+  with every positive candidate actually serialized,
   typed using `Typing.type_of` (collecting ordinary universe constraints), and
   VM-rechecked by the real gate; deliberate mutations were rejected. Log
   `/tmp/smtrocq-witness-probe-final.log`, complete probe directory
