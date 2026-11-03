@@ -15,6 +15,33 @@ See [the examples](https://github.com/smtcoq/smtcoq/blob/main/examples/Example.v
 
 SMTCoq is distributed under the CeCILL-C license.
 
+## Development cvc5 / Eunoia backend
+
+`cvc5_eunoia` invokes the pinned private cvc5 1.4.2 installation, computes its
+CPC proof rules from the Eunoia signature, and checks every inference using
+SMTCoq's existing semantics and reflective checkers. For example:
+
+```coq
+From SMTCoq Require Import SMTCoq.
+From Stdlib Require Import ZArith.
+Local Open Scope Z_scope.
+
+Lemma cvc5_congruence :
+  forall (A : Type) (HA : CompDec A) (f : A -> A) (x y : A),
+    x = y -> f x = f y.
+Proof. cvc5_eunoia. Qed.
+
+Lemma cvc5_bounds (x : Z) : x <= 0 -> x >= 1 -> False.
+Proof. cvc5_eunoia. Qed.
+```
+
+The current fragment covers tested UF and integer arithmetic goals; unsupported
+source rules and exhausted certificate search reject. Broader coverage and
+performance work are in progress. See the [implementation status](docs/eunoia/implementation-plan.md),
+[private solver setup and provenance](scripts/eunoia/README.md),
+[signature regeneration](tools/eunoia/README.md), and
+[checked benchmark protocol](benchmarks/eunoia/README.md).
+
 ## Example
 Here is a very small example of the possibilities of SMTCoq: automatic proofs in group theory.
 
