@@ -52,6 +52,11 @@ let run ~check =
   positive "or-elimination" atoms forms [[or_ab];[Form.neg a]] [b];
   positive "or-introduction-from-whole-clause" atoms forms [[a;b]] [or_ab];
   let imp = binary forms Fimp a b in
+  let not2_a = Form.get forms (Fapp (Fnot2 1,[|a|])) in
+  positive "explicit-double-negation" atoms forms [] [binary forms Fiff not2_a a];
+  positive "explicit-double-negation-negative" atoms forms
+    [[Form.neg not2_a]] [Form.neg a];
+  negative "double-negation-is-not-arbitrary" atoms forms [[not2_a]] [b];
   positive "modus-ponens" atoms forms [[imp];[a]] [b];
   let xor = binary forms Fxor a b and iff = binary forms Fiff a b in
   positive "xor" atoms forms [[xor];[a]] [Form.neg b];
@@ -151,6 +156,20 @@ let run ~check =
   positive "lia-scaling" atoms forms [[x0]] [le (Atom.mk_mult atoms two x) zero];
   positive "lia-disjunctive-premise" atoms forms [[x0;strict]] [x1];
   positive "lia-inconsistent-roots" atoms forms [[x0];[lt zero x]] [];
+  let iff = binary forms Fiff (lt x one) x0 in
+  positive "lia-integer-gap-iff" atoms forms [] [iff];
+  let normalized = le (Atom.mk_plus atoms x one) two in
+  positive "lia-normalization-iff" atoms forms [] [binary forms Fiff normalized x1];
+  let y = symbol atoms 1 [||] SmtBtype.TZ [] in
+  let y0 = le y zero in
+  positive "lia-sum-bounds" atoms forms [[x0];[y0]]
+    [le (Atom.mk_plus atoms x y) zero];
+  positive "lia-reordered-certificate-clause" atoms forms [[y0];[x0]]
+    [le (Atom.mk_plus atoms x y) zero];
+  positive "lia-disjunctive-conditional-iff" atoms forms [[x0;y0]]
+    [binary forms Fiff (le (Atom.mk_plus atoms x one) one) x0];
+  negative "lia-incorrect-integer-gap-iff" atoms forms []
+    [binary forms Fiff strict x0];
   negative "lia-strict-conclusion" atoms forms [[x0]] [strict];
   negative "lia-reversed-bound" atoms forms [[x1]] [x0];
   negative "lia-missing-premise" atoms forms [] [x0];

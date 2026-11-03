@@ -29,6 +29,7 @@ type proof = {
 exception Error of string
 val elaborate :
   ?max_expansion:int -> ?signature_names:string list ->
+  ?is_metadata_literal:(string -> bool) ->
   ?derive_assuming:(string -> term -> term list -> term list -> term option) -> declarations:declaration list -> roots:term list ->
   derive:(string -> term list -> term list -> term option) ->
   Eunoia_frontend.EunoiaProof.proof -> proof
@@ -42,3 +43,8 @@ val elaborate :
     actual pushed formula and exactly one endpoint. Closed local bindings
     expire, also for caller-constructed parser ASTs. No rule table is built
     here; derivation failure or a differing claimed conclusion rejects. *)
+(** Decimal/rational metadata spellings additionally need the explicit
+    [is_metadata_literal] callback. Production supplies EoArithmetic.normalize;
+    accepting metadata does not authorize reifying a Real object expression.
+    The same callback rejects numeric-looking declarations and binders, even
+    when their identifiers were quoted. *)
