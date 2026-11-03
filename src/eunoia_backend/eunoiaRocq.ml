@@ -70,21 +70,8 @@ let rec decode_list decode t = match R.decompose_app_list t with
    This is syntactic admission only: generated typing/derivation and the exact
    semantic gate must still succeed for every inference. *)
 let signature_names env =
-  let generated n = global ("SMTCoq.checker.eunoia.CpcGenerated." ^ n) in
   let str_ty = global "Stdlib.Strings.String.string" in
-  let list_ty ty = SmtMisc.mklApp CoqTerms.clist [|ty|] in
-  let strings n = decode_list decode_string
-    (R.cbv_vm env (generated n) (list_ty str_ty)) in
-  let pair_ty = SmtMisc.mklApp CoqTerms.cprod [|str_ty;term_type ()|] in
-  let pairs n = decode_list (fun p -> match R.decompose_app_list p with
-    | h,[_;_;s;t] when R.eq_constr h (Lazy.force CoqTerms.cpair) ->
-      decode_string s,decode_term t
-    | _ -> R.raise_error "Eunoia: malformed generated metadata pair")
-    (R.cbv_vm env (generated n) (list_ty pair_ty)) in
-  let rec symbols = function
-    | EunoiaElaborate.Symbol s -> [s]
-    | EunoiaElaborate.Apply(f,a) -> symbols f @ symbols a in
+  let list_ty = SmtMisc.mklApp CoqTerms.clist [|str_ty|] in
+  let inventory = global "SMTCoq.checker.eunoia.CpcGenerated.cpc_signature_names" in
   List.sort_uniq String.compare
-    (strings "cpc_blocked_operators" @ strings "cpc_binary_operators" @
-     List.concat_map (fun n -> List.concat_map (fun (s,t) -> s::symbols t) (pairs n))
-       ["cpc_aliases";"cpc_surface_names";"cpc_operators"])
+    (decode_list decode_string (R.cbv_vm env inventory list_ty))
