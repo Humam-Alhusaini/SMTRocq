@@ -42,6 +42,48 @@
     "statement": "forall (p : Z -> Z -> bool) (x y z : Z), implb (x =? y) (implb (p z x) (p z y))"
   },
   {
+    "id": "uf_abstract_congruence",
+    "theory": "UF",
+    "expected": "proved",
+    "source": "Abstract-carrier UF integration suite; unit-tests/eunoia_uf.v and backend Public.v",
+    "statement": "forall (A : Type) (HA : CompDec A) (f : A -> A) (x y : A), x = y -> f x = f y"
+  },
+  {
+    "id": "uf_abstract_chain",
+    "theory": "UF",
+    "expected": "proved",
+    "source": "Abstract-carrier UF integration suite; unit-tests/eunoia_uf.v and backend Public.v",
+    "statement": "forall (A : Type) (HA : CompDec A) (f : A -> A) (x y z : A), x = y -> y = z -> f x = f z"
+  },
+  {
+    "id": "uf_abstract_binary",
+    "theory": "UF",
+    "expected": "proved",
+    "source": "Abstract-carrier UF integration suite; unit-tests/eunoia_uf.v and backend Public.v",
+    "statement": "forall (A : Type) (HA : CompDec A) (f : A -> A -> A) (x y z : A), x = y -> f z x = f z y"
+  },
+  {
+    "id": "uf_abstract_predicate",
+    "theory": "UF",
+    "expected": "proved",
+    "source": "Abstract-carrier UF integration suite; unit-tests/eunoia_uf.v and backend Public.v",
+    "statement": "forall (A : Type) (HA : CompDec A) (p : A -> bool) (x y : A), x = y -> p x = true -> p y = true"
+  },
+  {
+    "id": "uf_abstract_disjunctive",
+    "theory": "UF",
+    "expected": "proved",
+    "source": "Abstract-carrier UF integration suite; unit-tests/eunoia_uf.v and backend Public.v",
+    "statement": "forall (A : Type) (HA : CompDec A) (f : A -> A) (x y z : A), x = y \\/ x = z -> f x = f y \\/ f x = f z"
+  },
+  {
+    "id": "uf_abstract_multiple_sorts",
+    "theory": "UF",
+    "expected": "proved",
+    "source": "Abstract-carrier UF integration suite; unit-tests/eunoia_uf.v and backend Public.v",
+    "statement": "forall (A B : Type) (HA : CompDec A) (HB : CompDec B) (f : A -> B) (g : B -> A) (x y : A), x = y -> g (f x) = g (f y)"
+  },
+  {
     "id": "lia_disjunctive_bounds",
     "theory": "LIA",
     "expected": "proved",

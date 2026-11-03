@@ -9,7 +9,7 @@ From SMTCoq.utils Require Import PArray.
 From SMTCoq.structures Require Import CompDecInstances.
 From SMTCoq.checker.fol Require Import State Terms.
 From SMTCoq.checker Require Import MainChecker.
-From SMTCoq.checker.eunoia Require Import EunoiaChecker.
+From SMTCoq.checker.eunoia Require Import EunoiaChecker EunoiaLocal.
 
 Import ListNotations EunoiaChecker.
 Local Open Scope uint63_scope.
@@ -54,52 +54,17 @@ Section Context.
   Record plan := Plan {
     reads : list clause_id;
     output : clause_id;
+    literals : list _lit;
     semantic_step : @Euf_Checker.step t_i t_func t_atom t_form
   }.
 
-  (* Every accepted shape lists all S.get reads performed by its existing
-     checker. Unsupported shapes are rejected. In particular there are no Hole
-     or ForallInst constructors in Checker_Ext.step. *)
+  (* Reuse the production operation decoder, including literal references and
+     its binary-resolution restriction. A longer chain must expose each link. *)
   Definition decode (w : Checker_Ext.step) : option plan :=
-    match w with
-    | Checker_Ext.Res pos r =>
-      if PArray.length r =? 0 then None
-      else Some (Plan (to_list r) pos (@Euf_Checker.Res _ _ _ _ pos r))
-    | Checker_Ext.Weaken pos id c =>
-      Some (Plan [id] pos (@Euf_Checker.Weaken _ _ _ _ pos id c))
-    | Checker_Ext.ImmFlatten pos id l =>
-      Some (Plan [id] pos (@Euf_Checker.ImmFlatten _ _ _ _ pos id l))
-    | Checker_Ext.CTrue pos =>
-      Some (Plan [] pos (@Euf_Checker.CTrue _ _ _ _ pos))
-    | Checker_Ext.CFalse pos =>
-      Some (Plan [] pos (@Euf_Checker.CFalse _ _ _ _ pos))
-    | Checker_Ext.BuildDef pos l =>
-      Some (Plan [] pos (@Euf_Checker.BuildDef _ _ _ _ pos l))
-    | Checker_Ext.BuildDef2 pos l =>
-      Some (Plan [] pos (@Euf_Checker.BuildDef2 _ _ _ _ pos l))
-    | Checker_Ext.BuildProj pos l i =>
-      Some (Plan [] pos (@Euf_Checker.BuildProj _ _ _ _ pos l i))
-    | Checker_Ext.ImmBuildDef pos id =>
-      Some (Plan [id] pos (@Euf_Checker.ImmBuildDef _ _ _ _ pos id))
-    | Checker_Ext.ImmBuildDef2 pos id =>
-      Some (Plan [id] pos (@Euf_Checker.ImmBuildDef2 _ _ _ _ pos id))
-    | Checker_Ext.ImmBuildProj pos id i =>
-      Some (Plan [id] pos (@Euf_Checker.ImmBuildProj _ _ _ _ pos id i))
-    | Checker_Ext.EqTr pos l ls =>
-      Some (Plan [] pos (@Euf_Checker.EqTr _ _ _ _ pos l ls))
-    | Checker_Ext.EqCgr pos l ls =>
-      Some (Plan [] pos (@Euf_Checker.EqCgr _ _ _ _ pos l ls))
-    | Checker_Ext.EqCgrP pos l1 l2 ls =>
-      Some (Plan [] pos (@Euf_Checker.EqCgrP _ _ _ _ pos l1 l2 ls))
-    | Checker_Ext.LiaMicromega pos c proof =>
-      Some (Plan [] pos (@Euf_Checker.LiaMicromega _ _ _ _ pos c proof))
-    | Checker_Ext.LiaDiseq pos l =>
-      Some (Plan [] pos (@Euf_Checker.LiaDiseq _ _ _ _ pos l))
-    | Checker_Ext.SplArith pos id l proof =>
-      Some (Plan [id] pos (@Euf_Checker.SplArith _ _ _ _ pos id l proof))
-    | Checker_Ext.SplDistinctElim pos id l =>
-      Some (Plan [id] pos (@Euf_Checker.SplDistinctElim _ _ _ _ pos id l))
-    | _ => None
+    match @EunoiaLocal.decode t_i t_func t_atom t_form w with
+    | None => None
+    | Some p => Some (Plan (EunoiaLocal.reads p) (EunoiaLocal.output p)
+        (EunoiaLocal.literals p) (EunoiaLocal.semantic_step p))
     end.
 
   (* Construct a fresh scratch state using exactly the supplied premises. Check
@@ -127,8 +92,11 @@ Section Context.
     match prepare cs w with
     | None => false
     | Some (m, p) =>
-      clause_eqb
-        (S.get (Euf_Checker.step_checker (clauses m) (semantic_step p)) (output p)) c
+      let result := S.get
+        (Euf_Checker.step_checker (clauses m) (semantic_step p)) (output p) in
+      clause_wf (PArray.length t_form) c &&
+      forallb (fun l => Lit.blit l <? PArray.length t_form) (literals p) &&
+      EunoiaLocal.result_supported (action w) result && clause_eqb result c
     end.
 
   Lemma prepare_binding : forall cs w m p,
@@ -171,6 +139,7 @@ Section Context.
   Proof.
     intros cs c w H; unfold gate in H.
     destruct (prepare cs w) as [[m p]| ] eqn:Hp; try discriminate.
+    apply andb_true_iff in H as [_ H].
     apply clause_eqb_spec in H.
     destruct (@prepare_binding cs w m p Hp) as [Hd [Hl [Hf [Hb Hfresh]]]].
     exists m, p; repeat split; assumption.
@@ -189,6 +158,7 @@ Section Context.
     { unfold valuation; apply (proj2 (Form.check_form_correct _ _ _ Hform)). }
     assert (invariant valuation m) as Hm.
     { eapply load_roots_invariant; eauto; now apply initial_invariant. }
+    apply andb_true_iff in Hgate as [_ Hgate].
     apply clause_eqb_spec in Hgate; rewrite <- Hgate.
     apply (Euf_Checker.step_checker_correct Hform Hatom Hwt).
     apply Hm.

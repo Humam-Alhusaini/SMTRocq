@@ -18,6 +18,13 @@ Lemma eunoia_live_congruence (f : Z -> Z) (x y : Z) :
 Proof. cvc5_eunoia. Qed.
 Print Assumptions eunoia_live_congruence.
 
+(* The carrier universe belongs to the goal's evar map, not a Section. *)
+Lemma eunoia_quantified_carrier :
+  forall (A : Type) (HA : CompDec A) (f : A -> A) (x y : A),
+    x = y -> f x = f y.
+Proof. cvc5_eunoia. Qed.
+Print Assumptions eunoia_quantified_carrier.
+
 Example eunoia_rejects_false_goal : True.
 Proof.
   Fail assert ((0 : Z) = 1) by cvc5_eunoia.

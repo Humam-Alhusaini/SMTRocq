@@ -39,8 +39,8 @@ ordinary node evaluated from its generated declaration and helper programs.
    term, and binds the payload result clause to that same generated term.
    Returns precisely that clause.
 
-The implementation factors this through `scope_eval_with no_extension`,
-which calls `derive_assuming_with no_extension`; these are definitionally the
+The implementation factors this through `scope_eval_with default_primitive`,
+which calls `derive_assuming_with default_primitive`; these are definitionally the
 public generated `derive_assuming`. `scope_eval_with_binding` exposes the
 actual encoded assumption, exact premise binding, generated result equality,
 and exact result clause. `close_with_binding` additionally exposes the local
@@ -125,7 +125,10 @@ They never accept a replacement rule evaluator. Their correctness theorems
 also require no hook soundness assumption because every result is independently
 semantically gated. A future arithmetic backend must fix its hook to verified
 language primitives in backend code; neither the proof file nor parser data
-may select it. Public defaults always use `no_extension`.
+may select it. Public defaults use `CpcGenerated.default_primitive`, matching
+ordinary generated derivation. That fixed configuration dispatches the
+implemented literal operations and term ordering; explicit `_with` calls can
+still use `no_extension` to test missing-primitive rejection.
 
 ## Compiled evidence
 

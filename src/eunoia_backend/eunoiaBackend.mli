@@ -22,17 +22,18 @@ val export : tables -> SmtAtom.Form.t list -> string
 (** Existing SMTCoq type/formula printers; no solver declarations are imported. *)
 
 val build_refutation :
-  ?limits:EunoiaSolver.limits -> ?fuel:int -> witness:witness_producer ->
+  ?limits:EunoiaSolver.limits -> ?fuel:int -> ?sigma:Evd.evar_map -> witness:witness_producer ->
   Environ.env -> tables -> SmtAtom.Form.t list -> RocqInterface.constr
 (** Returns a checked proof of [~ Forall (C.valid valuation) (map singleton roots)].
     Calls the private solver and elaborates every command. Requires loaded
     EunoiaTactic, EunoiaAdapter, EunoiaLocal, generated syntax/evaluator modules,
     and EunoiaScopedAdapter for proofs containing scopes. Scope-free proofs keep
     EunoiaTactic.checker; nested proofs use EunoiaScopedAdapter.checker. Both fix
-    the proved multi-operation semantic gate and no_extension primitives. *)
+    the proved multi-operation semantic gate and fixed generated primitives.
+    Supply [sigma] when the environment contains proof-local universes. *)
 
 val build_refutation_from_cpc :
-  ?fuel:int -> witness:witness_producer -> Environ.env -> tables ->
+  ?fuel:int -> ?sigma:Evd.evar_map -> witness:witness_producer -> Environ.env -> tables ->
   SmtAtom.Form.t list -> Eunoia_frontend.EunoiaProof.proof -> RocqInterface.constr
 (** Offline replay through exactly the same generated checker and gates. *)
 

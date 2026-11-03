@@ -213,15 +213,16 @@ let prepare ?(fuel=10000) ~witness env t roots parsed =
        trace;mkint proof.conflict];diagnose;
      checker_api=(if has_scopes then scoped else tactic_api)})
 
-let refutation env p =
+let refutation ?sigma env p =
   let args = p.common_args @ [p.roots_arg] @ p.tail_args in
   let accepted = C.checked_true ~on_failure:p.diagnose env (C.call (p.checker_api "checker") args) in
   let proof = C.call (p.checker_api "checker_correct") (args @ [accepted]) in
-  ignore (Typing.type_of env (Evd.from_env env) (EConstr.of_constr proof));
+  let sigma = match sigma with Some sigma -> sigma | None -> Evd.from_env env in
+  ignore (Typing.type_of env sigma (EConstr.of_constr proof));
   proof
 
-let build_refutation_from_cpc ?fuel ~witness env t roots parsed =
-  refutation env (prepare ?fuel ~witness env t roots parsed)
+let build_refutation_from_cpc ?fuel ?sigma ~witness env t roots parsed =
+  refutation ?sigma env (prepare ?fuel ~witness env t roots parsed)
 
 let tactic_using produce ?fuel ?(preprocess=Tactics.intros) ~witness ?(lemmas=[]) () =
   R.tclTHEN preprocess (R.mk_tactic (fun env sigma goal ->
@@ -262,7 +263,7 @@ let tactic_using produce ?fuel ?(preprocess=Tactics.intros) ~witness ?(lemmas=[]
         let proof = C.call (prepared.checker_api (name ^ "_correct")) (args @ [accepted]) in
         Tactics.exact_check (EConstr.of_constr proof)
       end else begin
-      let refutation = refutation env prepared in
+      let refutation = refutation ~sigma env prepared in
       let tables = prepared.table_args in
       let rho = C.call (local "valuation") tables in
       let valid = C.call (state "C.valid") [rho] in
@@ -300,9 +301,9 @@ let tactic_using produce ?fuel ?(preprocess=Tactics.intros) ~witness ?(lemmas=[]
     | EunoiaSolver.Error s | E.Error s | Failure s | Invalid_argument s ->
       R.raise_error "Eunoia: %s" s))
 
-let build_refutation ?limits ?fuel ~witness env t roots =
+let build_refutation ?limits ?fuel ?sigma ~witness env t roots =
   let parsed = EunoiaSolver.run ?limits (export t roots) in
-  build_refutation_from_cpc ?fuel ~witness env t roots parsed
+  build_refutation_from_cpc ?fuel ?sigma ~witness env t roots parsed
 
 let tactic ?limits = tactic_using (fun t roots ->
   EunoiaSolver.run ?limits (export t roots))
