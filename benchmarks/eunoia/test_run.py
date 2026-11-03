@@ -42,6 +42,8 @@ class BenchmarkIntegrity(unittest.TestCase):
             row = run.classify(self.positive, self.success, output, True)
             self.assertFalse(row["solved"])
             self.assertEqual(row["status"], status)
+            self.assertEqual(set(row), set(run.classify(
+                self.positive, self.success, self.output, True)))
         known = next(iter(run.BASELINE))
         output = self.output.replace("Closed under the global context", f"Axioms:\n{known} : True")
         self.assertTrue(run.classify(self.positive, self.success, output, True)["solved"])

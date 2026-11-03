@@ -204,7 +204,8 @@ def source(case, backend, extra_imports):
 
 def classify(case, execution, output, vo_exists):
     row = {"status": "error", "solved": False, "tactic_wall_s": None,
-           "qed_wall_s": None, "tactic_user_s": None, "tactic_system_s": None}
+           "qed_wall_s": None, "tactic_user_s": None, "tactic_system_s": None,
+           "assumptions": None, "new_assumptions": None}
     timings = TIMING.findall(output.split(BEGIN, 1)[1].split(END, 1)[0]) if BEGIN in output else []
     if timings:
         row.update(tactic_wall_s=float(timings[0][0]), tactic_user_s=float(timings[0][1]),
@@ -402,7 +403,8 @@ def main():
                        "expected": case["expected"], "repeat": repeat, "solved": False,
                        "status": "unavailable", "exit_code": None, "timeout": False,
                        "process_wall_s": None, "tactic_wall_s": None, "qed_wall_s": None,
-                       "tactic_user_s": None, "tactic_system_s": None, "artifact_dir": str(directory)}
+                       "tactic_user_s": None, "tactic_system_s": None,
+                       "assumptions": None, "new_assumptions": None, "artifact_dir": str(directory)}
                 if available[backend]:
                     directory.mkdir(parents=True)
                     proof = directory / "case.v"
