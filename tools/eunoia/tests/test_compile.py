@@ -237,6 +237,33 @@ class CompileTests(unittest.TestCase):
         self.assertNotIn('"brand_new"', names_line)
         self.assertNotIn('"eo::supports"', names_line)
 
+    def test_integer_tightening_comes_from_source_declaration(self):
+        compiler = eoc.Compiler(INITIAL)
+        original, manifest = compiler.compile(['arith-geq-tighten'])
+        self.assertEqual(manifest['selected_rules'], ['arith-geq-tighten'])
+        self.assertNotIn('arith-geq-tighten', manifest['excluded_rules'])
+        decl = compiler.decls['arith-geq-tighten']
+        old = ':conclusion (= (not (>= t1 s1)) (>= s1 (+ t1 1)))'
+        source = decl.path.read_text()
+        self.assertEqual(source.count(old), 1)
+        forms = eoc.parse(source.replace(old, old.replace('(+ t1 1)', '(+ t1 2)')), decl.path)
+        compiler.decls['arith-geq-tighten'] = next(n for n in forms if n.kind == 'list'
+            and len(n.value) > 1 and n.value[1].value == 'arith-geq-tighten')
+        changed, _ = compiler.compile(['arith-geq-tighten'])
+        self.assertNotEqual(original, changed)
+        self.assertIn('ESymbol "2"', changed)
+
+    def test_renamed_integer_tightening_is_compiled_generically(self):
+        compiler = eoc.Compiler(INITIAL)
+        decl = compiler.decls['arith-geq-tighten']
+        forms = eoc.parse(decl.path.read_text().replace('declare-rule arith-geq-tighten ',
+            'declare-rule novel_integer_boundary '), decl.path)
+        compiler.decls['novel_integer_boundary'] = next(n for n in forms if n.kind == 'list'
+            and len(n.value) > 1 and n.value[1].value == 'novel_integer_boundary')
+        code, manifest = compiler.compile(['novel_integer_boundary'])
+        self.assertEqual(manifest['selected_rules'], ['novel_integer_boundary'])
+        self.assertIn('("novel_integer_boundary",', code)
+
 
 if __name__ == '__main__':
     unittest.main()
