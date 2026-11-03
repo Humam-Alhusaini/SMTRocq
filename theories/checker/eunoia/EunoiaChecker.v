@@ -309,8 +309,14 @@ Proof.
   destruct Hm' as [Hv _]; apply Hv.
 Qed.
 
+Print Assumptions clause_eqb_spec.
+Print Assumptions initial_invariant.
+Print Assumptions available_spec.
 Print Assumptions fetch_valid.
+Print Assumptions fetch_exact.
 Print Assumptions store_invariant.
+Print Assumptions store_exact.
+Print Assumptions check_step_binding.
 Print Assumptions check_step_invariant.
 Print Assumptions run_invariant.
 Print Assumptions load_roots_invariant.
