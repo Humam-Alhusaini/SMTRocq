@@ -56,6 +56,16 @@ class CompileTests(unittest.TestCase):
         self.assertEqual((fixtures / 'uf4.cpc').read_bytes(),
                          (ROOT / 'unit-tests/eunoia-fixtures/default/uf4.cpc').read_bytes())
 
+    def test_reduced_fixture_provenance(self):
+        import hashlib, json
+        fixtures = ROOT / 'tools/eunoia/tests/reduced-fixtures'
+        provenance = json.loads((fixtures / 'provenance.json').read_text())
+        self.assertEqual(len(provenance), 14)
+        for name, data in provenance.items():
+            self.assertEqual(data['exit_code'], 0)
+            self.assertEqual(hashlib.sha256((ROOT / data['input']).read_bytes()).hexdigest(), data['input_sha256'])
+            self.assertEqual(hashlib.sha256((fixtures / (name + '.cpc')).read_bytes()).hexdigest(), data['proof_sha256'])
+
     def test_generic_premise_operator_is_emitted_without_constructor_use(self):
         text = '(declare-const both (-> Bool Bool Bool) :right-assoc-nil true)\n' + RULE.replace(':args (F)', ':premise-list F both')
         code, _ = self.compile_text(text)
@@ -193,6 +203,39 @@ class CompileTests(unittest.TestCase):
             self.assertIn('Bad.eo:1: unsupported native operation', proc.stderr)
             self.assertEqual((root / 'out.v').read_text(), 'sentinel')
             self.assertFalse((root / 'out.json').exists())
+
+    def test_dependent_nil_body_and_helpers_are_generated(self):
+        source = ('(declare-const Int Type)\n'
+            '(program $zero ((T Type)) :signature ((eo::quote T)) T ((($zero Int) 0)))\n'
+            '(declare-parameterized-const plus ((T Type :implicit)) (-> T T T) :right-assoc-nil ($zero T))\n'
+            + RULE.replace('(F Bool)', '(F Int)').replace(':conclusion F', ':conclusion (plus F F)'))
+        code, manifest = self.compile_text(source)
+        self.assertIn('ENil "plus" (ETypeof (EVar 0))', code)
+        self.assertIn('("plus", (Some ((PVar 0), (PVar 0)), (ECall "$zero" [(EVar 0)])))', code)
+        self.assertIn('$zero', manifest['programs'])
+        changed, _ = self.compile_text(source.replace('(($zero Int) 0)', '(($zero Int) 1)'))
+        self.assertNotEqual(code, changed)
+
+    def test_polynomial_source_cases_are_not_pruned(self):
+        compiler = eoc.Compiler(INITIAL)
+        code, manifest = compiler.compile(RULES)
+        for name in manifest['programs']:
+            self.assertEqual(compiler.programs[name][1].count('case_patterns :='),
+                             len(eoc.seq(eoc.seq(compiler.decls[name])[6])))
+        for name in ['$get_arith_poly_norm', '$arith_rel_sum', '$arith_rel_inv',
+                     '$is_poly_norm_rel_consts_rel', '$is_eq_maybe_to_real']:
+            self.assertIn(name, manifest['programs'])
+        self.assertIn('eo::to_bin', manifest['unavailable_native_operations'])
+        self.assertIn('EoArithmetic.eval name args', code)
+        self.assertIn('bool-impl-true2', manifest['selected_rules'])
+
+    def test_signature_names_include_unselected_constants_not_local_binders(self):
+        code, manifest = self.compile_text('(declare-const unused Bool)\n' + RULE)
+        names_line = next(l for l in code.splitlines() if l.startswith('Definition cpc_signature_names'))
+        self.assertIn('"unused"', names_line)
+        self.assertNotIn('"F"', names_line)
+        self.assertNotIn('"brand_new"', names_line)
+        self.assertNotIn('"eo::supports"', names_line)
 
 
 if __name__ == '__main__':

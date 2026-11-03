@@ -141,7 +141,7 @@ Proof. reflexivity. Qed.
 Example source_generated_boolean_equality : cpc "evaluate" [binary "=" (Symbol "true") (Symbol "false")] [] =
   Some (binary "=" (binary "=" (Symbol "true") (Symbol "false")) (Symbol "false")).
 Proof. vm_compute. reflexivity. Qed.
-Example unsupported_arithmetic_does_not_fall_through : cpc "evaluate" [binary "-" (Symbol "3") (Symbol "1")] [] = None.
+Example unsupported_arithmetic_does_not_fall_through : CpcGenerated.derive_with no_extension 100 query "evaluate" [binary "-" (Symbol "3") (Symbol "1")] [] = None.
 Proof. vm_compute. reflexivity. Qed.
 Example unsupported_dependent_nil_rejects_before_fallback : cpc "evaluate"
   [Apply (binary "+" (Symbol "1") (Symbol "2")) (Symbol "3")] [] = None.
