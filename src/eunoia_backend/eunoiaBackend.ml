@@ -139,7 +139,11 @@ let prepare ?(fuel=10000) ~witness env t roots parsed =
     let evidence st syntax_cs cs c =
       let w = match witness ~atoms:t.atoms ~forms:t.forms ~premises:cs ~conclusion:c with
         | Ok w -> w
-        | Error e -> R.raise_error "Eunoia: local witness failed at %s (%s): %s" st.E.name st.rule e in
+        | Error e -> R.raise_error
+            "Eunoia: local witness failed at %s (%s): %s; source premises: %a; result: %a"
+            st.E.name st.rule e
+            (Format.pp_print_list ~pp_sep:Format.pp_print_space E.pp_term) st.premise_terms
+            E.pp_term st.result in
       checked_steps := (st,syntax_cs,cs,c,w)::!checked_steps;
       Hashtbl.add mapped st.id c; w in
     let witness_ty = C.global (local "witness") in
@@ -225,6 +229,10 @@ let build_refutation_from_cpc ?fuel ~witness env t roots parsed =
 
 let tactic_using produce ?fuel ?(preprocess=Tactics.intros) ~witness ?(lemmas=[]) () =
   R.tclTHEN preprocess (R.mk_tactic (fun env sigma goal ->
+    (* Introduced polymorphic carriers have fresh levels in the proof's evar
+       map. VM conversion uses a kernel environment, so carry those levels
+       and their constraints into it before evaluating any table or gate. *)
+    let env = Environ.push_context_set (Evd.universe_context_set sigma) env in
     try
       let h,args = R.decompose_app_list goal in
       let a,b = match args with

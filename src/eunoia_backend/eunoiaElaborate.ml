@@ -119,7 +119,10 @@ let elaborate ?(max_expansion=1000000) ?(signature_names=[])
         derive_assuming s.rule.text a arguments premise_terms in
     let result = match generated with
       | Some t -> t
-      | None -> fail "Generated CPC derivation rejected %s (%s)" s.name.text s.rule.text in
+      | None -> fail "Generated CPC derivation rejected %s (%s); arguments: %a; premises: %a"
+          s.name.text s.rule.text
+          (Format.pp_print_list ~pp_sep:Format.pp_print_space pp_term) arguments
+          (Format.pp_print_list ~pp_sep:Format.pp_print_space pp_term) premise_terms in
     (match s.conclusion with
     | Some t when read t <> result -> fail "CPC claimed result differs at %s" s.name.text
     | _ -> ());
