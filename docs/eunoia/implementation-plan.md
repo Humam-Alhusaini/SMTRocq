@@ -48,6 +48,8 @@ interfaces early. Neither owner should create a second SMT-LIB semantics.
 * Wrapper: `/home/charles/code/friends/.toolchains/smtrocq-env`.
 * `smtrocq-env dune build theories`: passed after private dependencies finished
   installing. A first overlapping build had failed while they were incomplete.
+* `smtrocq-env dune build -j2`: completed with exit code 0, including existing
+  benchmarks. Log: `/tmp/smtrocq-baseline-full-build.log`.
 * `smtrocq-env dune runtest`: completed with exit code 0. Its log is retained
   at `/tmp/smtrocq-baseline-tests.log`; existing LFSC hypothesis warnings are
   present. This is regression evidence, not a soundness claim for a new backend.
