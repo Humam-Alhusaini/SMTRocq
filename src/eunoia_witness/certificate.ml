@@ -15,6 +15,7 @@ type action =
   | BuildDef of clause_id * literal
   | BuildDef2 of clause_id * literal
   | BuildProj of clause_id * literal * int
+  | ImmFlatten of clause_id * clause_id * literal
   | EqTr of clause_id * literal * literal list
   | EqCgr of clause_id * literal * literal option list
   | EqCgrP of clause_id * literal * literal * literal option list
@@ -29,9 +30,9 @@ type witness = {
 
 let output = function
   | Res (p,_,_) | CFalse p | CTrue p | BuildDef (p,_) | BuildDef2 (p,_)
-  | BuildProj (p,_,_) | EqTr (p,_,_) | EqCgr (p,_,_)
+  | BuildProj (p,_,_) | ImmFlatten (p,_,_) | EqTr (p,_,_) | EqCgr (p,_,_)
   | EqCgrP (p,_,_,_) | LiaMicromega (p,_,_) -> p
-let reads = function Res (_,a,b) -> [a;b] | _ -> []
+let reads = function Res (_,a,b) -> [a;b] | ImmFlatten (_,a,_) -> [a] | _ -> []
 let canonical c = List.sort_uniq Int.compare c
 
 (* State.C.resolve removes the first complementary pair in numeric order.
@@ -66,6 +67,7 @@ let to_coq ~local ~step w =
     | BuildDef (p,l) -> app (step "BuildDef") [int p;int l]
     | BuildDef2 (p,l) -> app (step "BuildDef2") [int p;int l]
     | BuildProj (p,l,i) -> app (step "BuildProj") [int p;int l;int i]
+    | ImmFlatten (p,a,l) -> app (step "ImmFlatten") [int p;int a;int l]
     | EqTr (p,l,ls) -> app (step "EqTr") [int p;int l;clause ls]
     | EqCgr (p,l,ls) -> app (step "EqCgr")
         [int p;int l;list option_ty option ls]

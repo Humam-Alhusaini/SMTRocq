@@ -31,6 +31,38 @@ Fixpoint traverse {A B : Type} (f : A -> option B) (xs : list A)
     end
   end.
 
+  Fixpoint spine (t : term) (args : list term) : term * list term :=
+    match t with
+    | Symbol _ => (t, args)
+    | Apply f a => spine f (a :: args)
+    end.
+
+
+(* The CPC payload always retains its original source term. Integer addition
+   and multiplication have n-ary surface notation but binary SMTCoq atoms.
+   Lower only applications with at least three arguments, to a fixed right
+   fold, preserving every operand, order, duplicate and binary subtree. *)
+Fixpoint lower_arithmetic (fuel : nat) (t : term) : option term :=
+  match fuel with
+  | O => None
+  | S k =>
+    let '(head, args) := spine t [] in
+    match head, traverse (lower_arithmetic k) args with
+    | Symbol s, Some xs =>
+      if String.eqb s "+" || String.eqb s "*" then
+        match xs with
+        | a :: b :: c :: rest =>
+          let fix chain x xs := match xs with
+            | [] => x
+            | y :: ys => app s [x; chain y ys]
+            end in Some (chain a (b :: c :: rest))
+        | _ => Some (app s xs)
+        end
+      else Some (app s xs)
+    | _, _ => None
+    end
+  end.
+
 Lemma term_eqb_spec : forall a b, term_eqb a b = true <-> a = b.
 Proof.
   induction a as [s|f IHf a IHa]; destruct b; simpl;
@@ -247,19 +279,24 @@ Section Tables.
 
   Definition binds (fuel : nat) (c : C.t) (t : term) : bool :=
     EunoiaChecker.clause_wf (PArray.length t_form) c &&
-    match encode_clause fuel c with
-    | Some u => term_eqb u t
-    | None => false
+    match encode_clause fuel c, lower_arithmetic fuel t with
+    | Some u, Some v => term_eqb u v
+    | _, _ => false
     end.
 
   Lemma binds_spec : forall fuel c t, binds fuel c t = true <->
     EunoiaChecker.clause_wf (PArray.length t_form) c = true /\
-    encode_clause fuel c = Some t.
+    exists u, encode_clause fuel c = Some u /\ lower_arithmetic fuel t = Some u.
   Proof.
     intros fuel c t; unfold binds; rewrite andb_true_iff.
-    destruct (encode_clause fuel c) as [encoded | ] eqn:He.
-    - rewrite term_eqb_spec; split; intros [H1 H2]; split; auto; congruence.
-    - split; intros [_ H]; discriminate.
+    destruct (encode_clause fuel c) as [u | ] eqn:Hu;
+      destruct (lower_arithmetic fuel t) as [v | ] eqn:Hv.
+    - rewrite term_eqb_spec; split.
+      + intros [H ->]; split; [exact H| eauto].
+      + intros [H [w [H1 H2]]]; inversion H1; inversion H2; subst; auto.
+    - split; [intros [_ H]; discriminate| intros [_ [w [_ H]]]; discriminate].
+    - split; [intros [_ H]; discriminate| intros [_ [w [H _]]]; discriminate].
+    - split; [intros [_ H]; discriminate| intros [_ [w [H _]]]; discriminate].
   Qed.
 
   Fixpoint bind_terms (fuel : nat) (cs : list C.t) (ts : list term) : bool :=
@@ -272,7 +309,7 @@ Section Tables.
   Lemma bind_terms_spec : forall fuel cs ts, bind_terms fuel cs ts = true <->
     Forall2 (fun c t =>
       EunoiaChecker.clause_wf (PArray.length t_form) c = true /\
-      encode_clause fuel c = Some t) cs ts.
+      (exists u, encode_clause fuel c = Some u /\ lower_arithmetic fuel t = Some u)) cs ts.
   Proof.
     intros fuel cs; induction cs as [ | c cs IH]; destruct ts as [ | t ts]; simpl.
     - split; constructor.
@@ -284,12 +321,6 @@ Section Tables.
 
   (* A partial syntactic type query, derived from the same function signatures
      as Atom.check_aux. It neither interprets SMT-LIB nor reads a term map. *)
-  Fixpoint spine (t : term) (args : list term) : term * list term :=
-    match t with
-    | Symbol _ => (t, args)
-    | Apply f a => spine f (a :: args)
-    end.
-
   Fixpoint function_named (s : string) (ns : list (int * string))
       : option Typ.ftype :=
     match ns with
@@ -623,6 +654,21 @@ Module Examples.
   Definition y := Symbol "y".
   Definition p := Symbol "p".
   Definition q := Symbol "q".
+
+  Example lower_nary_add_order :
+    lower_arithmetic 20 (app "+" [x; y; x]) =
+      Some (app "+" [x; app "+" [y; x]]).
+  Proof. vm_compute; reflexivity. Qed.
+  Example preserve_binary_add_tree :
+    lower_arithmetic 20 (app "+" [app "+" [x; y]; x]) =
+      Some (app "+" [app "+" [x; y]; x]).
+  Proof. vm_compute; reflexivity. Qed.
+  Example lower_nary_multiply_duplicates :
+    lower_arithmetic 20 (app "*" [x; y; y]) =
+      Some (app "*" [x; app "*" [y; y]]).
+  Proof. vm_compute; reflexivity. Qed.
+  Example lower_exhaustion_rejected : lower_arithmetic 0 x = None.
+  Proof. reflexivity. Qed.
 
   Example valid_tables : tables_wf sorts funcs atoms forms names = true.
   Proof. vm_compute; reflexivity. Qed.

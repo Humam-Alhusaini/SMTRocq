@@ -276,27 +276,70 @@ let produce ?(limits=default_limits) ~atoms ~forms ~premises ~conclusion () =
       | Fatom a -> (match Atom.atom a with
         | Abop ((BO_Zlt | BO_Zle | BO_Zge | BO_Zgt | BO_eq SmtBtype.TZ),_,_) -> true
         | _ -> false)
-      | Fapp ((Ftrue | Ffalse | Fand | For),xs) -> Array.for_all lia_form xs
+      | Fapp ((Ftrue | Ffalse | Fand | For | Fiff | Fxor | Fite | Fnot2 _),xs) ->
+        Array.for_all lia_form xs
       | _ -> false in
+    (* The existing kernel LIA builder supports these connectives, but the
+       legacy OCaml candidate builder does not. Expand only its input, using
+       precisely LIA.build_hform's Boolean expressions. The emitted command
+       still contains the ORIGINAL clause, checked by the existing gate. *)
+    let rec lia_candidate f =
+      let binary op a b = Form.get forms (Fapp (op,[|a;b|])) in
+      let original = pos f in
+      let expanded = match Form.pform original with
+        | Fapp (Fiff,xs) ->
+          let a = lia_candidate xs.(0) and b = lia_candidate xs.(1) in
+          binary Fand (binary For a (Form.neg b)) (binary For (Form.neg a) b)
+        | Fapp (Fxor,xs) ->
+          let a = lia_candidate xs.(0) and b = lia_candidate xs.(1) in
+          binary Fand (binary For a b) (binary For (Form.neg a) (Form.neg b))
+        | Fapp (Fite,xs) ->
+          let a = lia_candidate xs.(0) and b = lia_candidate xs.(1)
+          and c = lia_candidate xs.(2) in
+          binary For (binary Fand a b) (binary Fand (Form.neg a) c)
+        | Fapp (Fnot2 _,xs) -> lia_candidate xs.(0)
+        | Fapp ((Fand | For as op),xs) ->
+          Form.get forms (Fapp (op,Array.map lia_candidate xs))
+        | _ -> original in
+      if Form.is_pos f then expanded else Form.neg expanded in
     let try_lia c =
+      (* Certificates depend on the exact traversal/variable numbering of
+         their clause. Canonicalize BEFORE producing evidence, not in add. *)
+      let c = List.sort_uniq (fun a b -> Int.compare (lit a) (lit b)) c in
       lia_count := 0;
       if List.for_all lia_form c then
-        match Lia.build_lia_certif c with
+        match Lia.build_lia_certif (List.map lia_candidate c) with
         | None -> ()
         | Some proof -> let c = List.map lit c in
           add (fun p -> LiaMicromega (p,c,proof)) c in
     let run () =
       List.iter (fun (id,c) -> if c = [] then raise (Conflict id)) root_claims;
+      (* Preserve exact source trees at the outer boundary. Within the local
+         proof, the existing syntactic checker can certify removal of Fnot2
+         and associative Boolean nesting from singleton roots. *)
+      let rec remember_tree f =
+        let fresh = not (Hashtbl.mem relevant (Form.index f)) in
+        remember f;
+        if fresh then match Form.pform f with
+          | Fapp (_,xs) -> Array.iter remember_tree xs
+          | _ -> () in
+      List.iteri (fun id -> function
+        | [f] -> let flat = Form.flatten forms f in
+          if not (Form.equal flat f) then begin
+            remember_tree flat;
+            add (fun p -> ImmFlatten (p,id,lit flat)) [lit flat]
+          end
+        | _ -> ()) (premises @ List.map (fun f -> [Form.neg f]) conclusion);
       (* Keep disjunctive premises whole for Micromega. CNF equivalences below
          connect each auxiliary disjunction back to its exact root clause. *)
       let arithmetic_inputs = List.concat premises @ conclusion in
       lia_count := 0;
-      if List.for_all lia_form arithmetic_inputs then begin
+      let arithmetic_clause = if List.for_all lia_form arithmetic_inputs then begin
         let pforms = List.map (function [f] -> f | c ->
           let f = Form.get forms (Fapp (For,Array.of_list c)) in
           remember f; f) premises in
-        try_lia (List.map Form.neg pforms @ conclusion)
-      end;
+        Some (List.map Form.neg pforms @ conclusion)
+      end else None in
       List.iter cnf (form_list ());
       let rec rounds n =
         resolve_pending ~units_only:true ();
@@ -305,6 +348,10 @@ let produce ?(limits=default_limits) ~atoms ~forms ~premises ~conclusion () =
         end;
         let before = !next in
         theory ();
+        (* Congruence/Boolean steps are often arithmetic-shaped. Finish their
+           cheap checked EUF/CNF proof before expanding an iff for Micromega. *)
+        resolve_pending ();
+        if n = 0 then Stdlib.Option.iter try_lia arithmetic_clause;
         try_lia (List.map Form.neg (List.filter (fun f ->
           lia_count := 0; lia_form f) (unit_forms ())));
         (* Conditional EUF clauses must be available before unrestricted

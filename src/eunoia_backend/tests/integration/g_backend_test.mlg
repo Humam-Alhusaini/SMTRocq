@@ -66,6 +66,46 @@ let production_witness ~atoms ~forms ~premises ~conclusion =
         ("SMTCoq.checker.eunoia.EunoiaLocal.EunoiaLocal." ^ name))
       ~step:(fun name -> C.global
         ("SMTCoq.checker.MainChecker.Checker_Ext." ^ name)) candidate)
+(* A real generated arithmetic derivation followed by the production local gate.
+   Mutations alter source evidence or Micromega evidence, never acceptance. *)
+let lia_prefix = "(declare-const op_0 Int)" ^
+  "(assume a (not (= (+ op_0 0) op_0)))"
+let lia_step = "(step b :rule arith_poly_norm :args ((= (+ op_0 0) op_0)))"
+let lia_final = "(step c false :rule contra :premises (b a))"
+let lia_replay text = B.tactic_from_cpc (parse text) ~witness:production_witness ()
+let lia_valid () = lia_replay (lia_prefix ^ lia_step ^ lia_final)
+let lia_bad_coefficient () = lia_replay (lia_prefix ^
+  "(step b :rule arith_poly_norm :args ((= (+ (* 2 op_0) 0) op_0)))" ^ lia_final)
+let lia_bad_conclusion () = lia_replay (lia_prefix ^
+  "(step b (= (+ op_0 1) op_0) :rule arith_poly_norm :args ((= (+ op_0 0) op_0)))" ^ lia_final)
+let lia_bad_premise () = lia_replay (lia_prefix ^ lia_step ^
+  "(step c false :rule contra :premises (b b))")
+let lia_bad_root () = lia_replay (
+  "(declare-const op_0 Int)(assume a (not (= (+ op_0 1) op_0)))" ^ lia_step ^ lia_final)
+let lia_scale_prefix = "(declare-const op_0 Int)" ^
+  "(assume a (not (=> (and (< -2 0) (>= op_0 0)) (<= (* -2 op_0) (* -2 0)))))"
+let lia_scale_step = "(step b :rule arith_mult_neg :args (-2 (>= op_0 0)))"
+let lia_scale () = lia_replay (lia_scale_prefix ^ lia_scale_step ^ lia_final)
+let lia_mutated_witness unused =
+  let calls = ref 0 in
+  let produce ~atoms ~forms ~premises ~conclusion =
+    incr calls;
+    match Eunoia_witness.Search.produce ~atoms ~forms ~premises ~conclusion () with
+    | Error e -> Error (Eunoia_witness.Search.string_of_failure e)
+    | Ok candidate ->
+      let module W = Eunoia_witness.Certificate in
+      let candidate = if !calls = (if unused then 2 else 1) then
+        {candidate with W.program=List.map (fun cmd -> match cmd.W.action with
+          | W.LiaMicromega (p,c,_) -> {cmd with W.action=W.LiaMicromega (p,c,[])}
+          | _ -> cmd) candidate.W.program} else candidate in
+      Ok (W.to_coq
+        ~local:(fun name -> C.global ("SMTCoq.checker.eunoia.EunoiaLocal.EunoiaLocal." ^ name))
+        ~step:(fun name -> C.global ("SMTCoq.checker.MainChecker.Checker_Ext." ^ name)) candidate) in
+  let text = lia_scale_prefix ^ lia_scale_step ^
+    (if unused then "(step unused :rule arith_mult_neg :args (-2 (>= op_0 0)))" else "") ^
+    lia_final in
+  B.tactic_from_cpc (parse text) ~witness:produce ()
+
 let scoped_prefix = prefix ^ "(assume-push x op_0)"
 let scoped_body = "(step local :rule refl :args (op_0))" ^
   "(step endpoint false :rule contra :premises (local a))"
@@ -146,5 +186,13 @@ TACTIC EXTEND Backend_replay
 | [ "backend_scope_bad_endpoint" ] -> { scoped_replay scope_bad_endpoint }
 | [ "backend_scope_bad_unused" ] -> { scoped_replay scope_bad_unused }
 | [ "backend_metadata_replay" ] -> { metadata_replay () }
+| [ "backend_lia_replay" ] -> { lia_valid () }
+| [ "backend_lia_bad_coefficient" ] -> { lia_bad_coefficient () }
+| [ "backend_lia_bad_premise" ] -> { lia_bad_premise () }
+| [ "backend_lia_bad_conclusion" ] -> { lia_bad_conclusion () }
+| [ "backend_lia_bad_root" ] -> { lia_bad_root () }
+| [ "backend_lia_scale_replay" ] -> { lia_scale () }
+| [ "backend_lia_missing_certificate" ] -> { lia_mutated_witness false }
+| [ "backend_lia_bad_unused" ] -> { lia_mutated_witness true }
 | [ "backend_live" ] -> { B.tactic ~witness:production_witness () }
 END
