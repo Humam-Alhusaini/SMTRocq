@@ -98,7 +98,7 @@ No soundness lemma is added by the harness. Every successfully generated
 benchmark theorem is audited with `Print Assumptions`, whose complete output
 and parsed dependency names are retained. The allowed names are fixed by
 `docs/eunoia/baseline-assumptions.txt`. Existing SMTCoq/Rocq assumptions (including primitive
-integer/array specifications and proof irrelevance where used) are not removed
+integer operations/specifications and proof irrelevance where used) are not removed
 or claimed absent by this benchmark.
 
 ## Timing and retained evidence

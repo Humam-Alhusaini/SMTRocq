@@ -125,8 +125,14 @@ consequence, and restores parent state so local facts expire. See
 [the local gate](local-certificate.md) and [the scoped backend](scoped-backend.md).
 
 The fixed concrete correctness wrappers use the existing interpretation.
-The tactic installs the complete proof with `Tactics.exact_check`; `Qed` and
-independent `rocq check` validate its term. Parser success, an `unsat` answer,
+Within each tactic invocation, Rocq synchronously kernel-checks a private proof
+that the complete applied checker returns `true`. The tactic reuses that checked
+proof through Rocq's abstraction API, then installs the complete correctness
+application with `Tactics.exact_check`. All private proof creation is part of
+tactic time. Failed and undone attempts must restore the original proof state.
+See [the certificate-reuse report](checked-certificate-reuse.md) for the API,
+rollback controls and saved-body audits. `Qed` and independent `rocq check`
+validate the saved term. Parser success, an `unsat` answer,
 native search success and generated syntax computation are not proof acceptance.
 
 ## Evidence and limits

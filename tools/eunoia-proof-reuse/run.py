@@ -87,7 +87,8 @@ def audit_helpers(directory, module, theorems, flags, timeout):
     """Audit saved bodies, including helpers inlined by the supported Qed API."""
     directory.mkdir()
     source = directory / "Helpers.v"
-    source.write_text(f"Require {module}.\n" + "\n".join(
+    source.write_text('Declare ML Module "rocq-smtcoq.eunoia_backend_test".\n'
+                     f"Require {module}.\n" + "\n".join(
         f'Redirect "{directory / name}" Eunoia_helper_assumptions "{module}.{name}".'
         for name in theorems) + "\n")
     result = execute([WRAPPER, "dune", "exec", "-j2", "--", "rocq", "c", "-q", *flags,
