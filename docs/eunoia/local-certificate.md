@@ -15,17 +15,17 @@ EunoiaLocal.gate : forall ti (tf : array (Atom.tval ti)),
 
 EunoiaLocal.gate_correct : forall ti tf ta tfo,
   Atom.wt ti tf ta ->
-  EunoiaLocal.gate_sound ti tf ta tfo
-    (EunoiaLocal.valuation ti tf ta tfo)
+  @EunoiaLocal.gate_sound ti tf ta tfo
+    (@EunoiaLocal.valuation ti tf ta tfo)
 ```
 
 The local `gate_sound` definition unfolds to exactly the core's contract:
 
 ```coq
 forall cs c w,
-  EunoiaLocal.gate ti tf ta tfo cs c w = true ->
-  Forall (C.valid (EunoiaLocal.valuation ti tf ta tfo)) cs ->
-  C.valid (EunoiaLocal.valuation ti tf ta tfo) c.
+  @EunoiaLocal.gate ti tf ta tfo cs c w = true ->
+  Forall (C.valid (@EunoiaLocal.valuation ti tf ta tfo)) cs ->
+  C.valid (@EunoiaLocal.valuation ti tf ta tfo) c.
 ```
 
 The gate itself checks `Form.check_form` and `Atom.check_atom`. The caller must
@@ -35,8 +35,8 @@ assumption declared by this module. The interpretation is exactly
 (Atom.interp_form_hatom_bv ti tf ta) tfo`.
 
 The coordinator can instantiate `EunoiaChecker` with witness type
-`EunoiaLocal.witness`, gate `EunoiaLocal.gate ti tf ta tfo`, and the theorem
-`EunoiaLocal.gate_correct ti tf ta tfo`. That theorem is definitionally
+`EunoiaLocal.witness`, gate `@EunoiaLocal.gate ti tf ta tfo`, and the theorem
+`@EunoiaLocal.gate_correct ti tf ta tfo`. That theorem is definitionally
 compatible with `EunoiaChecker.gate_sound`; no semantic conversion is needed.
 The actual implicit arguments may be supplied with `@` when instantiating it.
 
