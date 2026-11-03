@@ -5,7 +5,7 @@ From Stdlib Require Import List Bool Uint63.
 From SMTCoq.utils Require Import PArray.
 From SMTCoq.checker.fol Require Import State Terms.
 From SMTCoq.checker Require Import MainChecker.
-From SMTCoq.checker.eunoia Require Import EunoiaUf EunoiaLiaTests EunoiaLocal.
+From SMTCoq.checker.eunoia Require Import EunoiaUf EunoiaLiaTests EunoiaBoolTests EunoiaLocal.
 
 Import ListNotations EunoiaLocal.
 Local Open Scope uint63_scope.
@@ -254,4 +254,85 @@ Example lia_composition : @gate t_i t_func EunoiaLiaTests.atoms EunoiaLiaTests.f
      resolve 3 0 2 [6]; resolve 4 1 3 []] 4) = true.
 Proof. vm_compute; reflexivity. Qed.
 End Tables.
+
+Section TypedBoolean.
+Variable t_i : array CompDec.typ_compdec.
+Variables (a b : bool) (f g : bool -> bool) (h : bool -> BinNums.Z)
+          (x y : BinNums.Z) (k : bool -> BinNums.Z -> BinNums.Z)
+          (p : BinNums.Z -> bool).
+Local Definition funcs := EunoiaBoolTests.funcs a b f g h x y k p t_i.
+Local Definition typed_check := @gate t_i funcs EunoiaBoolTests.checked_atoms
+  EunoiaBoolTests.checked_forms.
+Definition typed_claims : list (clause_id * C.t) := [(0,[8]);(1,[15])].
+Definition typed_tail := [resolve 3 0 2 [14]; resolve 4 1 3 []].
+Definition typed_program := BoolCongrCommand 2 14 [Some 8] [9;14] :: typed_tail.
+Definition typed_witness := Witness 5 typed_claims typed_program 4.
+
+Example typed_bool_uf : typed_check [[8]] [14] typed_witness = true.
+Proof. vm_compute; reflexivity. Qed.
+Example typed_bool_integer : typed_check [[8]] [22]
+  (Witness 5 [(0,[8]);(1,[23])]
+    [BoolCongrCommand 2 22 [Some 8] [9;22];
+     resolve 3 0 2 [22]; resolve 4 1 3 []] 4) = true.
+Proof. vm_compute; reflexivity. Qed.
+Example typed_mixed : typed_check [[8];[30]] [32]
+  (Witness 7 [(0,[8]);(1,[30]);(2,[33])]
+    [BoolCongrCommand 3 32 [Some 8;Some 30] [9;31;32];
+     resolve 4 0 3 [31;32]; resolve 5 1 4 [32]; resolve 6 2 5 []] 6) = true.
+Proof. vm_compute; reflexivity. Qed.
+Example typed_missing_evidence : typed_check [[8]] [14]
+  (Witness 5 typed_claims (BoolCongrCommand 2 14 [None] [9;14] :: typed_tail) 4) = false.
+Proof. vm_compute; reflexivity. Qed.
+Example typed_wrong_reference : typed_check [[8]] [14]
+  (Witness 5 typed_claims (BoolCongrCommand 2 14 [Some 30] [9;14] :: typed_tail) 4) = false.
+Proof. vm_compute; reflexivity. Qed.
+Example typed_negative_reference : typed_check [[8]] [14]
+  (Witness 5 typed_claims (BoolCongrCommand 2 14 [Some 9] [9;14] :: typed_tail) 4) = false.
+Proof. vm_compute; reflexivity. Qed.
+Example typed_reference_oob : typed_check [[8]] [14]
+  (Witness 5 typed_claims (BoolCongrCommand 2 14 [Some 198] [9;14] :: typed_tail) 4) = false.
+Proof. vm_compute; reflexivity. Qed.
+Example typed_result_oob : typed_check [[8]] [14]
+  (Witness 5 typed_claims (BoolCongrCommand 2 198 [Some 8] [9;14] :: typed_tail) 4) = false.
+Proof. vm_compute; reflexivity. Qed.
+Example typed_missing_condition : typed_check [[8]] [14]
+  (Witness 5 typed_claims (BoolCongrCommand 2 14 [Some 8] [14] :: typed_tail) 4) = false.
+Proof. vm_compute; reflexivity. Qed.
+Example typed_wrong_result : typed_check [[8]] [14]
+  (Witness 5 typed_claims (BoolCongrCommand 2 20 [Some 8] [9;14] :: typed_tail) 4) = false.
+Proof. vm_compute; reflexivity. Qed.
+Example typed_noncanonical_expected : typed_check [[8]] [14]
+  (Witness 5 typed_claims (BoolCongrCommand 2 14 [Some 8] [14;9] :: typed_tail) 4) = false.
+Proof. vm_compute; reflexivity. Qed.
+Example typed_overwrite : typed_check [[8]] [14]
+  (Witness 5 typed_claims (BoolCongrCommand 0 14 [Some 8] [9;14] :: typed_program) 4) = false.
+Proof. vm_compute; reflexivity. Qed.
+Example typed_output_oob : typed_check [[8]] [14]
+  (Witness 5 typed_claims (BoolCongrCommand 5 14 [Some 8] [9;14] :: typed_program) 4) = false.
+Proof. vm_compute; reflexivity. Qed.
+Example typed_unused_bad_before : typed_check [[8]] [14]
+  (Witness 6 typed_claims (BoolCongrCommand 5 14 [None] [14] :: typed_program) 4) = false.
+Proof. vm_compute; reflexivity. Qed.
+Example typed_unused_bad_after : typed_check [[8]] [14]
+  (Witness 6 typed_claims (typed_program ++ [BoolCongrCommand 5 14 [None] [14]]) 4) = false.
+Proof. vm_compute; reflexivity. Qed.
+Example typed_unused_valid_after : typed_check [[8]] [14]
+  (Witness 6 typed_claims (typed_program ++ [BoolCongrCommand 5 14 [Some 8] [9;14]]) 4) = true.
+Proof. vm_compute; reflexivity. Qed.
+Example typed_cannot_assert_condition : typed_check [] [14]
+  (Witness 4 [(1,[15])]
+    [BoolCongrCommand 2 14 [Some 8] [9;14];resolve 3 1 2 []] 3) = false.
+Proof. vm_compute; reflexivity. Qed.
+Example typed_wrong_premise : typed_check [[16]] [14] typed_witness = false.
+Proof. vm_compute; reflexivity. Qed.
+Example typed_projection_default_rejected : typed_check [[28]] [14]
+  (Witness 5 [(0,[28]);(1,[15])]
+    (BoolCongrCommand 2 14 [Some 28] [14;29] :: typed_tail) 4) = false.
+Proof. vm_compute; reflexivity. Qed.
+Example typed_wrong_endpoint_type :
+  @gate t_i funcs EunoiaBoolTests.checked_atoms
+    EunoiaBoolTests.checked_forms.[4 <- Form.Fiff 24 26] [[8]] [14]
+    typed_witness = false.
+Proof. vm_compute; reflexivity. Qed.
+End TypedBoolean.
 End EunoiaLocalTests.

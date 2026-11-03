@@ -24,8 +24,33 @@ let check name atoms forms premises conclusion w =
   let local s = lookup ("EunoiaLocal.EunoiaLocal." ^ s) in
   let step s = lookup ("SMTCoq.checker.MainChecker.Checker_Ext." ^ s) in
   let wterm w = Certificate.to_coq ~local ~step w in
+  (* Supply real signatures and total denotations, then require Atom.wt in
+     witness_gate. Empty/default-Boolean function tables mask type errors. *)
+  let signatures = Hashtbl.create 17 in
+  let rec visit a = match SmtAtom.Atom.atom a with
+    | SmtAtom.Aapp (f,xs) ->
+      Hashtbl.replace signatures (SmtAtom.indexed_op_index f)
+        (Array.to_list (Array.map SmtAtom.Atom.type_of xs),SmtAtom.Atom.type_of a);
+      Array.iter visit xs
+    | SmtAtom.Auop (_,a) -> visit a
+    | SmtAtom.Abop (_,a,b) -> visit a; visit b
+    | SmtAtom.Atop (_,a,b,c) -> visit a; visit b; visit c
+    | SmtAtom.Anop (_,xs) -> Array.iter visit xs
+    | SmtAtom.Acop _ -> () in
+  (* Include every function reachable from the final formula table. *)
+  Array.iter (function SmtForm.Fatom a -> visit a | _ -> ()) (SmtAtom.Form.pform_tbl forms);
+  let type_ty = lookup "SMTCoq.checker.fol.Terms.Typ.type" in
+  let value args result = app (lookup "witness_value")
+    [list type_ty SmtBtype.to_coq args;SmtBtype.to_coq result] in
+  let default = value [] SmtBtype.Tbool in
+  let bound = Hashtbl.fold (fun i _ n -> max n (i+1)) signatures 0 in
+  let values = Array.init (bound+1) (fun i -> match Hashtbl.find_opt signatures i with
+    | None -> default | Some (args,result) -> value args result) in
+  let value_ty = app (lookup "SMTCoq.checker.fol.Terms.Atom.tval")
+    [lookup "witness_probe_types"] in
+  let functions = CoqTerms.mkArray (value_ty,values) in
   let eval premises conclusion w =
-    let term = app (lookup "witness_gate") [SmtAtom.Atom.interp_tbl atoms;
+    let term = app (lookup "witness_gate") [functions;SmtAtom.Atom.interp_tbl atoms;
       snd (SmtAtom.Form.interp_tbl forms);list clause_ty clause premises;
       clause conclusion;wterm w] in
     let env = Global.env () in
@@ -65,6 +90,9 @@ let check name atoms forms premises conclusion w =
     | Certificate.EqCgr (p,l,es) when List.exists Stdlib.Option.is_some es ->
       corrupted := true;
       {cmd with action=Certificate.EqCgr (p,l,List.map (fun _ -> None) es)}
+    | Certificate.BoolCongr (p,l,es) when List.exists Stdlib.Option.is_some es ->
+      corrupted := true;
+      {cmd with action=Certificate.BoolCongr (p,l,List.map (fun _ -> None) es)}
     | Certificate.EqCgrP (p,a,b,es) when List.exists Stdlib.Option.is_some es ->
       corrupted := true;
       {cmd with action=Certificate.EqCgrP (p,a,b,List.map (fun _ -> None) es)}
