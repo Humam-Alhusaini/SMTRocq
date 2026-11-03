@@ -18,7 +18,7 @@ Definition query (t : term) : option term :=
   match t with
   | Symbol "x" | Symbol "y" => Some (Symbol "U")
   | Symbol "z" => Some (Symbol "Int")
-  | Symbol "U" | Symbol "Int" => Some (Symbol "Type")
+  | Symbol "U" | Symbol "Int" | Symbol "Bool" => Some (Symbol "Type")
   | Symbol "p" | Symbol "q" | Symbol "true" | Symbol "false" => Some (Symbol "Bool")
   | Apply _ _ => Some (Symbol "Bool")
   | _ => None
@@ -39,7 +39,7 @@ Example helper_second_case : cpc "symm" [] [unary "not" eqxy] =
 Proof. reflexivity. Qed.
 Example helper_no_case : cpc "symm" [] [p] = None.
 Proof. reflexivity. Qed.
-Example helper_type_conflict : cpc "symm" [] [binary "=" x (Symbol "z")] = None.
+Example permissive_query_is_not_semantic_evidence : cpc "symm" [] [binary "=" x (Symbol "z")] = Some (binary "=" (Symbol "z") x).
 Proof. reflexivity. Qed.
 Example exact_premises : cpc "eq_resolve" [] [p; binary "=" p q] = Some q.
 Proof. reflexivity. Qed.
@@ -86,9 +86,77 @@ Example typeof_and_let : test "inspect" [p] [] = Some p.
 Proof. reflexivity. Qed.
 Example failed_body_cannot_fall_through : test "first_match" [p] [] = None.
 Proof. reflexivity. Qed.
-Example helper_output_type_checked : TestGenerated.derive 100
-  (fun t => if term_eqb t (Symbol "true") then None else query t) "output_type" [p] [] = None.
+Example helper_annotations_are_metadata : TestGenerated.derive 100
+  (fun t => if term_eqb t (Symbol "true") then None else query t) "output_type" [p] [] = Some (unary "not" (Symbol "true")).
 Proof. reflexivity. Qed.
 
 Print Assumptions helper_symmetry.
 Print Assumptions side_condition_reject.
+
+Example unused_failure_is_unforced : test "unused_failure" [p] [] = Some p.
+Proof. reflexivity. Qed.
+Example unselected_branch_is_unforced : test "lazy_branch" [p] [] = Some p.
+Proof. reflexivity. Qed.
+Example equal_errors_do_not_satisfy_requires : test "failed_values_not_equal" [p] [] = None.
+Proof. reflexivity. Qed.
+Example is_eq_can_observe_failure : test "failure_predicates" [p] [] = Some (Symbol "false").
+Proof. reflexivity. Qed.
+Example is_ok_can_observe_failure : test "failure_ok" [p] [] = Some (Symbol "false").
+Proof. reflexivity. Qed.
+Example lexical_definition_no_capture : test "definition_capture" [p] [] = Some p.
+Proof. reflexivity. Qed.
+Example parallel_let_uses_outer_scope : test "parallel_shadow" [p] [] = Some p.
+Proof. reflexivity. Qed.
+
+Definition and_op := Symbol "and".
+Definition true_nil := Symbol "true".
+Definition and_list := make_list and_op true_nil.
+Definition lists := native no_extension [("and", true_nil)].
+Example list_reverse_keeps_duplicates : lists "eo::list_rev" [and_op; and_list [p; q; p]] = Some (and_list [p; q; p]).
+Proof. reflexivity. Qed.
+Example list_multiset_rejects_missing_duplicate : lists "eo::list_meq" [and_op; and_list [p; p]; and_list [p]] = Some (Symbol "false").
+Proof. reflexivity. Qed.
+Example list_multiset_accepts_permutation : lists "eo::list_meq" [and_op; and_list [p; p; q]; and_list [q; p; p]] = Some (Symbol "true").
+Proof. reflexivity. Qed.
+Example list_multiset_inclusion_direction : lists "eo::list_minclude" [and_op; and_list [p]; and_list [p; p]] = Some (Symbol "false").
+Proof. reflexivity. Qed.
+Example list_erases_one_occurrence : lists "eo::list_erase" [and_op; and_list [p; p]; p] = Some (and_list [p]).
+Proof. reflexivity. Qed.
+Example list_difference_consumes_occurrences : lists "eo::list_diff" [and_op; and_list [p; q; p]; and_list [p]] = Some (and_list [q; p]).
+Proof. reflexivity. Qed.
+Example list_intersection_consumes_occurrences : lists "eo::list_inter" [and_op; and_list [p; q; p]; and_list [p]] = Some (and_list [p]).
+Proof. reflexivity. Qed.
+Example list_nth_out_of_bounds : lists "eo::list_nth" [and_op; and_list [p]; Symbol "1"] = None.
+Proof. reflexivity. Qed.
+Example list_nth_negative : lists "eo::list_nth" [and_op; and_list [p]; Symbol "-1"] = None.
+Proof. reflexivity. Qed.
+Example list_nth_empty_index : lists "eo::list_nth" [and_op; and_list [p]; Symbol ""] = None.
+Proof. reflexivity. Qed.
+Example list_wrong_operator : lists "eo::list_rev" [and_op; binary "or" p true_nil] = None.
+Proof. reflexivity. Qed.
+Example list_missing_nil : lists "eo::list_rev" [and_op; binary "and" p q] = None.
+Proof. reflexivity. Qed.
+Example list_singleton_needs_explicit_elimination : lists "eo::list_singleton_elim" [and_op; and_list [p]] = Some p.
+Proof. reflexivity. Qed.
+Example source_generated_boolean_equality : cpc "evaluate" [binary "=" (Symbol "true") (Symbol "false")] [] =
+  Some (binary "=" (binary "=" (Symbol "true") (Symbol "false")) (Symbol "false")).
+Proof. vm_compute. reflexivity. Qed.
+Example unsupported_arithmetic_does_not_fall_through : cpc "evaluate" [binary "-" (Symbol "3") (Symbol "1")] [] = None.
+Proof. vm_compute. reflexivity. Qed.
+Example unsupported_dependent_nil_rejects_before_fallback : cpc "evaluate"
+  [Apply (binary "+" (Symbol "1") (Symbol "2")) (Symbol "3")] [] = None.
+Proof. vm_compute. reflexivity. Qed.
+Example trans_requires_matching_endpoints : cpc "trans" [] [binary "=" x y; binary "=" x y] = None.
+Proof. vm_compute. reflexivity. Qed.
+Example nested_boolean_surface_roundtrip : surface_in 100 [("and", true_nil)] (binary "and" p (binary "and" p q)) =
+  Some (and_list [p; and_list [p; q]]).
+Proof. reflexivity. Qed.
+Example nil_does_not_cross_surface_boundary :
+  match surface_in 100 [("and", true_nil)] (binary "and" p q) with
+  | Some t => surface_out 100 [("and", true_nil)] t
+  | _ => None
+  end = Some (binary "and" p q).
+Proof. reflexivity. Qed.
+
+Print Assumptions trans_requires_matching_endpoints.
+Print Assumptions list_multiset_rejects_missing_duplicate.
