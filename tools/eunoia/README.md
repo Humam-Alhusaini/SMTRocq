@@ -7,8 +7,9 @@ claimed.
 
 The vendored cvc5 1.4.2 signature is the complete 35-file include closure;
 `cpc-manifest.json` records every source hash and transitive helper dependency.
-The generated subset currently has **27 rules and 34 programs**, covering the
-**98 actual steps in all seven repository UF fixtures**. In particular all
+The generated subset currently has **48 rules and 53 programs**, covering the
+**98 actual steps in all seven repository UF fixtures**, plus
+**379 steps in all seven LIA fixtures** (including 12 scope pops). In particular all
 15 `unit-tests/eunoia-fixtures/default/uf4.cpc` steps compute in Rocq. The tests
 include unused steps; they do not merely check isolated hand-written rule
 instances. Actual solver proof bytes and source-input hashes are retained in
@@ -41,19 +42,24 @@ cases, repeated-variable matching, requirements and helper definitions. Unknown
 rules and unsupported declarations/operations fail closed. The public API and
 surface representation contract are in [INTERFACE.md](INTERFACE.md).
 
-Supported syntax computation includes closed-nil variadic operators, premise
+Supported syntax computation includes closed and type-dependent nil variadic operators, premise
 lists, list-tail patterns, curried/variable-headed applications, lexical
 capture-free definitions/parallel lets, lazy conditionals, failure-aware guards,
 Boolean literal operations and generic ordered/multiset list operations.
 Programs match their source patterns without imposing additional runtime type
 annotation constraints; rule binder checks and explicit `eo::typeof` still use
-an untrusted query. The default primitive extension hook returns failure.
+an untrusted query. The production default uses `EoArithmetic.eval` and a deterministic syntax
+ordering. `derive_with no_extension` remains available for explicit fail-closed
+primitive isolation.
 
-The 582 excluded rules are listed exactly in the manifest. Arithmetic literal
-operations and dependent arithmetic nils, most string/BV/datatype native
-operations, `eo::cmp`, broader attributed operator elaboration, scoped commands
-in the **test** decoder, and a production CPC reader/tactic are incomplete.
-Mixed Real/Int formulas additionally need a verified semantic translation;
-implementing primitive arithmetic alone cannot establish that bridge. The
+The 561 excluded rules are listed exactly in the manifest. The manifest also
+lists six unavailable primitives reached in preserved, unexecuted helper
+branches: string/BV conversion, length, concatenation, extraction and find.
+Reaching them returns a missing-primitive diagnostic; no source cases are
+pruned. Broader attributed operator elaboration and mixed Real/Int semantic
+checking remain incomplete. The
 initial extracted `signatures/Initial.eo` remains as historical test data;
 it is no longer the production generation source.
+
+See [LIA-VALIDATION.md](LIA-VALIDATION.md) for source pins, the ordering invariant,
+query examples, scoped computation harness, negative tests and integration limits.

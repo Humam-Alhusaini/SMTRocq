@@ -21,9 +21,22 @@ Fixpoint rename_symbols (aliases : list (string * term)) (t : term) : term :=
   | Apply f a => Apply (rename_symbols aliases f) (rename_symbols aliases a)
   end.
 
-Fixpoint match_pattern (p : pattern) (t : term) (env : bindings)
+Record nil_query := {
+  nil_known : string -> bool;
+  nil_value : string -> option term -> option term;
+  nil_list_value : string -> option term -> option term
+}.
+Coercion nil_value : nil_query >-> Funclass.
+Definition closed_nil (ops : list (string * term)) : nil_query :=
+  {| nil_known := fun op => match named op ops with Some _ => true | None => false end;
+     nil_value := fun op _ => named op ops;
+     nil_list_value := fun op _ => named op ops |}.
+
+Fixpoint match_pattern_with (nilof : nil_query) (typeof : term -> option term) (p : pattern) (t : term) (env : bindings)
     : option bindings :=
   match p with
+  | PNil op => match nil_list_value nilof op (typeof t) with
+      | Some z => if term_eqb z t then Some env else None | None => None end
   | PVar n =>
       match lookup n env with
       | None => Some ((n, t) :: env)
@@ -37,28 +50,33 @@ Fixpoint match_pattern (p : pattern) (t : term) (env : bindings)
   | PApply f a =>
       match t with
       | Apply g b =>
-          match match_pattern f g env with
-          | Some env' => match_pattern a b env'
+          match match_pattern_with nilof typeof f g env with
+          | Some env' => match_pattern_with nilof typeof a b env'
           | None => None
           end
       | _ => None
       end
   end.
 
-Fixpoint match_patterns (ps : list pattern) (ts : list term) (env : bindings)
+Definition match_pattern := match_pattern_with (closed_nil []) (fun _ => None).
+
+Fixpoint match_patterns_with (nilof : nil_query) (typeof : term -> option term) (ps : list pattern) (ts : list term) (env : bindings)
     : option bindings :=
   match ps, ts with
   | [], [] => Some env
   | p :: pr, t :: tr =>
-      match match_pattern p t env with
-      | Some env' => match_patterns pr tr env'
+      match match_pattern_with nilof typeof p t env with
+      | Some env' => match_patterns_with nilof typeof pr tr env'
       | None => None
       end
   | _, _ => None
   end.
 
+Definition match_patterns := match_patterns_with (closed_nil []) (fun _ => None).
+
 Fixpoint instantiate (p : pattern) (env : bindings) : option term :=
   match p with
+  | PNil _ => None
   | PVar n => lookup n env
   | PSymbol s => Some (Symbol s)
   | PApply f a =>
@@ -110,6 +128,63 @@ Definition typed_bindings (typeof : term -> option term) (bs : binder_types)
   | None => None
   end.
 
+(** Infer a matched function variable's type from its *application context*.
+    No standalone monomorphic type is invented for an overloaded symbol.
+    Hints are indexed by source binder, not by symbol spelling (outer Boolean
+    equality and an inner integer equality can share the same symbol). *)
+Fixpoint application_hints (typeof : term -> option term) (p : pattern)
+    (t : term) (expected : option term) (hints : bindings) : option bindings :=
+  let actual := match expected with Some ty => Some ty | None => typeof t end in
+  match p with
+  | PVar id => match actual, lookup id hints with
+      | Some ty, Some prior => if term_eqb ty prior then Some hints else None
+      | Some ty, None => Some ((id, ty) :: hints)
+      | None, _ => Some hints end
+  | PApply f a => match t with
+      | Apply g b =>
+          let dom := typeof b in
+          let function_type := match dom, actual with
+            | Some d, Some c => Some (Apply (Apply (Symbol "->") d) c)
+            | _, _ => None end in
+          match application_hints typeof f g function_type hints with
+          | Some hs => application_hints typeof a b dom hs
+          | None => None end
+      | _ => None end
+  | _ => Some hints
+  end.
+Fixpoint collect_application_hints typeof ps ts hints : option bindings :=
+  match ps, ts with
+  | [], [] => Some hints
+  | p :: pr, t :: tr =>
+      match application_hints typeof p t None hints with
+      | Some hs => collect_application_hints typeof pr tr hs | None => None end
+  | _, _ => None end.
+Definition binder_type_query (typeof : term -> option term) hints id t :=
+  match typeof t, lookup id hints with
+  | Some ty, Some inferred => if term_eqb ty inferred then Some ty else None
+  | Some ty, None => Some ty
+  | None, inferred => inferred end.
+Fixpoint infer_types_with_hints typeof hints (bs : binder_types) (env : bindings) : option bindings :=
+  match bs with
+  | [] => Some env
+  | (id, ty) :: tl => match lookup id env with
+      | None => infer_types_with_hints typeof hints tl env
+      | Some t => match binder_type_query typeof hints id t with
+          | Some actual => match match_pattern ty actual env with
+              | Some next => infer_types_with_hints typeof hints tl next | None => None end
+          | None => None end
+      end
+  end.
+Definition typed_bindings_with_hints typeof hints (bs : binder_types) env :=
+  match infer_types_with_hints typeof hints bs env with
+  | None => None
+  | Some inferred => if forallb (fun entry =>
+      match lookup (fst entry) inferred, instantiate (snd entry) inferred with
+      | Some t, Some ty => match binder_type_query typeof hints (fst entry) t with
+          | Some actual => term_eqb actual ty | None => false end
+      | _, _ => false end) bs then Some inferred else None
+  end.
+
 Fixpoint match_types (typeof : term -> option term) (ps : list pattern)
     (ts : list term) (env : bindings) : option bindings :=
   match ps, ts with
@@ -126,16 +201,18 @@ Fixpoint match_types (typeof : term -> option term) (ps : list pattern)
   | _, _ => None
   end.
 
-Fixpoint select_case (cs : list program_case) (args : list term)
+Fixpoint select_case_with (nilof : nil_query) (typeof : term -> option term) (cs : list program_case) (args : list term)
     (env : bindings) : option (bindings * expression) :=
   match cs with
   | [] => None
   | c :: tl =>
-      match match_patterns (case_patterns c) args env with
+      match match_patterns_with nilof typeof (case_patterns c) args env with
       | Some env' => Some (env', case_body c)
-      | None => select_case tl args env
+      | None => select_case_with nilof typeof tl args env
       end
   end.
+
+Definition select_case := select_case_with (closed_nil []) (fun _ => None).
 
 (** Surface syntax stays curried. Internally an attributed variadic operator
     is a binary cons spine with its signature-declared terminator. No associativity or
@@ -148,23 +225,26 @@ Fixpoint unapply (t : term) (args : list term) : term * list term :=
 (** Unsupported operator elaboration rejects before helper case selection;
     otherwise a malformed known operator might accidentally select a fallback.
     Right/left associative and chainable syntax currently admits binary surface
-    applications only; nil operators use the generated closed nil table. *)
-Fixpoint surface_supported (blocked binary : list string) (t : term) : bool :=
+    applications (plus source-declared unary overloads) only; nil operators use generated closed or type-dependent nil bodies. *)
+Fixpoint surface_supported_with_arities (unary blocked binary : list string) (t : term) : bool :=
   match t with
   | Symbol _ => true
   | Apply f a =>
       let '(hd, xs) := unapply t [] in
       let root_ok := match hd with
         | Symbol name => negb (existsb (String.eqb name) blocked) &&
-            (if existsb (String.eqb name) binary then Nat.eqb (List.length xs) 2 else true)
+            (if existsb (String.eqb name) binary then Nat.eqb (List.length xs) 2 ||
+              (existsb (String.eqb name) unary && Nat.eqb (List.length xs) 1) else true)
         | _ => false end in
       (* Check the head spine without rechecking its partial arities. *)
       let fix children u := match u with
         | Symbol _ => true
-        | Apply g b => children g && surface_supported blocked binary b
+        | Apply g b => children g && surface_supported_with_arities unary blocked binary b
         end in
       root_ok && children t
   end.
+
+Definition surface_supported := surface_supported_with_arities [].
 
 Definition apply_many (f : term) (args : list term) := fold_left Apply args f.
 Definition make_list (op terminator : term) (xs : list term) :=
@@ -180,7 +260,7 @@ Fixpoint list_elements (op terminator t : term) : option (list term) :=
   | _ => None
   end.
 
-Fixpoint surface_in (fuel : nat) (ops : list (string * term)) (t : term)
+Fixpoint surface_in_with (nilof : nil_query) (typeof : term -> option term) (fuel : nat) (ops : list (string * term)) (t : term)
     : option term :=
   match fuel with
   | 0 => None
@@ -190,23 +270,23 @@ Fixpoint surface_in (fuel : nat) (ops : list (string * term)) (t : term)
         match xs with
         | [] => Some []
         | x :: tl =>
-          match surface_in k ops x, visit tl with
+          match surface_in_with nilof typeof k ops x, visit tl with
           | Some y, Some ys => Some (y :: ys)
           | _, _ => None
           end
         end in
       match hd, visit xs with
       | Symbol name, Some ys =>
-          match ys, named name ops with
+          match ys, (match xs with [] => named name ops | x :: _ => nilof name (typeof x) end) with
           | [], _ => Some hd
           | _, Some terminator => Some (make_list hd terminator ys)
-          | _, None => Some (apply_many hd ys)
+          | _, None => if nil_known nilof name then None else Some (apply_many hd ys)
           end
       | _, _ => None
       end
   end.
 
-Fixpoint surface_out (fuel : nat) (ops : list (string * term)) (t : term)
+Fixpoint surface_out_with (nilof : nil_query) (typeof : term -> option term) (fuel : nat) (ops : list (string * term)) (t : term)
     : option term :=
   match fuel with
   | 0 => None
@@ -216,24 +296,30 @@ Fixpoint surface_out (fuel : nat) (ops : list (string * term)) (t : term)
         match xs with
         | [] => Some []
         | x :: tl =>
-          match surface_out k ops x, visit tl with
+          match surface_out_with nilof typeof k ops x, visit tl with
           | Some y, Some ys => Some (y :: ys)
           | _, _ => None
           end
         end in
       match hd with
       | Symbol name =>
-          match named name ops, xs with
+          match (match xs with [] => named name ops | x :: _ =>
+            match surface_out_with nilof typeof k ops x with
+            | Some y => nilof name (typeof y) | None => None end end), xs with
           | Some terminator, _ :: _ =>
               match list_elements hd terminator t with
               | Some ys => option_map (apply_many hd) (visit ys)
               | None => None
               end
+          | None, _ :: _ => if nil_known nilof name then None else option_map (apply_many hd) (visit xs)
           | _, _ => option_map (apply_many hd) (visit xs)
           end
       | _ => None
       end
   end.
+
+Definition surface_in fuel ops := surface_in_with (closed_nil ops) (fun _ => None) fuel ops.
+Definition surface_out fuel ops := surface_out_with (closed_nil ops) (fun _ => None) fuel ops.
 
 Definition bool_term (b : bool) := Symbol (if b then "true" else "false").
 Definition as_bool (t : term) : option bool :=
@@ -292,12 +378,18 @@ Fixpoint find_index (x : term) (xs : list term) (n : nat) : term :=
     turns a failed selected case into the program's fallback case. *)
 Definition primitive_hook := string -> list term -> option term.
 Definition no_extension : primitive_hook := fun _ _ => None.
-Definition native (extra : primitive_hook) (ops : list (string * term))
+Definition native_with_nils (nilof : nil_query) (typeof : term -> option term) (extra : primitive_hook) (ops : list (string * term))
     (name : string) (args : list term) : option term :=
   let list_of op t :=
-    match op with Symbol s => match named s ops with Some terminator => list_elements op terminator t | _ => None end | _ => None end in
+    match op with Symbol s => match nil_list_value nilof s (typeof t) with Some terminator => list_elements op terminator t | _ => None end | _ => None end in
   let rebuild op xs :=
-    match op with Symbol s => option_map (fun terminator => make_list op terminator xs) (named s ops) | _ => None end in
+    match op with Symbol s => option_map (fun terminator => make_list op terminator xs) (match xs with
+      | x :: _ => nilof s (typeof x)
+      | [] => match args with
+          | _ :: witness :: _ =>
+              if String.eqb name "eo::list_repeat" then nilof s (typeof witness)
+              else nil_list_value nilof s (typeof witness)
+          | _ => None end end) | _ => None end in
   match name, args with
   | "eo::not", [a] => option_map (fun b => bool_term (negb b)) (as_bool a)
   | "eo::and", [a; b] | "eo::or", [a; b] | "eo::xor", [a; b] =>
@@ -306,8 +398,10 @@ Definition native (extra : primitive_hook) (ops : list (string * term))
       | _, _ => extra name args
       end
   | "eo::is_bool", [a] => Some (bool_term (match as_bool a with Some _ => true | _ => false end))
-  | "eo::is_z", [a] => Some (bool_term (is_integer a))
-  | "eo::is_q", [a] => Some (bool_term (is_rational a))
+  | "eo::is_z", [a] => match extra "eo::supports" [Symbol name] with
+      | Some (Symbol "true") => extra name args | _ => Some (bool_term (is_integer a)) end
+  | "eo::is_q", [a] => match extra "eo::supports" [Symbol name] with
+      | Some (Symbol "true") => extra name args | _ => Some (bool_term (is_rational a)) end
   | "eo::is_bin", [Symbol s] => Some (bool_term (prefix "#b" s || prefix "#x" s))
   | "eo::is_str", [Symbol s] => Some (bool_term (prefix """" s))
   | "eo::is_bin", [_] | "eo::is_str", [_] => Some (bool_term false)
@@ -336,9 +430,11 @@ Definition native (extra : primitive_hook) (ops : list (string * term))
   | "eo::list_singleton_intro", [op; a] => match list_of op a with Some _ => Some a | _ => rebuild op [a] end
   | "eo::list_repeat", [op; a; n] => match as_nat n with Some k => rebuild op (repeat a k) | _ => None end
   | "eo::cons", [op; a; tl] => match list_of op tl with Some xs => rebuild op (a :: xs) | _ => None end
-  | "eo::nil", [Symbol op; _] => named op ops
+  | "eo::nil", [Symbol op; ty] => nil_list_value nilof op (Some ty)
   | _, _ => extra name args
   end.
+
+Definition native extra ops := native_with_nils (closed_nil ops) (fun _ => None) extra ops.
 
 (** Fuel bounds expression traversal and recursive helper calls. Matching is
     purely syntactic as in Ethos evaluateProgramInternal (f97393e), not a second
@@ -346,45 +442,119 @@ Definition native (extra : primitive_hook) (ops : list (string * term))
     metadata: inserting dynamic type checks here would reject legal traversals
     of polymorphic partial applications (e.g. congruence reaches bare =).
     Rule binders and explicit eo::typeof queries still use the supplied query. *)
-Fixpoint evaluate_with (extra : primitive_hook) (ops : list (string * term))
-    (fuel : nat) (typeof : term -> option term)
+(** A stuck *available* operation differs from a missing implementation. EO
+    kind/is_ok predicates can observe the former. Missing primitives and fuel
+    exhaustion propagate through those predicates and cannot manufacture false. *)
+Inductive computation (A : Type) := Done : A -> computation A | Stuck | Missing : string -> computation A.
+Arguments Done {A} _.
+Arguments Stuck {A}.
+Arguments Missing {A} _.
+Definition from_option {A} (x : option A) : computation A :=
+  match x with Some v => Done v | None => Stuck end.
+Definition computed {A} (x : computation A) : option A :=
+  match x with Done v => Some v | _ => None end.
+Definition bind_computation {A B} (x : computation A) (f : A -> computation B) : computation B :=
+  match x with Done v => f v | Stuck => Stuck | Missing reason => Missing reason end.
+
+Fixpoint evaluate_computation (nilof : nil_query) (extra : primitive_hook)
+    (ops : list (string * term)) (fuel : nat) (typeof : term -> option term)
     (programs : list (string * program)) (env : bindings) (e : expression)
-    : option term :=
+    : computation term :=
   match fuel with
-  | O => None
+  | O => Missing "fuel exhausted"
   | S k =>
-    let ev := evaluate_with extra ops k typeof programs env in
-    let fix eval_args (xs : list expression) : option (list term) :=
+    let ev := evaluate_computation nilof extra ops k typeof programs env in
+    let fix eval_args (xs : list expression) : computation (list term) :=
       match xs with
-      | [] => Some []
-      | a :: tl => match ev a, eval_args tl with Some t, Some ts => Some (t :: ts) | _, _ => None end
+      | [] => Done []
+      | a :: tl =>
+          match ev a, eval_args tl with
+          | Done t, Done ts => Done (t :: ts)
+          | Missing reason, _ => Missing reason
+          | _, Missing reason => Missing reason
+          | _, _ => Stuck end
       end in
+    let binary a b f := match ev a, ev b with
+      | Done x, Done y => f x y
+      | Missing reason, _ => Missing reason
+          | _, Missing reason => Missing reason
+      | _, _ => Stuck end in
     match e with
-    | EVar n => lookup n env
-    | ESymbol s => Some (Symbol s)
-    | EApply f a => match ev f, ev a with Some g, Some b => Some (Apply g b) | _, _ => None end
-    | EIsOk a => Some (bool_term (match ev a with Some _ => true | None => false end))
-    | EIsEq a b => Some (bool_term (match ev a, ev b with Some x, Some y => term_eqb x y | _, _ => false end))
-    | EEq a b => match ev a, ev b with Some x, Some y => Some (bool_term (term_eqb x y)) | _, _ => None end
-    | EIf c a b => match ev c with Some (Symbol "true") => ev a | Some (Symbol "false") => ev b | _ => None end
-    | ERequires a b body => match ev a, ev b with Some x, Some y => if term_eqb x y then ev body else None | _, _ => None end
-    | ETypeof a => match ev a with Some t => typeof t | None => None end
-    | ELet n value body => match ev value with Some t => evaluate_with extra ops k typeof programs ((n, t) :: env) body | None => None end
-    | ENative name args => match eval_args args with Some ts => native extra ops name ts | _ => None end
+    | ENil op ty => bind_computation (ev ty) (fun t => match nilof op (Some t) with Some z => Done z | None => Missing ("nil " ++ op) end)
+    | EVar n => match lookup n env with Some t => Done t | None => Missing "unbound variable" end
+    | ESymbol s => Done (Symbol s)
+    | EApply f a => binary f a (fun g b => Done (Apply g b))
+    | EIsOk a => match ev a with
+        | Done _ => Done (bool_term true) | Stuck => Done (bool_term false) | Missing reason => Missing reason end
+    | EIsEq a b => match ev a, ev b with
+        | Done x, Done y => Done (bool_term (term_eqb x y))
+        | Missing reason, _ => Missing reason
+          | _, Missing reason => Missing reason | _, _ => Done (bool_term false) end
+    | EEq a b => binary a b (fun x y => Done (bool_term (term_eqb x y)))
+    | EIf c a b => match ev c with
+        | Done (Symbol "true") => ev a | Done (Symbol "false") => ev b
+        | Missing reason => Missing reason | _ => Stuck end
+    | ERequires a b body => binary a b (fun x y => if term_eqb x y then ev body else Stuck)
+    | ETypeof a => bind_computation (ev a) (fun t => match typeof t with Some ty => Done ty | None => Missing "eo::typeof" end)
+    | ELet n value body => bind_computation (ev value) (fun t =>
+        evaluate_computation nilof extra ops k typeof programs ((n, t) :: env) body)
+    | ENative name args =>
+        match eval_args args with
+        | Missing reason => Missing reason
+        | Stuck =>
+            if existsb (String.eqb name) ["eo::is_z"; "eo::is_q"; "eo::is_bin"; "eo::is_str"; "eo::is_bool"]
+            then Done (bool_term false) else Stuck
+        | Done ts => match native_with_nils nilof typeof extra ops name ts with
+            | Some t => Done t
+            | None =>
+                if existsb (String.eqb name)
+                    ["eo::not"; "eo::and"; "eo::or"; "eo::xor";
+                     "eo::list_rev"; "eo::list_len"; "eo::list_nth"; "eo::list_find";
+                     "eo::list_erase"; "eo::list_erase_all"; "eo::list_setof"; "eo::list_concat";
+                     "eo::list_diff"; "eo::list_inter"; "eo::list_minclude"; "eo::list_meq";
+                     "eo::list_singleton_elim"; "eo::list_singleton_intro"; "eo::list_repeat";
+                     "eo::cons"; "eo::nil"] then Stuck
+                else match extra "eo::supports" [Symbol name] with
+                | Some (Symbol "true") => Stuck | _ => Missing name end
+            end
+        end
     | ECall name args =>
         match named name programs, eval_args args with
-        | Some p, Some ts =>
-            match select_case (program_cases p) ts [] with
-            | Some (env', body) => evaluate_with extra ops k typeof programs env' body
-            | None => None
-            end
-        | _, _ => None
+        | Some p, Done ts =>
+            match select_case_with nilof typeof (program_cases p) ts [] with
+            | Some (bs, body) => evaluate_computation nilof extra ops k typeof programs bs body
+            | None => Stuck end
+        | None, _ => Missing ("program " ++ name)
+        | _, Missing reason => Missing reason
+        | _, _ => Stuck
         end
     end
   end.
+Definition evaluate_with_nils nilof extra ops fuel typeof programs env e :=
+  computed (evaluate_computation nilof extra ops fuel typeof programs env e).
+
+Definition evaluate_with extra ops := evaluate_with_nils (closed_nil ops) extra ops.
 Definition evaluate := evaluate_with no_extension [].
 
-Definition run_rule_assuming_with (extra : primitive_hook) (ops : list (string * term))
+Definition nil_spec := (option (pattern * pattern) * expression)%type.
+Definition resolve_nil_mode extra ops fuel typeof programs (specs : list (string * nil_spec))
+    (list_argument : bool) op ty : option term :=
+  match named op specs with
+  | None => named op ops
+  | Some (domains, body) =>
+      let env := match domains, ty with
+        | None, _ => Some []
+        | Some (element, tail), Some t =>
+            match_pattern (if list_argument then tail else element) t []
+        | _, _ => None end in
+      match env with Some bs => evaluate_with extra ops fuel typeof programs bs body | None => None end
+  end.
+Definition resolve_nil extra ops fuel typeof programs (specs : list (string * nil_spec)) : nil_query :=
+  {| nil_known := fun op => match named op specs, named op ops with None, None => false | _, _ => true end;
+     nil_value := resolve_nil_mode extra ops fuel typeof programs specs false;
+     nil_list_value := resolve_nil_mode extra ops fuel typeof programs specs true |}.
+
+Definition run_rule_assuming_with_nils (nilof : nil_query) (extra : primitive_hook) (ops : list (string * term))
     (fuel : nat) (typeof : term -> option term)
     (programs : list (string * program)) (rules : list (string * rule))
     (name : string) (assumption : option term) (args premises : list term) : option term :=
@@ -399,21 +569,28 @@ Definition run_rule_assuming_with (extra : primitive_hook) (ops : list (string *
     let assumed := match rule_assumption r, assumption with
       | None, None => Some []
       | Some pat, Some t =>
-          if has_type typeof t (Symbol "Bool") then match_pattern pat t [] else None
+          if has_type typeof t (Symbol "Bool") then match_pattern_with nilof typeof pat t [] else None
       | _, _ => None
       end in
     match gathered, assumed with
     | Some ps, Some initial =>
-    match match_patterns (rule_arguments r ++ rule_premises r) (args ++ ps) initial with
+    match match_patterns_with nilof typeof (rule_arguments r ++ rule_premises r) (args ++ ps) initial with
     | None => None
     | Some env =>
       if Nat.eqb (List.length args) (List.length (rule_arguments r)) &&
          Nat.eqb (List.length ps) (List.length (rule_premises r)) &&
          forallb (fun t => has_type typeof t (Symbol "Bool")) premises then
-        match typed_bindings typeof (rule_binders r) env with
+        let patterns := (rule_arguments r ++ rule_premises r)%list in
+        let values := (args ++ ps)%list in
+        let hints := match collect_application_hints typeof patterns values [] with
+          | Some hs => match rule_assumption r, assumption with
+              | Some pat, Some t => application_hints typeof pat t None hs
+              | _, _ => Some hs end
+          | None => None end in
+        match (match hints with Some hs => typed_bindings_with_hints typeof hs (rule_binders r) env | None => None end) with
         | None => None
         | Some checked =>
-          let ev := evaluate_with extra ops fuel typeof programs checked in
+          let ev := evaluate_with_nils nilof extra ops fuel typeof programs checked in
           if forallb (fun req => match ev (fst req), ev (snd req) with Some x, Some y => term_eqb x y | _, _ => false end) (rule_requires r) then
             match ev (rule_conclusion r) with
             | Some t => if has_type typeof t (Symbol "Bool") then Some t else None
@@ -426,36 +603,41 @@ Definition run_rule_assuming_with (extra : primitive_hook) (ops : list (string *
     | _, _ => None
     end
   end.
+Definition run_rule_assuming_with extra ops := run_rule_assuming_with_nils (closed_nil ops) extra ops.
+
 Definition run_rule_with extra ops fuel typeof programs rules name args premises :=
   run_rule_assuming_with extra ops fuel typeof programs rules name None args premises.
 Definition run_rule := run_rule_with no_extension [].
 
-Definition run_surface_rule_assuming_with (extra : primitive_hook) (fuel : nat)
+Definition run_surface_rule_assuming_with_nils (nilof : nil_query) (extra : primitive_hook) (fuel : nat)
     (typeof : term -> option term) (ops : list (string * term))
     (programs : list (string * program)) (rules : list (string * rule))
     (name : string) (assumption : option term) (args premises : list term) : option term :=
   let fix visit xs :=
     match xs with
     | [] => Some []
-    | x :: tl => match surface_in fuel ops x, visit tl with Some y, Some ys => Some (y :: ys) | _, _ => None end
+    | x :: tl => match surface_in_with nilof typeof fuel ops x, visit tl with Some y, Some ys => Some (y :: ys) | _, _ => None end
     end in
   let internal_type t :=
-    match surface_out fuel ops t with
+    match surface_out_with nilof typeof fuel ops t with
     | Some s => typeof s
     | _ => None
     end in
   let assumed := match assumption with
     | None => Some None
-    | Some t => option_map (@Some term) (surface_in fuel ops t)
+    | Some t => option_map (@Some term) (surface_in_with nilof typeof fuel ops t)
     end in
   match visit args, visit premises, assumed with
   | Some xs, Some ps, Some a =>
-    match run_rule_assuming_with extra ops fuel internal_type programs rules name a xs ps with
-    | Some t => surface_out fuel ops t
+    match run_rule_assuming_with_nils nilof extra ops fuel internal_type programs rules name a xs ps with
+    | Some t => surface_out_with nilof typeof fuel ops t
     | _ => None
     end
   | _, _, _ => None
   end.
+Definition run_surface_rule_assuming_with extra fuel typeof ops :=
+  run_surface_rule_assuming_with_nils (closed_nil ops) extra fuel typeof ops.
+
 Definition run_surface_rule_with extra fuel typeof ops programs rules name args premises :=
   run_surface_rule_assuming_with extra fuel typeof ops programs rules name None args premises.
 Definition run_surface_rule := run_surface_rule_with no_extension.

@@ -83,17 +83,20 @@ CpcGenerated.derive_with : primitive_hook -> nat ->
   (term -> option term) -> string -> list term -> list term -> option term
 ```
 
-`derive = derive_with no_extension`. The hook implements generic EO literal
+`derive = derive_with default_primitive`; the default dispatches literal
+operations to `EoArithmetic.eval` and `eo::cmp` to `EoOrder.eval`. The hook implements generic EO literal
 operations, not CPC rules. It receives evaluated **internal** syntax arguments
 and returns internal syntax or `None`. Native Booleans, literal predicates and
-operator-aware list operations are supplied by the runtime. Unimplemented
-arithmetic, bit-vector, string, datatype and comparison primitives fail closed.
+operator-aware list operations are supplied by the runtime. Unimplemented bit-vector, string and datatype primitives fail closed.
 The manifest records all referenced native operations; full helper bodies and
 all source includes are retained even for branches that reach an unavailable
 primitive. An arithmetic extension should implement exact signed/rational
 literal arithmetic here, leaving relation tables, polynomial algorithms and
-rule guards generated from `.eo`. Dependent arithmetic nil elaboration remains
-a separate required extension; the hook alone does not enable those operators.
+rule guards generated from `.eo`. Dependent nil elaboration uses source-generated `cpc_nils`, `ENil` and `PNil`.
+`resolve_nil` matches the constructor element or tail domain type against a queried operand type,
+binds its implicit parameters, then evaluates the signature's nil body. Closed
+nil operators use `cpc_operators`. Neither mechanism changes public `Symbol` or
+`Apply` terms.
 
 ## Build ownership
 
@@ -137,3 +140,32 @@ exact_local_clause -> option clause` must faithfully encode both supplied
 arguments from the checked tables, call `derive_assuming`, bind the result,
 and use the proved conditional invariant/discharge in `EunoiaScope`. Neither
 entry point proves a local premise unconditionally or authorizes a State write.
+
+
+## LIA computation additions
+
+`evaluate_computation` exposes `Done term`, `Stuck`, and `Missing reason`.
+An available arithmetic conversion of a variable is stuck; EO predicates can
+observe that result as specified by Ethos. A missing implementation or type
+query propagates through `is_ok`, `is_eq`, and literal predicates. Custom hooks
+should answer `eo::supports [Symbol native_name]` with `true` only for operations
+they implement. A successful result from an old hook still works without the
+capability response; `None` from such a hook is treated as missing.
+
+`collect_application_hints` derives function-variable types from exact matched
+application contexts using the supplied argument/result type query. Hints are
+indexed by source binder ID and must agree at repeated occurrences and with
+any explicit query result. They never assign an arbitrary integer type to bare
+polymorphic equality. Program annotations remain metadata as before; this
+contextual check applies to rule binders.
+
+`cpc_signature_names : list string` contains every constant, parameterized
+constant, alias/macro name in the entire pinned include closure, plus native
+`Type`, `Bool`, Boolean values, arrow and meta-list constructors. It excludes
+rule names, program names, local binders and extension hooks. It includes
+unselected/unsupported constants so a reader can prevent lexical shadowing;
+namespace membership is not semantic support or step acceptance.
+
+Required surface query examples and build integration details appear in
+[LIA-VALIDATION.md](LIA-VALIDATION.md). No shared dune file is modified here;
+retain the parent's `tools/eunoia/dune` dependency additions during integration.

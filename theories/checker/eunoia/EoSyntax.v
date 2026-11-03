@@ -15,10 +15,12 @@ Fixpoint term_eqb (x y : term) : bool :=
 
 Inductive pattern : Type :=
 | PVar : nat -> pattern
+| PNil : string -> pattern
 | PSymbol : string -> pattern
 | PApply : pattern -> pattern -> pattern.
 
 Inductive expression : Type :=
+| ENil : string -> expression -> expression
 | EVar : nat -> expression
 | ESymbol : string -> expression
 | EApply : expression -> expression -> expression
