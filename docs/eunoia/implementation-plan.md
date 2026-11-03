@@ -72,3 +72,30 @@ solver-only timings separately. Do not claim Lean-SMT or Sledgehammer comparison
 without compatible measured or published evidence. Make small local commits;
 never push or publish. The final PR draft belongs at the user-requested path
 outside this repository and must describe actual verified coverage and limits.
+
+## Foundation integration evidence
+
+All eight initial child jobs, the strict proof reader, and the structural
+term/clause adapter have been merged. Their reports document exact source pins,
+commands, coverage limits and retained logs. The initial generator supports 13
+rules, not the complete UF/LIA trace surface. The concrete semantic bridge
+supports one existing checker operation per generated result. The remaining
+generator expansion, local certificates, scoped checker, witness production
+and tactic pipeline are dependent implementation work, not optional polish.
+
+At `227a3f8`, both `smtrocq-env dune build -j2` and `smtrocq-env dune runtest -j2`
+completed with exit code 0. Logs are `/tmp/smtrocq-foundations-full-build.log`
+and `/tmp/smtrocq-foundations-full-tests.log`. After the adapter merge,
+`dune build @install -j2` also passed. The coordinator's assumption audits passed
+for four core/bridge declarations, nine UF/LIA bridge declarations and all eight
+adapter declarations, against `baseline-assumptions.txt`. Their full outputs
+and JSON summaries are in `/tmp/smtrocq-integrated-{core,bridges,adapter}-assumptions/`.
+These checks do not yet audit a tactic correctness lemma or an end-to-end CPC
+proof, because that integration is still unfinished.
+
+The Logos survey retrieved the two issue #485 replies through the comments API;
+the initial web rendering had omitted them. See `logos-design.md` for the exact
+comments and optimization suggestions. The old-backend measurements and their
+limits are retained at `/tmp/smtrocq-eunoia-baseline-20261103-946ad9fd/report.txt`.
+The local PR draft at the requested path has been updated with these milestones,
+the measured baseline table, and explicit unfinished completion requirements.
