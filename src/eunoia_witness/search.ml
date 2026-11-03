@@ -157,8 +157,8 @@ let produce ?(limits=default_limits) ~atoms ~forms ~premises ~conclusion () =
         register id c;
         if c = [] then raise (Conflict id)
       end in
-    let resolve_pending () =
-      while not (Queue.is_empty units && Queue.is_empty pending) do
+    let resolve_pending ?(units_only=false) () =
+      while not (Queue.is_empty units && (units_only || Queue.is_empty pending)) do
         let id = Queue.take (if Queue.is_empty units then pending else units) in
         let c = Hashtbl.find clauses id in
         if c = [] then raise (Conflict id);
@@ -289,12 +289,17 @@ let produce ?(limits=default_limits) ~atoms ~forms ~premises ~conclusion () =
       end;
       List.iter cnf (form_list ());
       let rec rounds n =
-        resolve_pending ();
-        if n >= limits.max_theory_rounds then raise (Fail (Resource_limit "theory rounds"));
+        resolve_pending ~units_only:true ();
+        if n >= limits.max_theory_rounds then begin
+          resolve_pending (); raise (Fail (Resource_limit "theory rounds"))
+        end;
         let before = !next in
         theory ();
         try_lia (List.map Form.neg (List.filter (fun f ->
           lia_count := 0; lia_form f) (unit_forms ())));
+        (* Conditional EUF clauses must be available before unrestricted
+           propositional saturation of the Boolean definitions. *)
+        resolve_pending ();
         if !next = before then raise (Fail Unsupported);
         rounds (n+1) in rounds 0 in
     (try run () with Conflict id -> Ok (finish id))
