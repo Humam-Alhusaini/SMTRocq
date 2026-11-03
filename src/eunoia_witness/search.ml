@@ -444,7 +444,7 @@ let produce ?(limits=default_limits) ~atoms ~forms ~premises ~conclusion () =
           match ff.(i) with
           | Fatom a -> atom a
           | Fapp (_,xs) -> Array.iter (fun f -> form (Form.index f)) xs
-          | FbbT (a,_) -> atom a
+          | FbbT (a,xs) -> atom a; List.iter (fun f -> form (Form.index f)) xs
         end in
       List.iter (fun l -> form (l lsr 1)) literals;
       (* Include nested atoms, but never the default array sentinel. *)
