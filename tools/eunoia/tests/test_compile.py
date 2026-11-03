@@ -264,6 +264,62 @@ class CompileTests(unittest.TestCase):
         self.assertEqual(manifest['selected_rules'], ['novel_integer_boundary'])
         self.assertIn('("novel_integer_boundary",', code)
 
+    def test_integer_cast_rules_are_generic_source_declarations(self):
+        for name in ['arith-int-eq-conflict', 'arith-int-geq-tighten']:
+            compiler = eoc.Compiler(INITIAL)
+            decl = compiler.decls[name]
+            forms = eoc.parse(decl.path.read_text().replace('declare-rule ' + name + ' ',
+                'declare-rule novel_cast_rule '), decl.path)
+            compiler.decls['novel_cast_rule'] = next(n for n in forms if n.kind == 'list'
+                and len(n.value) > 1 and n.value[1].value == 'novel_cast_rule')
+            code, manifest = compiler.compile(['novel_cast_rule'])
+            self.assertEqual(manifest['selected_rules'], ['novel_cast_rule'])
+            self.assertIn('("novel_cast_rule",', code)
+            self.assertNotIn(name, manifest['selected_rules'])
+            self.assertIn('ESymbol "to_real"', code)
+            self.assertIn('PSymbol "to_int"', code)
+
+    def test_integer_source_corruption_changes_computation_data(self):
+        from integer_mutations import MUTATIONS, mutated_compiler
+        original, _ = eoc.Compiler(INITIAL).compile(RULES)
+        for module, name, old, new in MUTATIONS:
+            with self.subTest(module=module):
+                changed, manifest = mutated_compiler(name, old, new).compile(RULES)
+                self.assertNotEqual(changed, original)
+                self.assertEqual(manifest['selected_rules'], sorted(RULES))
+                # Mutation is in memory; pinned source hashes remain original.
+                self.assertEqual(manifest['sources'], eoc.Compiler(INITIAL).compile(RULES)[1]['sources'])
+
+    def test_polymorphic_metadata_is_source_driven(self):
+        _, manifest = eoc.Compiler(INITIAL).compile(RULES)
+        self.assertIn('=', manifest['polymorphic_operators'])
+        self.assertNotIn('to_real', manifest['polymorphic_operators'])
+        source = ('(declare-parameterized-const polymorphic ((T Type :implicit)) (-> T T))\n'
+                  + RULE.replace(':conclusion F', ':conclusion (polymorphic F)'))
+        _, novel = self.compile_text(source)
+        self.assertEqual(novel['polymorphic_operators'], ['polymorphic'])
+        _, mono = self.compile_text(source.replace('((T Type :implicit))', '((T Type))'))
+        self.assertEqual(mono['polymorphic_operators'], [])
+
+    def test_integer_capture_provenance(self):
+        import hashlib, json
+        fixtures = ROOT / 'tools/eunoia/tests/integer-fixtures'
+        data = json.loads((fixtures / 'provenance.json').read_text())
+        self.assertEqual(len(data), 3)
+        for name, capture in data.items():
+            self.assertEqual(capture['exit_code'], 0)
+            self.assertEqual(hashlib.sha256((ROOT / capture['input']).read_bytes()).hexdigest(), capture['input_sha256'])
+            proof = (fixtures / (name + '.cpc')).read_bytes()
+            self.assertEqual(hashlib.sha256(proof).hexdigest(), capture['proof_sha256'])
+            self.assertEqual(len(proof), capture['bytes'])
+            self.assertEqual((fixtures / (name + '.stderr')).read_bytes(), b'')
+            for flag in ['--proof-granularity=dsl-rewrite', '--no-proof-allow-trust',
+                         '--proof-check=eager', '--check-proofs-complete']:
+                self.assertIn(flag, capture['argv'])
+        options = json.loads((fixtures / 'parity-solver-options.json').read_text())
+        self.assertEqual(len(options), 4)
+        self.assertTrue(all(x['exit'] == 0 and x['bytes'] == 796 for x in options))
+
 
 if __name__ == '__main__':
     unittest.main()
