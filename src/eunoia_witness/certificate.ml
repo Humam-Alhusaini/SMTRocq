@@ -18,6 +18,7 @@ type action =
   | ImmFlatten of clause_id * clause_id * literal
   | EqTr of clause_id * literal * literal list
   | EqCgr of clause_id * literal * literal option list
+  | BoolCongr of clause_id * literal * literal option list
   | EqCgrP of clause_id * literal * literal * literal option list
   | LiaMicromega of clause_id * clause * lia_proof
 type command = { action : action; expected : clause }
@@ -31,7 +32,7 @@ type witness = {
 let output = function
   | Res (p,_,_) | CFalse p | CTrue p | BuildDef (p,_) | BuildDef2 (p,_)
   | BuildProj (p,_,_) | ImmFlatten (p,_,_) | EqTr (p,_,_) | EqCgr (p,_,_)
-  | EqCgrP (p,_,_,_) | LiaMicromega (p,_,_) -> p
+  | BoolCongr (p,_,_) | EqCgrP (p,_,_,_) | LiaMicromega (p,_,_) -> p
 let reads = function Res (_,a,b) -> [a;b] | ImmFlatten (_,a,_) -> [a] | _ -> []
 let canonical c = List.sort_uniq Int.compare c
 
@@ -71,6 +72,7 @@ let to_coq ~local ~step w =
     | EqTr (p,l,ls) -> app (step "EqTr") [int p;int l;clause ls]
     | EqCgr (p,l,ls) -> app (step "EqCgr")
         [int p;int l;list option_ty option ls]
+    | BoolCongr _ -> invalid_arg "BoolCongr is a local command"
     | EqCgrP (p,a,b,ls) -> app (step "EqCgrP")
         [int p;int a;int b;list option_ty option ls]
     | LiaMicromega (p,c,proof) -> app (step "LiaMicromega")
@@ -79,6 +81,9 @@ let to_coq ~local ~step w =
   let clause_ty = app (Lazy.force clist) [ty] in
   let pair_ty = app (Lazy.force cprod) [ty;clause_ty] in
   let root (id,c) = app (Lazy.force cpair) [ty;clause_ty;int id;clause c] in
-  let command cmd = app (local "Command") [act cmd.action;clause cmd.expected] in
+  let command cmd = match cmd.action with
+    | BoolCongr (p,l,ls) -> app (local "BoolCongrCommand")
+        [int p;int l;list option_ty option ls;clause cmd.expected]
+    | a -> app (local "Command") [act a;clause cmd.expected] in
   app (local "Witness") [int w.capacity;list pair_ty root w.root_claims;
     list (local "command") command w.program;int w.conflict]

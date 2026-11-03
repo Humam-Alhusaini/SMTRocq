@@ -28,9 +28,19 @@ let profile_sequence = ref 0
 let pos f = if Form.is_pos f then f else Form.neg f
 let lit = Form.to_lit
 let neg l = l lxor 1
-let eq f = match Form.pform f with
-  | Fatom a -> (match Atom.atom a with Abop (BO_eq _,a,b) -> Some (a,b) | _ -> None)
-  | _ -> None
+let atom_view f = if Form.is_pos f then match Form.pform f with
+  | Fatom a when SmtBtype.HashedBtype.equal (Atom.type_of a) SmtBtype.Tbool -> Some a
+  | _ -> None else None
+let eq f = if Form.is_pos f then match Form.pform f with
+  | Fatom a -> (match Atom.atom a with
+    | Abop (BO_eq ty,a,b) when
+        SmtBtype.HashedBtype.equal (Atom.type_of a) ty &&
+        SmtBtype.HashedBtype.equal (Atom.type_of b) ty -> Some (a,b)
+    | _ -> None)
+  | Fapp (Fiff,xs) when Array.length xs = 2 ->
+    (match atom_view xs.(0),atom_view xs.(1) with
+     | Some a,Some b -> Some (a,b) | _ -> None)
+  | _ -> None else None
 let tautology c = List.exists (fun l -> List.mem (neg l) c) c
 let rec subset a b = match a,b with
   | [],_ -> true | _,[] -> false
@@ -198,6 +208,7 @@ let produce_search ?(limits=default_limits) ~atoms ~forms ~premises ~conclusion 
           | ImmFlatten (_,a,l) -> ImmFlatten (p,slot a,l)
           | EqTr (_,l,ls) -> EqTr (p,l,ls)
           | EqCgr (_,l,ls) -> EqCgr (p,l,ls)
+          | BoolCongr (_,l,ls) -> BoolCongr (p,l,ls)
           | EqCgrP (_,a,b,ls) -> EqCgrP (p,a,b,ls)
           | LiaMicromega (_,c,proof) -> LiaMicromega (p,c,proof) in
         {cmd with action}) program in
@@ -243,7 +254,11 @@ let produce_search ?(limits=default_limits) ~atoms ~forms ~premises ~conclusion 
       |> List.sort (fun a b -> Int.compare (lit a) (lit b)) in
     let cnf f = List.iter (fun (mk,c) -> add mk c) (definitions f) in
     let intern_eq a b =
-      let f = Form.get forms (Fatom (Atom.get atoms
+      let f = if SmtBtype.HashedBtype.equal (Atom.type_of a) SmtBtype.Tbool then begin
+        let fa = Form.get forms (Fatom a) and fb = Form.get forms (Fatom b) in
+        remember fa; remember fb;
+        Form.get forms (Fapp (Fiff,[|fa;fb|]))
+      end else Form.get forms (Fatom (Atom.get atoms
         (Abop (BO_eq (Atom.type_of a),a,b)))) in
       remember f; f in
     let unit_forms () = List.filter_map (fun f ->
@@ -272,8 +287,13 @@ let produce_search ?(limits=default_limits) ~atoms ~forms ~premises ~conclusion 
               Hashtbl.add seen (Atom.index y) (); Queue.add (y,f::rev) q end)
               (Stdlib.Option.value ~default:[] (Hashtbl.find_opt graph (Atom.index x)));
             loop () end in loop () in
-      let trans f path = add (fun p -> EqTr (p,lit f,List.map lit path))
-        (lit f :: List.map (fun f -> neg (lit f)) path) in
+      let trans f path = match Form.pform f with
+        | Fapp (Fiff,_) ->
+          (* Boolean equality paths are propositional implications. Their
+             definitions and the existing checked resolutions discharge them. *)
+          cnf f; List.iter cnf path
+        | _ -> add (fun p -> EqTr (p,lit f,List.map lit path))
+            (lit f :: List.map (fun f -> neg (lit f)) path) in
       List.iter (fun f -> match eq f with
         | Some (a,b) when not (Hashtbl.mem known [lit f]) ->
           (* Using the target edge itself only yields a tautology and hides
@@ -288,6 +308,7 @@ let produce_search ?(limits=default_limits) ~atoms ~forms ~premises ~conclusion 
             | a::xs,b::ys when Atom.equal a b -> loop xs ys (None::acc)
             | a::xs,b::ys -> (match path a b with
               | None -> None
+              | Some [f] -> loop xs ys (Some (lit f)::acc)
               | Some es -> let f = intern_eq a b in trans f es;
                 loop xs ys (Some (lit f)::acc))
             | _ -> None in loop xs ys [] in
@@ -307,7 +328,17 @@ let produce_search ?(limits=default_limits) ~atoms ~forms ~premises ~conclusion 
           match arguments a b with
           | None -> ()
           | Some es -> let f = intern_eq a b in
-            add (fun p -> EqCgr (p,lit f,es)) (lit f :: neg_args es)) ts) ts;
+            let needs_bridge = match Form.pform f with Fapp (Fiff,_) -> true | _ ->
+              List.exists (function None -> false | Some l ->
+                match Form.pform (Hashtbl.find relevant (l lsr 1)) with
+                | Fapp (Fiff,_) -> true | _ -> false) es in
+            if needs_bridge then begin
+              match Atom.atom a,Atom.atom b with
+              | Aapp _,Aapp _ ->
+                add (fun p -> BoolCongr (p,lit f,es)) (lit f :: neg_args es);
+                cnf f
+              | _ -> ()
+            end else add (fun p -> EqCgr (p,lit f,es)) (lit f :: neg_args es)) ts) ts;
       let predicates = List.filter_map (fun f -> match Form.pform f with
         (* Equality is a Boolean predicate too. In particular, a generated
            congruence on (= x z) may conclude an iff before either equality
@@ -317,7 +348,16 @@ let produce_search ?(limits=default_limits) ~atoms ~forms ~premises ~conclusion 
       List.iter (fun (fa,a) -> List.iter (fun (fb,b) ->
         if not (Form.equal fa fb) then match arguments a b with
           | None -> ()
-          | Some es -> add (fun p -> EqCgrP (p,lit fa,lit fb,es))
+          | Some es ->
+            let needs_bridge = List.exists (function None -> false | Some l ->
+              match Form.pform (Hashtbl.find relevant (l lsr 1)) with
+              | Fapp (Fiff,_) -> true | _ -> false) es in
+            if needs_bridge then begin
+              match Atom.atom a,Atom.atom b with
+              | Aapp _,Aapp _ -> let f = intern_eq a b in
+                add (fun p -> BoolCongr (p,lit f,es)) (lit f :: neg_args es); cnf f
+              | _ -> ()
+            end else add (fun p -> EqCgrP (p,lit fa,lit fb,es))
               (neg (lit fa) :: lit fb :: neg_args es)) predicates) predicates in
     let lia_count = ref 0 in
     let rec lia_form f =
@@ -468,7 +508,7 @@ let produce ?(limits=default_limits) ~atoms ~forms ~premises ~conclusion () =
               | BuildDef (_,l) | BuildDef2 (_,l) | BuildProj (_,l,_) -> [l]
               | ImmFlatten (_,_,l) -> [l]
               | EqTr (_,l,ls) -> l::ls
-              | EqCgr (_,l,ls) -> l::List.filter_map Fun.id ls
+              | EqCgr (_,l,ls) | BoolCongr (_,l,ls) -> l::List.filter_map Fun.id ls
               | EqCgrP (_,a,b,ls) -> a::b::List.filter_map Fun.id ls
               | LiaMicromega (_,c,_) -> c in
             action @ cmd.expected) w.program in

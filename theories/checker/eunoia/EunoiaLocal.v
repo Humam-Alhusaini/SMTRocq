@@ -6,6 +6,7 @@ From Stdlib Require Import List Bool Uint63.
 From SMTCoq.utils Require Import Misc PArray.
 From SMTCoq.checker.fol Require Import State Terms.
 From SMTCoq.checker Require Import MainChecker.
+From SMTCoq.checker.eunoia Require Import EunoiaBool.
 
 Import ListNotations.
 Local Open Scope uint63_scope.
@@ -130,7 +131,16 @@ Qed.
 (* No proof-valued constructors exist in this witness language. Checker_Ext
    includes BV/array shapes, but decode rejects these unsupported operations.
    Every accepted operation explicitly enumerates ALL its local clause reads. *)
-Record command := Command { action : Checker_Ext.step; expected : C.t }.
+Inductive command :=
+| Command (a : Checker_Ext.step) (expected : C.t)
+| BoolCongrCommand (pos : clause_id) (res : _lit)
+    (eqs : list (option _lit)) (expected : C.t).
+
+(* Preserve the old constructor, with an honest optional core projection. *)
+Definition action (cmd : command) : option Checker_Ext.step :=
+  match cmd with Command a _ => Some a | BoolCongrCommand _ _ _ _ => None end.
+Definition expected (cmd : command) : C.t :=
+  match cmd with Command _ c | BoolCongrCommand _ _ _ c => c end.
 Record witness := Witness {
   capacity : int;
   root_claims : list (clause_id * C.t);
@@ -214,8 +224,8 @@ Section Context.
     | _ => None
     end.
 
-  Definition execute (m : machine) (cmd : command) : option machine :=
-    match decode (action cmd) with
+  Definition execute_core (m : machine) (a : Checker_Ext.step) (expected : C.t) : option machine :=
+    match decode a with
     | None => None
     | Some p =>
       if forallb (available m) (reads p) && fresh m (output p) &&
@@ -223,10 +233,32 @@ Section Context.
       then
         let s' := Euf_Checker.step_checker (clauses m) (semantic_step p) in
         let result := S.get s' (output p) in
-        if clause_wf (PArray.length t_form) (expected cmd) &&
-           clause_eqb result (expected cmd) && result_supported (action cmd) result
+        if clause_wf (PArray.length t_form) expected &&
+           clause_eqb result expected && result_supported a result
         then Some (Machine s' (output p :: live m)) else None
       else None
+    end.
+
+  Definition execute_bool (m : machine) (pos : clause_id) (res : _lit)
+      (eqs : list (option _lit)) (expected : C.t) : option machine :=
+    if fresh m pos &&
+       forallb (fun l => Lit.blit l <? PArray.length t_form)
+         (res :: option_literals eqs) then
+      match EunoiaBool.congr_clause t_i t_func t_atom t_form res eqs with
+      | None => None
+      | Some raw_clause =>
+        let s' := S.set_clause (clauses m) pos raw_clause in
+        let result := S.get s' pos in
+        if clause_wf (PArray.length t_form) expected &&
+           clause_eqb result expected && negb (clause_eqb result C._true)
+        then Some (Machine s' (pos :: live m)) else None
+      end
+    else None.
+
+  Definition execute (m : machine) (cmd : command) : option machine :=
+    match cmd with
+    | Command a c => execute_core m a c
+    | BoolCongrCommand pos res eqs c => execute_bool m pos res eqs c
     end.
 
   Fixpoint run (m : machine) (cmds : list command) : option machine :=
@@ -258,25 +290,25 @@ Section Context.
 
   (* Acceptance exposes exact roots, all local reads, a fresh bounded output,
      exact computed intermediate clauses, and explicit rejection of fallback. *)
-  Lemma execute_binding : forall m cmd m', execute m cmd = Some m' ->
+  Lemma execute_core_binding : forall m a c m', execute_core m a c = Some m' ->
     exists p,
-      decode (action cmd) = Some p /\
+      decode a = Some p /\
       forallb (available m) (reads p) = true /\ fresh m (output p) = true /\
       m' = Machine (Euf_Checker.step_checker (clauses m) (semantic_step p))
                     (output p :: live m) /\
-      S.get (clauses m') (output p) = expected cmd /\
-      result_supported (action cmd) (S.get (clauses m') (output p)) = true.
+      S.get (clauses m') (output p) = c /\
+      result_supported a (S.get (clauses m') (output p)) = true.
   Proof.
-    intros m cmd m' H; unfold execute in H.
-    destruct (decode (action cmd)) as [p| ] eqn:Hd; try discriminate.
+    intros m a c m' H; unfold execute_core in H.
+    destruct (decode a) as [p| ] eqn:Hd; try discriminate.
     destruct (forallb (available m) (reads p) && fresh m (output p) &&
       forallb (fun l => Lit.blit l <? PArray.length t_form) (literals p))
       eqn:Hg; try discriminate.
-    destruct (clause_wf (PArray.length t_form) (expected cmd) &&
+    destruct (clause_wf (PArray.length t_form) (c) &&
       clause_eqb
         (S.get (Euf_Checker.step_checker (clauses m) (semantic_step p)) (output p))
-        (expected cmd) &&
-      result_supported (action cmd)
+        (c) &&
+      result_supported a
         (S.get (Euf_Checker.step_checker (clauses m) (semantic_step p)) (output p))
         ) eqn:Hr; try discriminate.
     inversion H; subst; clear H; simpl.
@@ -286,14 +318,55 @@ Section Context.
     exists p; repeat split; assumption.
   Qed.
 
+  Lemma execute_bool_binding : forall m pos res eqs c m',
+    execute_bool m pos res eqs c = Some m' ->
+    fresh m pos = true /\
+    forallb (fun l => Lit.blit l <? PArray.length t_form)
+      (res :: option_literals eqs) = true /\
+    exists raw_clause, EunoiaBool.congr_clause t_i t_func t_atom t_form res eqs = Some raw_clause /\
+      m' = Machine (S.set_clause (clauses m) pos raw_clause) (pos :: live m) /\
+      clause_wf (PArray.length t_form) c = true /\
+      S.get (clauses m') pos = c /\ c <> C._true.
+  Proof.
+    intros m pos res eqs c m' H; unfold execute_bool in H.
+    destruct (fresh m pos && forallb
+      (fun l => Lit.blit l <? PArray.length t_form)
+      (res :: option_literals eqs)) eqn:Hg; try discriminate.
+    destruct (EunoiaBool.congr_clause t_i t_func t_atom t_form res eqs)
+      as [raw_clause| ] eqn:Hr; try discriminate.
+    destruct (clause_wf (PArray.length t_form) c &&
+      clause_eqb (S.get (S.set_clause (clauses m) pos raw_clause) pos) c &&
+      negb (clause_eqb (S.get (S.set_clause (clauses m) pos raw_clause) pos) C._true))
+      eqn:Hc; try discriminate.
+    inversion H; subst; simpl.
+    apply andb_true_iff in Hg as [Hfresh Hlit].
+    apply andb_true_iff in Hc as [Hc Htrue].
+    apply andb_true_iff in Hc as [Hwf Heq].
+    apply clause_eqb_spec in Heq; rewrite Heq in Htrue.
+    split; [exact Hfresh| ]; split; [exact Hlit| ].
+    exists raw_clause; split; [reflexivity| ]; split; [reflexivity| ].
+    split; [exact Hwf| ]; split; [exact Heq| ].
+    intro E; rewrite E in Htrue.
+    assert (clause_eqb C._true C._true = true) as Et.
+    { apply clause_eqb_spec; reflexivity. }
+    rewrite Et in Htrue; discriminate.
+  Qed.
+
   Lemma execute_valid : forall m cmd m',
     Form.check_form t_form = true -> Atom.check_atom t_atom = true ->
     Atom.wt t_i t_func t_atom -> S.valid valuation (clauses m) ->
     execute m cmd = Some m' -> S.valid valuation (clauses m').
   Proof.
-    intros m cmd m' Hform Hatom Hwt Hm H.
-    destruct (@execute_binding m cmd m' H) as [p [_ [_ [_ [-> _]]]]]; simpl.
-    now apply Euf_Checker.step_checker_correct.
+    intros m cmd m' Hform Hatom Hwt Hm H; destruct cmd as [a c|pos res eqs c].
+    - destruct (@execute_core_binding m a c m' H)
+        as [p [_ [_ [_ [-> _]]]]]; simpl.
+      now apply Euf_Checker.step_checker_correct.
+    - destruct (@execute_bool_binding m pos res eqs c m' H)
+        as [_ [_ [raw_clause [Hr [-> _]]]]]; simpl.
+      apply S.valid_set_clause; auto.
+      + unfold valuation; apply (proj2 (Form.check_form_correct _ _ _ Hform)).
+      + exact (EunoiaBool.congr_clause_sound t_i t_func t_atom t_form
+          Hatom Hform res eqs raw_clause Hr).
   Qed.
 
   Lemma run_valid : forall cmds m m',
@@ -365,7 +438,8 @@ Print Assumptions fresh_spec.
 Print Assumptions load_roots_binding.
 Print Assumptions load_roots_valid.
 Print Assumptions local_roots_valid.
-Print Assumptions execute_binding.
+Print Assumptions execute_core_binding.
+Print Assumptions execute_bool_binding.
 Print Assumptions execute_valid.
 Print Assumptions run_valid.
 Print Assumptions gate_binding.

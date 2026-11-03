@@ -269,9 +269,7 @@ let prepare ?(fuel=10000) ~witness env t roots parsed =
             | cmd::rest -> match machine (C.call (local "execute") (tables @ [m;cmd])) with
               | Some m -> inspect (i+1) m rest
               | None ->
-                let action = C.call (local "action") [cmd] in
-                let action = R.cbv_vm env action
-                  (C.global "SMTCoq.checker.MainChecker.Checker_Ext.step") in
+                let action = R.cbv_vm env cmd command_ty in
                 let printed = Pp.string_of_ppcmds
                   (Printer.pr_constr_env env (Evd.from_env env) action) in
                 R.raise_error "Eunoia: %s, local command %d: %s; source result: %a"
