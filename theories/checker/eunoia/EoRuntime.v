@@ -21,21 +21,35 @@ Fixpoint rename_symbols (aliases : list (string * term)) (t : term) : term :=
   | Apply f a => Apply (rename_symbols aliases f) (rename_symbols aliases a)
   end.
 
+(* Delay type queries until the selected signature nil declaration uses them.
+   The strict interface remains available for reference computations. *)
 Record nil_query := {
   nil_known : string -> bool;
-  nil_value : string -> option term -> option term;
-  nil_list_value : string -> option term -> option term
+  nil_value_lazy : string -> (unit -> option term) -> option term;
+  nil_list_value_lazy : string -> (unit -> option term) -> option term
 }.
+Definition nil_value (nilof : nil_query) op ty := nil_value_lazy nilof op (fun _ => ty).
+Definition nil_list_value (nilof : nil_query) op ty := nil_list_value_lazy nilof op (fun _ => ty).
 Coercion nil_value : nil_query >-> Funclass.
+Definition nil_apply (nilof : nil_query) (typeof : term -> option term) op t :=
+  nil_value_lazy nilof op (fun _ => typeof t).
+Definition nil_list_apply (nilof : nil_query) (typeof : term -> option term) op t :=
+  nil_list_value_lazy nilof op (fun _ => typeof t).
+Lemma nil_apply_refinement : forall nilof typeof op t,
+  nil_apply nilof typeof op t = nil_value nilof op (typeof t).
+Proof. reflexivity. Qed.
+Lemma nil_list_apply_refinement : forall nilof typeof op t,
+  nil_list_apply nilof typeof op t = nil_list_value nilof op (typeof t).
+Proof. reflexivity. Qed.
 Definition closed_nil (ops : list (string * term)) : nil_query :=
   {| nil_known := fun op => match named op ops with Some _ => true | None => false end;
-     nil_value := fun op _ => named op ops;
-     nil_list_value := fun op _ => named op ops |}.
+     nil_value_lazy := fun op _ => named op ops;
+     nil_list_value_lazy := fun op _ => named op ops |}.
 
 Fixpoint match_pattern_with (nilof : nil_query) (typeof : term -> option term) (p : pattern) (t : term) (env : bindings)
     : option bindings :=
   match p with
-  | PNil op => match nil_list_value nilof op (typeof t) with
+  | PNil op => match nil_list_apply nilof typeof op t with
       | Some z => if term_eqb z t then Some env else None | None => None end
   | PVar n =>
       match lookup n env with
@@ -294,7 +308,7 @@ Fixpoint surface_in_with (nilof : nil_query) (typeof : term -> option term) (fue
         end in
       match hd, visit xs with
       | Symbol name, Some ys =>
-          match ys, (match xs with [] => named name ops | x :: _ => nilof name (typeof x) end) with
+          match ys, (match xs with [] => named name ops | x :: _ => nil_apply nilof typeof name x end) with
           | [], _ => Some hd
           | _, Some terminator => Some (make_list hd terminator ys)
           | _, None => if nil_known nilof name then None else Some (apply_many hd ys)
@@ -324,7 +338,7 @@ Fixpoint surface_out_with (nilof : nil_query) (typeof : term -> option term) (fu
           match surface_out_with nilof typeof k ops x with
           | None => None
           | Some y =>
-              match nilof name (typeof y) with
+              match nil_apply nilof typeof name y with
               | Some terminator =>
                   match list_elements hd terminator t with
                   | Some ys => option_map (apply_many hd) (visit ys)
@@ -401,14 +415,14 @@ Definition no_extension : primitive_hook := fun _ _ => None.
 Definition native_with_nils (nilof : nil_query) (typeof : term -> option term) (extra : primitive_hook) (ops : list (string * term))
     (name : string) (args : list term) : option term :=
   let list_of op t :=
-    match op with Symbol s => match nil_list_value nilof s (typeof t) with Some terminator => list_elements op terminator t | _ => None end | _ => None end in
+    match op with Symbol s => match nil_list_apply nilof typeof s t with Some terminator => list_elements op terminator t | _ => None end | _ => None end in
   let rebuild op xs :=
     match op with Symbol s => option_map (fun terminator => make_list op terminator xs) (match xs with
-      | x :: _ => nilof s (typeof x)
+      | x :: _ => nil_apply nilof typeof s x
       | [] => match args with
           | _ :: witness :: _ =>
-              if String.eqb name "eo::list_repeat" then nilof s (typeof witness)
-              else nil_list_value nilof s (typeof witness)
+              if String.eqb name "eo::list_repeat" then nil_apply nilof typeof s witness
+              else nil_list_apply nilof typeof s witness
           | _ => None end end) | _ => None end in
   match name, args with
   | "eo::not", [a] => option_map (fun b => bool_term (negb b)) (as_bool a)
@@ -569,10 +583,30 @@ Definition resolve_nil_mode extra ops fuel typeof programs (specs : list (string
         | _, _ => None end in
       match env with Some bs => evaluate_with extra ops fuel typeof programs bs body | None => None end
   end.
+Definition resolve_nil_lazy_mode extra ops fuel typeof programs (specs : list (string * nil_spec))
+    (list_argument : bool) op (ty : unit -> option term) : option term :=
+  match named op specs with
+  | None => named op ops
+  | Some (domains, body) =>
+      let env := match domains with
+        | None => Some []
+        | Some (element, tail) => match ty tt with
+          | Some t => match_pattern (if list_argument then tail else element) t []
+          | None => None end end in
+      match env with Some bs => evaluate_with extra ops fuel typeof programs bs body | None => None end
+  end.
+Lemma resolve_nil_lazy_mode_refinement : forall extra ops fuel typeof programs specs mode op ty,
+  resolve_nil_lazy_mode extra ops fuel typeof programs specs mode op (fun _ => ty) =
+  resolve_nil_mode extra ops fuel typeof programs specs mode op ty.
+Proof.
+  intros. unfold resolve_nil_lazy_mode, resolve_nil_mode.
+  destruct (named op specs) as [[domains body]|]; [|reflexivity].
+  destruct domains as [[element tail]|]; destruct ty; reflexivity.
+Qed.
 Definition resolve_nil extra ops fuel typeof programs (specs : list (string * nil_spec)) : nil_query :=
   {| nil_known := fun op => match named op specs, named op ops with None, None => false | _, _ => true end;
-     nil_value := resolve_nil_mode extra ops fuel typeof programs specs false;
-     nil_list_value := resolve_nil_mode extra ops fuel typeof programs specs true |}.
+     nil_value_lazy := resolve_nil_lazy_mode extra ops fuel typeof programs specs false;
+     nil_list_value_lazy := resolve_nil_lazy_mode extra ops fuel typeof programs specs true |}.
 
 Definition run_rule_assuming_with_nils_polymorphic (polymorphic : list string) (nilof : nil_query) (extra : primitive_hook) (ops : list (string * term))
     (fuel : nat) (typeof : term -> option term)

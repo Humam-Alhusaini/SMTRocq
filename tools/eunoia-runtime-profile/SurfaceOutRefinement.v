@@ -62,7 +62,7 @@ Proof.
   destruct xs as [|x tl].
   - cbn. destruct (named name ops); reflexivity.
   - rewrite IH. destruct (surface_out_reference nilof typeof k ops x) as [y|] eqn:Hx.
-    + destruct (nilof name (typeof y)) as [z|].
+    + rewrite nil_apply_refinement. destruct (nilof name (typeof y)) as [z|].
       * destruct (list_elements (Symbol name) z t) as [ys|]; [|reflexivity].
         rewrite (visit_terms_pointwise _ _ IH). reflexivity.
       * destruct (nil_known nilof name); [reflexivity|].

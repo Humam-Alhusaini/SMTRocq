@@ -53,6 +53,16 @@ def main():
         audit += ["--import", prefix]
         for name in names:
             audit += ["--theorem", prefix + "." + module + "." + name]
+    for module, names in {
+        "SMTCoq.checker.eunoia.EoRuntime": ["nil_apply_refinement", "nil_list_apply_refinement",
+                                         "resolve_nil_lazy_mode_refinement"],
+        "SMTCoq.eunoia_runtime_profile.QueryRefinement": ["native_with_nils_refinement",
+                                      "surface_in_with_refinement", "match_pattern_with_refinement"],
+        "SMTCoq.eunoia_runtime_profile.SurfaceOutRefinement": ["surface_out_with_refinement"],
+    }.items():
+        audit += ["--import", module]
+        for name in names:
+            audit += ["--theorem", module + "." + name]
     public_modules = ("eunoia_tactics", "eunoia_uf", "eunoia_uf_bool", "eunoia_lia", "eunoia_purification", "eunoia_integer_casts")
     for module in public_modules:
         public = "SMTCoq.tests." + module
@@ -64,6 +74,8 @@ def main():
     summary = dict(passed=False, commands=commands)
     try:
         kernel = [wrapper, "rocq", "check", "-silent", *mappings,
+                  "SMTCoq.eunoia_runtime_profile.QueryRefinement",
+                  "SMTCoq.eunoia_runtime_profile.SurfaceOutRefinement",
                   "SMTCoq.checker.eunoia.EunoiaMemoTests",
                   "SMTCoq.checker.eunoia.EunoiaScopedAdapter",
                   "SMTCoq.checker.eunoia.EunoiaIntegerEmbeddingTests",

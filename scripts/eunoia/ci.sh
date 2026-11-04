@@ -8,6 +8,6 @@ dune build --ignore-promoted-rules -j 2 theories \
   unit-tests/eunoia_purification.vo unit-tests/eunoia_integer_casts.vo
 dune runtest --ignore-promoted-rules -j 2 \
   src/eunoia src/eunoia_backend src/eunoia_witness \
-  tools/eunoia scripts/eunoia benchmarks/eunoia
+  tools/eunoia tools/eunoia-runtime-profile scripts/eunoia benchmarks/eunoia
 python3 -B scripts/eunoia/check_modes.py
 python3 -B scripts/eunoia/check_proofs.py
