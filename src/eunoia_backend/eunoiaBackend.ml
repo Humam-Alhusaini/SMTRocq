@@ -173,6 +173,7 @@ let prepare ?(fuel=10000) ~witness env t roots parsed =
   let root_terms = List.map (fun r -> encode [r]) roots in
   let query = C.call (adapter "typeof")
     [List.nth table_args 0;List.nth table_args 1;ns;fuel] in
+  let use_direct = Sys.getenv_opt "EUNOIA_DIRECT_PROGRAMS" = Some "1" in
   let use_staged = Sys.getenv_opt "EUNOIA_STAGED_PROGRAMS" = Some "1" in
   let use_program_index = Sys.getenv_opt "EUNOIA_PROGRAM_INDEX" = Some "1" in
   let derive_helpers,finish_helpers = EunoiaHelperCache.create env fuel query in
@@ -432,6 +433,10 @@ let prepare ?(fuel=10000) ~witness env t roots parsed =
        trace;mkint proof.conflict];diagnose;
      checker_api=(if share_helpers then
        (fun n -> "SMTCoq.checker.eunoia.EunoiaHelperCache.EunoiaHelperCache." ^ n)
+       else if use_direct then
+         (fun n -> (if memoize then "SMTCoq.checker.eunoia.EunoiaDirect.EunoiaDirect."
+                    else if has_scopes then "SMTCoq.checker.eunoia.EunoiaDirectScoped.EunoiaDirectScoped."
+                    else "SMTCoq.checker.eunoia.EunoiaDirectFlat.EunoiaDirectFlat.") ^ n)
        else if use_staged then
          (fun n -> "SMTCoq.checker.eunoia.EunoiaStaged.EunoiaStaged." ^ n)
        else if use_program_index then
