@@ -282,12 +282,82 @@ Section Tables.
     | _ => option_map (app "or") (traverse (encode_literal fuel) c)
     end.
 
+  (* A computed cache, never supplied by the proof producer. Misses use the
+     original encoder; a pointwise theorem preserves arbitrary fuel/tables. *)
+  Fixpoint lookup_encoding (entries : list (_lit * option term)) (l : _lit)
+      : option (option term) :=
+    match entries with
+    | [] => None
+    | (key, value) :: rest =>
+      if l =? key then Some value else lookup_encoding rest l
+    end.
+
+  Lemma lookup_encoding_sound : forall (f : _lit -> option term) keys l value,
+    lookup_encoding (map (fun key => (key, f key)) keys) l = Some value ->
+    value = f l.
+  Proof.
+    intros f keys; induction keys as [ | index rest IH]; intros l value H; simpl in H.
+    - discriminate.
+    - destruct (l =? index) eqn:He.
+      + apply Uint63.eqb_spec in He; subst index. inversion H; reflexivity.
+      + now apply (IH l value).
+  Qed.
+
+  Definition encoding_entries (fuel : nat) (literals : list _lit)
+      : list (_lit * option term) :=
+    let unique := fold_right (fun l acc =>
+      if existsb (fun key => l =? key) acc then acc else l :: acc)
+      [] (firstn 1024 literals) in
+    map (fun l => (l, encode_literal fuel l)) (firstn 512 unique).
+
+  Definition memo_encoding entries (fuel : nat) (l : _lit) :=
+    match lookup_encoding entries l with
+      | Some value => value | None => encode_literal fuel l end.
+
+  Lemma memo_encoding_refinement : forall fuel keys l,
+    memo_encoding (encoding_entries fuel keys) fuel l = encode_literal fuel l.
+  Proof.
+    intros fuel keys l; unfold memo_encoding, encoding_entries.
+    destruct (lookup_encoding _ l) as [value | ] eqn:H; [ | reflexivity].
+    now apply lookup_encoding_sound in H.
+  Qed.
+
+  Definition cached_clause entries (fuel : nat) : C.t -> option term :=
+    let encode := memo_encoding entries fuel in
+    fun c => match c with
+    | [] => Some (Symbol "false")
+    | [l] => encode l
+    | _ => option_map (app "or") (traverse encode c)
+    end.
+
+  Lemma cached_clause_refinement : forall fuel keys c,
+    cached_clause (encoding_entries fuel keys) fuel c = encode_clause fuel c.
+  Proof.
+    intros fuel keys c.
+    assert (forall xs, traverse (memo_encoding (encoding_entries fuel keys) fuel) xs =
+      traverse (encode_literal fuel) xs) as H.
+    { induction xs as [ | x xs IH]; simpl; [reflexivity | ].
+      rewrite memo_encoding_refinement, IH; reflexivity. }
+    destruct c as [ | x [ | y xs]]; unfold cached_clause, encode_clause;
+      [reflexivity | apply memo_encoding_refinement | now rewrite H].
+  Qed.
+
   Definition binds (fuel : nat) (c : C.t) (t : term) : bool :=
     EunoiaChecker.clause_wf (PArray.length t_form) c &&
     match encode_clause fuel c, lower_arithmetic fuel t with
     | Some u, Some v => term_eqb u v
     | _, _ => false
     end.
+
+  Definition cached_binds entries fuel c t :=
+    EunoiaChecker.clause_wf (PArray.length t_form) c &&
+    match cached_clause entries fuel c, lower_arithmetic fuel t with
+    | Some u, Some v => term_eqb u v | _, _ => false end.
+  Lemma cached_binds_refinement : forall fuel keys c t,
+    cached_binds (encoding_entries fuel keys) fuel c t = binds fuel c t.
+  Proof.
+    intros; unfold cached_binds, binds; rewrite cached_clause_refinement; reflexivity.
+  Qed.
 
   Lemma binds_spec : forall fuel c t, binds fuel c t = true <->
     EunoiaChecker.clause_wf (PArray.length t_form) c = true /\
@@ -310,6 +380,18 @@ Section Tables.
     | c :: cs, t :: ts => binds fuel c t && bind_terms fuel cs ts
     | _, _ => false
     end.
+
+  Fixpoint cached_bind_terms entries fuel cs ts :=
+    match cs,ts with
+    | [],[] => true
+    | c::cs,t::ts => cached_binds entries fuel c t && cached_bind_terms entries fuel cs ts
+    | _,_ => false end.
+  Lemma cached_bind_terms_refinement : forall fuel keys cs ts,
+    cached_bind_terms (encoding_entries fuel keys) fuel cs ts = bind_terms fuel cs ts.
+  Proof.
+    intros fuel keys cs; induction cs as [ | c cs IH]; intros [ | t ts]; simpl;
+      try reflexivity. rewrite cached_binds_refinement, IH; reflexivity.
+  Qed.
 
   Lemma bind_terms_spec : forall fuel cs ts, bind_terms fuel cs ts = true <->
     Forall2 (fun c t =>
@@ -512,6 +594,30 @@ Section Tables.
     else None
     end.
 
+  Definition cached_eval_with entries
+      (derive : nat -> (term -> option term) -> string -> list term -> list term -> option term)
+      (fuel : nat) (p : rule_payload) (cs : list C.t) : option C.t :=
+    match source_assumption p with
+    | Some _ => None
+    | None =>
+      if tables_wf && cached_bind_terms entries fuel cs (premise_terms p) then
+        match derive fuel (typeof fuel) (rule_name p) (arguments p) (premise_terms p) with
+        | Some t =>
+          if term_eqb t (result_term p) && cached_binds entries fuel (result_clause p) t
+          then Some (result_clause p) else None
+        | None => None end
+      else None end.
+  Lemma cached_eval_with_refinement : forall derive fuel keys p cs,
+    cached_eval_with (encoding_entries fuel keys) derive fuel p cs = eval_with derive fuel p cs.
+  Proof.
+    intros; unfold cached_eval_with, eval_with.
+    destruct (source_assumption p); [reflexivity | ].
+    rewrite cached_bind_terms_refinement.
+    destruct (tables_wf && bind_terms fuel cs (premise_terms p)); [ | reflexivity].
+    destruct (derive fuel (typeof fuel) (rule_name p) (arguments p) (premise_terms p));
+      [now rewrite cached_binds_refinement | reflexivity].
+  Qed.
+
   Definition eval := eval_with CpcGenerated.derive.
 
   Lemma eval_with_binding : forall derive fuel p cs c,
@@ -562,8 +668,10 @@ Section Tables.
       (fuel : nat) (capacity : int) (roots : list C.t) (root_terms : list term)
       (claims : list (clause_id * C.t))
       (trace : list (@EunoiaChecker.step rule_payload witness)) (goal : clause_id) : bool :=
+    let entries := encoding_entries fuel
+      (List.concat roots ++ flat_map EunoiaChecker.conclusion trace)%list in
     tables_wf && bind_terms fuel roots root_terms &&
-    EunoiaChecker.checker (eval fuel) gate (PArray.length t_form) capacity
+    EunoiaChecker.checker (cached_eval_with entries CpcGenerated.derive fuel) gate (PArray.length t_form) capacity
       roots claims trace goal.
 
   Theorem checker_correct : forall witness gate fuel capacity roots root_terms claims

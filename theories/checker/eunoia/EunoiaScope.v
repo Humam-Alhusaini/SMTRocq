@@ -62,6 +62,17 @@ Section Generic.
   | Push (slot : clause_id) (assumption : _lit) (body : trace)
       (closing : option discharge) (rest : trace).
 
+  (* Cache keys only: no inference or clause is removed from checking. *)
+  Fixpoint literals (t : trace) : list _lit :=
+    match t with
+    | Done => []
+    | Next st rest => (conclusion st ++ literals rest)%list
+    | Push _ a body closing rest =>
+      (a :: literals body ++
+        (match closing with Some d => scope_conclusion d | None => [] end) ++
+        literals rest)%list
+    end.
+
   Definition close (nforms : int) (parent local : machine) (a : _lit)
     (d : discharge) : option machine :=
     match fetch local [endpoint d] with
