@@ -182,7 +182,7 @@ Section Tables.
 
   (* Existing Atom typechecking is authoritative; no certificate type oracle.
      Every recursive read is bounded and strictly below its parent. *)
-  Fixpoint encode_atom (fuel : nat) (i : int) : option term :=
+  Fixpoint encode_atom_reference (fuel : nat) (i : int) : option term :=
     match fuel with
     | O => None
     | S k =>
@@ -198,15 +198,15 @@ Section Tables.
           | Atom.Auop Atom.UO_Zneg j =>
             option_map (fun p => Symbol (numeral (Zneg p))) (positive_at k j)
           | Atom.Auop Atom.UO_Zopp j =>
-            option_map (fun a => app "-" [a]) (encode_atom k j)
+            option_map (fun a => app "-" [a]) (encode_atom_reference k j)
           | Atom.Abop op a b =>
-            match binop_name op, encode_atom k a, encode_atom k b with
+            match binop_name op, encode_atom_reference k a, encode_atom_reference k b with
             | Some s, Some x, Some y => Some (app s [x; y])
             | _, _, _ => None
             end
           | Atom.Aapp f args =>
             if f <? PArray.length t_func then
-              match name_at f (function_names names), traverse (encode_atom k) args,
+              match name_at f (function_names names), traverse (encode_atom_reference k) args,
                     traverse encode_sort (fst (Atom.v_type _ _ (t_func.[f]))),
                     encode_sort (snd (Atom.v_type _ _ (t_func.[f]))) with
               | Some s, Some xs, Some _, Some _ => Some (app s xs)
@@ -218,6 +218,52 @@ Section Tables.
         end
       else None
     end.
+
+  Definition encode_atom_with_type (type_of : int -> Typ.type)
+      : nat -> int -> option term :=
+    fix visit (fuel : nat) (i : int) : option term :=
+    match fuel with
+    | O => None
+    | S k =>
+      if (i <? PArray.length t_atom) && Atom.lt_atom i (t_atom.[i]) &&
+         Atom.check_aux t_i t_func type_of (t_atom.[i]) (type_of i) then
+        match encode_sort (type_of i) with
+        | None => None
+        | Some _ =>
+          match t_atom.[i] with
+          | Atom.Acop Atom.CO_Z0 => Some (Symbol "0")
+          | Atom.Auop Atom.UO_Zpos j =>
+            option_map (fun p => Symbol (numeral (Zpos p))) (positive_at k j)
+          | Atom.Auop Atom.UO_Zneg j =>
+            option_map (fun p => Symbol (numeral (Zneg p))) (positive_at k j)
+          | Atom.Auop Atom.UO_Zopp j =>
+            option_map (fun a => app "-" [a]) (visit k j)
+          | Atom.Abop op a b =>
+            match binop_name op, visit k a, visit k b with
+            | Some s, Some x, Some y => Some (app s [x; y])
+            | _, _, _ => None
+            end
+          | Atom.Aapp f args =>
+            if f <? PArray.length t_func then
+              match name_at f (function_names names), traverse (visit k) args,
+                    traverse encode_sort (fst (Atom.v_type _ _ (t_func.[f]))),
+                    encode_sort (snd (Atom.v_type _ _ (t_func.[f]))) with
+              | Some s, Some xs, Some _, Some _ => Some (app s xs)
+              | _, _, _, _ => None
+              end
+            else None
+          | _ => None
+          end
+        end
+      else None
+    end.
+
+  Definition encode_atom (fuel : nat) (i : int) : option term :=
+    let interpreted := @Atom.t_interp t_i t_func t_atom in
+    encode_atom_with_type (@Atom.get_type' t_i interpreted) fuel i.
+  Lemma encode_atom_refinement : forall fuel i,
+    encode_atom fuel i = encode_atom_reference fuel i.
+  Proof. reflexivity. Qed.
 
   Fixpoint double_nots (fuel : nat) (n : int) (t : term) : option term :=
     if n =? 0 then Some t else
@@ -231,7 +277,7 @@ Section Tables.
   Definition nary (s : string) (xs : list term) : option term :=
     match xs with _ :: _ :: _ => Some (app s xs) | _ => None end.
 
-  Fixpoint encode_literal (fuel : nat) (l : _lit) : option term :=
+  Fixpoint encode_literal_reference (fuel : nat) (l : _lit) : option term :=
     match fuel with
     | O => None
     | S k =>
@@ -243,27 +289,27 @@ Section Tables.
           | Form.Ffalse => Some (Symbol "false")
           | Form.Fatom a =>
             if (a <? PArray.length t_atom) && Typ.eqb (get_type a) Typ.Tbool
-            then encode_atom k a else None
+            then encode_atom_reference k a else None
           | Form.Fnot2 n a =>
-            match encode_literal k a with
+            match encode_literal_reference k a with
             | Some t => double_nots k n t
             | None => None
             end
           | Form.Fand args | Form.For args | Form.Fimp args =>
-            match traverse (encode_literal k) (to_list args) with
+            match traverse (encode_literal_reference k) (to_list args) with
             | Some xs => nary
                 (match t_form.[i] with Form.Fand _ => "and" | Form.For _ => "or"
                  | _ => "=>" end) xs
             | None => None
             end
           | Form.Fxor a b | Form.Fiff a b =>
-            match encode_literal k a, encode_literal k b with
+            match encode_literal_reference k a, encode_literal_reference k b with
             | Some x, Some y => Some (app
                 (match t_form.[i] with Form.Fxor _ _ => "xor" | _ => "=" end) [x; y])
             | _, _ => None
             end
           | Form.Fite a b c =>
-            match encode_literal k a, encode_literal k b, encode_literal k c with
+            match encode_literal_reference k a, encode_literal_reference k b, encode_literal_reference k c with
             | Some x, Some y, Some z => Some (app "ite" [x; y; z])
             | _, _, _ => None
             end
@@ -273,13 +319,67 @@ Section Tables.
       else None
     end.
 
+  Definition encode_literal_with_type (type_of : int -> Typ.type)
+      : nat -> _lit -> option term :=
+    let atom_encoder := encode_atom_with_type type_of in
+    fix visit (fuel : nat) (l : _lit) : option term :=
+    match fuel with
+    | O => None
+    | S k =>
+      let i := Lit.blit l in
+      if (i <? PArray.length t_form) && Form.lt_form i (t_form.[i]) then
+        let base :=
+          match t_form.[i] with
+          | Form.Ftrue => Some (Symbol "true")
+          | Form.Ffalse => Some (Symbol "false")
+          | Form.Fatom a =>
+            if (a <? PArray.length t_atom) && Typ.eqb (type_of a) Typ.Tbool
+            then atom_encoder k a else None
+          | Form.Fnot2 n a =>
+            match visit k a with
+            | Some t => double_nots k n t
+            | None => None
+            end
+          | Form.Fand args | Form.For args | Form.Fimp args =>
+            match traverse (visit k) (to_list args) with
+            | Some xs => nary
+                (match t_form.[i] with Form.Fand _ => "and" | Form.For _ => "or"
+                 | _ => "=>" end) xs
+            | None => None
+            end
+          | Form.Fxor a b | Form.Fiff a b =>
+            match visit k a, visit k b with
+            | Some x, Some y => Some (app
+                (match t_form.[i] with Form.Fxor _ _ => "xor" | _ => "=" end) [x; y])
+            | _, _ => None
+            end
+          | Form.Fite a b c =>
+            match visit k a, visit k b, visit k c with
+            | Some x, Some y, Some z => Some (app "ite" [x; y; z])
+            | _, _, _ => None
+            end
+          | _ => None
+          end in
+        option_map (fun t => if Lit.is_pos l then t else app "not" [t]) base
+      else None
+    end.
+
+  Definition encode_literal (fuel : nat) (l : _lit) : option term :=
+    let interpreted := @Atom.t_interp t_i t_func t_atom in
+    encode_literal_with_type (@Atom.get_type' t_i interpreted) fuel l.
+  Lemma encode_literal_refinement : forall fuel l,
+    encode_literal fuel l = encode_literal_reference fuel l.
+  Proof. reflexivity. Qed.
+
   (* These are views of a precise clause, never a decoder guessing its indices.
      [false] denotes [] explicitly; a singleton Ffalse remains that singleton. *)
   Definition encode_clause (fuel : nat) (c : C.t) : option term :=
+    let interpreted := @Atom.t_interp t_i t_func t_atom in
+    let encode := encode_literal_with_type (@Atom.get_type' t_i interpreted) fuel in
     match c with
     | [] => Some (Symbol "false")
-    | [l] => encode_literal fuel l
-    | _ => option_map (app "or") (traverse (encode_literal fuel) c)
+    | [l] => encode l
+    | _ => option_map (app "or") (traverse encode c)
     end.
 
   (* A computed cache, never supplied by the proof producer. Misses use the
@@ -308,7 +408,9 @@ Section Tables.
     let unique := fold_right (fun l acc =>
       if existsb (fun key => l =? key) acc then acc else l :: acc)
       [] (firstn 1024 literals) in
-    map (fun l => (l, encode_literal fuel l)) (firstn 512 unique).
+    let interpreted := @Atom.t_interp t_i t_func t_atom in
+    let encode := encode_literal_with_type (@Atom.get_type' t_i interpreted) fuel in
+    map (fun l => (l, encode l)) (firstn 512 unique).
 
   Definition memo_encoding entries (fuel : nat) (l : _lit) :=
     match lookup_encoding entries l with
