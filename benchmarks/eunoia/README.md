@@ -30,7 +30,10 @@ stanzas rather than adding a benchmark stanza to shared files.
 the exact manifest, its source path and hash are retained with the results.
 Compare backends on the same selected manifest.
 `integer-cuts.json` is a separate extension with 12 positive integer-cut/mixed-UF
-goals and five explicit false controls. The original 20-case manifest is retained
+goals and five explicit false controls. `scalability.json` adds 21 positive diagnostics: Boolean/propositional equality
+chains, nested congruences, coefficient cuts/parity, mixed UF cuts and inequality
+cycles. Its outcomes remain separate from the original regression workload.
+The original 20-case manifest is retained
 unchanged, so historical solved counts remain comparable.
 `EUNOIA_CVC5_PROFILE` is recorded in metadata when comparing fixed solver profiles.
 

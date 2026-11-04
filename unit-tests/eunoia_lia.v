@@ -80,3 +80,18 @@ Print Assumptions eunoia_lia_false_controls.
 Lemma eunoia_integer_literal_conflict : forall x : Z, x = 0 -> x = 1 -> False.
 Proof. cvc5_eunoia. Qed.
 Print Assumptions eunoia_integer_literal_conflict.
+
+(* Several actual local hypotheses exercise the ordered root-vector binding. *)
+Lemma eunoia_eight_inequality_cycle : forall x0 x1 x2 x3 x4 x5 x6 x7 : Z,
+  x0 <= x1 -> x1 <= x2 -> x2 <= x3 -> x3 <= x4 ->
+  x4 <= x5 -> x5 <= x6 -> x6 <= x7 -> x7 < x0 -> False.
+Proof. cvc5_eunoia. Qed.
+Print Assumptions eunoia_eight_inequality_cycle.
+Example eunoia_non_strict_cycle_rejected : True.
+Proof.
+  Fail assert (forall x0 x1 x2 x3 x4 x5 x6 x7 : Z,
+    x0 <= x1 -> x1 <= x2 -> x2 <= x3 -> x3 <= x4 ->
+    x4 <= x5 -> x5 <= x6 -> x6 <= x7 -> x7 <= x0 -> False) by cvc5_eunoia.
+  exact I.
+Qed.
+Print Assumptions eunoia_non_strict_cycle_rejected.

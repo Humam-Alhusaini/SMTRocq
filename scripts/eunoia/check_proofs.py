@@ -26,7 +26,10 @@ def main():
     bench = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(bench)
     wrapper = os.environ.get("EUNOIA_ENV", str(ROOT / "scripts/eunoia/env"))
-    mappings = bench.rocq_loadpath(ROOT) + ["-Q", str(ROOT / "_build/default/unit-tests"), "SMTCoq.tests"]
+    mappings = bench.rocq_loadpath(ROOT) + [
+        "-Q", str(ROOT / "_build/default/unit-tests"), "SMTCoq.tests",
+        "-Q", str(ROOT / "_build/default/tools/eunoia-runtime-profile"),
+        "SMTCoq.eunoia_runtime_profile"]
     audit = [sys.executable, "-B", str(ROOT / "tools/audit-eunoia-assumptions.py"),
              "--env", wrapper, "--build-loadpaths", "--output-dir", str(output / "assumptions")]
     for i in range(0, len(mappings), 3):
@@ -47,7 +50,7 @@ def main():
                                    "fraction_eq_cross", "fraction_le_cross", "fraction_lt_cross",
                                    "fraction_eq_same", "fraction_le_same", "fraction_lt_same",
                                    "floor_integer", "fraction_add", "fraction_mul", "fraction_neg"],
-        "EunoiaTactic": ["checker_correct", "checker_b_correct", "checker_eq_correct"],
+        "EunoiaTactic": ["root_values_correct", "checker_correct", "checker_b_correct", "checker_eq_correct"],
     }.items():
         prefix = "SMTCoq.checker.eunoia." + module
         audit += ["--import", prefix]

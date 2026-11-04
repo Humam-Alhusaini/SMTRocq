@@ -33,7 +33,6 @@ let scope n = "SMTCoq.checker.eunoia.EunoiaScope.EunoiaScope." ^ n
 let tactic_api n = "SMTCoq.checker.eunoia.EunoiaTactic.EunoiaTactic." ^ n
 let fuel_term n =
   if n = 10000 then C.global (tactic_api "default_fuel") else CoqTerms.mkNat n
-let state n = "SMTCoq.checker.fol.State." ^ n
 let std n = "Stdlib." ^ n
 let mkint = R.mkInt
 let clause c = C.list (Lazy.force CoqTerms.cint) (List.map (fun f -> mkint (Form.to_lit f)) c)
@@ -434,24 +433,49 @@ let build_refutation_from_cpc ?sigma ?fuel ~witness env t roots parsed =
   sigma := checked_sigma;
   proof
 
-(* Cache only a proof of this invocation's complete checker application.
-   [exact_check] validates the VM cast; Abstract's private opaque declaration
-   then kernel-checks its body synchronously before invoking [use]. No Boolean
-   success is cached and no private constant is declared without its body. *)
+(* Private proof helpers are local to this invocation. Standard VM reduction
+   and exact_check construct their bodies; Abstract synchronously kernel-checks
+   each body against its complete original type before [use]. No Boolean
+   success is cached and no helper is declared without its checked body. *)
+let typecheck_helper_goal ty =
+  Proofview.Goal.enter (fun goal ->
+    let sigma = Proofview.Goal.sigma goal in
+    let env = Environ.push_context_set (Evd.universe_context_set sigma)
+      (Proofview.Goal.env goal) in
+    (* Typechecking records the model's universe constraints before reduction. *)
+    let sigma,_ = phase "helper_type" (fun () ->
+      Typing.type_of env sigma (EConstr.of_constr ty)) in
+    Proofview.tclBIND Proofview.tclENV (fun globals ->
+      (* VM reduction reads this graph. Synchronize only universes already
+         checked in sigma; no constants or hypotheses are added. *)
+      let globals = Environ.push_context_set ~strict:false
+        (Evd.universe_context_set sigma) globals in
+      R.tclTHEN (Proofview.Unsafe.tclEVARS sigma)
+        (Proofview.Unsafe.tclSETENV globals)))
+
+let with_normalized_proof ~conversion_phase ~acceptance_phase ty proof use =
+  R.tclTHEN (typecheck_helper_goal ty) (Proofview.Goal.enter (fun _ ->
+    let started = phase_start () in
+    (* Standard VM goal reduction records the conversion in the proof term.
+       Exact checks the resulting proof; Abstract synchronously kernel-checks
+       the body against its original type before exposing the private lemma. *)
+    let certificate = R.tclTHEN Tactics.normalise_vm_in_concl
+      (Tactics.exact_check (EConstr.of_constr proof)) in
+    Abstract.cache_term_by_tactic_then ~opaque:true ~name_op:None
+      ~goal_type:(Some (EConstr.of_constr ty))
+      (phase_tactic conversion_phase certificate)
+      (fun lemma args -> Proofview.Goal.enter (fun gl ->
+        let sigma = Proofview.Goal.sigma gl in
+        let checked = EConstr.to_constr sigma
+          (EConstr.mkApp (lemma,Array.of_list args)) in
+        phase_end acceptance_phase started;
+        use checked))))
+
 let with_checked_acceptance p computation use =
-  let started = phase_start () in
   let ty = SmtMisc.mklApp CoqTerms.ceq
     [|Lazy.force CoqTerms.cbool;computation;Lazy.force CoqTerms.ctrue|] in
-  let certificate = R.mkCast (CoqTerms.eq_refl_true (),R.vmcast,ty) in
-  let checked = Abstract.cache_term_by_tactic_then ~opaque:true ~name_op:None
-    ~goal_type:(Some (EConstr.of_constr ty))
-    (phase_tactic "certificate_conversion" (Tactics.exact_check (EConstr.of_constr certificate)))
-    (fun lemma args -> Proofview.Goal.enter (fun gl ->
-      let sigma = Proofview.Goal.sigma gl in
-      let accepted = EConstr.to_constr sigma
-        (EConstr.mkApp (lemma,Array.of_list args)) in
-      phase_end "checked_acceptance" started;
-      use accepted)) in
+  let checked = with_normalized_proof ~conversion_phase:"certificate_conversion"
+    ~acceptance_phase:"checked_acceptance" ty (CoqTerms.eq_refl_true ()) use in
   Proofview.tclORELSE checked (fun (error,info) ->
     p.diagnose ();
     Proofview.tclZERO ~info error)
@@ -504,8 +528,6 @@ let tactic_using produce ?fuel ?(preprocess=Tactics.intros) ~witness ?(lemmas=[]
       let refutation = C.call (prepared.checker_api "checker_correct") (args @ [accepted]) in
       let tables = prepared.table_args in
       let rho = C.call (local "valuation") tables in
-      let valid = C.call (state "C.valid") [rho] in
-      let cty = clause_ty () in
       let eqb = SmtMisc.mklApp CoqTerms.ceqb [|a;b|] in
       let hfalse = R.mkRel 1 in
       let f = R.mkLambda(R.mkName "b",(Lazy.force CoqTerms.cbool),
@@ -518,22 +540,42 @@ let tactic_using produce ?fuel ?(preprocess=Tactics.intros) ~witness ?(lemmas=[]
           SmtMisc.mklApp CoqTerms.corb [|R.mkRel 1;Lazy.force CoqTerms.cfalse|]) in
         C.call ("Corelib.Init.Logic.f_equal") [(Lazy.force CoqTerms.cbool);(Lazy.force CoqTerms.cbool);f;v;(Lazy.force CoqTerms.ctrue);p] in
       let root_cs = List.map (fun r -> [r]) roots in
-      let ps = List.map (fun l -> R.lift 1 (lemma_valid l)) ls in
-      let roots_proof =
-        (* Lift tables and lemma proofs below the false-equality binder. *)
-        let valid = R.lift 1 valid in
-        let rec build cs ps = match cs,ps with
-          | [],[] -> C.call ("Corelib.Lists.ListDef.Forall_nil") [cty;valid]
-          | c::cs,p::ps -> C.call ("Corelib.Lists.ListDef.Forall_cons")
-            [cty;valid;clause c;clauses cs;p;build cs ps]
+      let bool_ty = Lazy.force CoqTerms.cbool in
+      let values_ty = SmtMisc.mklApp CoqTerms.clist [|bool_ty|] in
+      let value_terms = SmtMisc.mklApp CoqTerms.corb
+        [|SmtMisc.mklApp CoqTerms.cnegb [|eqb|];Lazy.force CoqTerms.cfalse|] ::
+        List.map (fun (_,_,v) -> SmtMisc.mklApp CoqTerms.corb
+          [|v;Lazy.force CoqTerms.cfalse|]) ls in
+      let actual_values = C.list bool_ty value_terms in
+      let model_values = C.call (tactic_api "root_values") [rho;prepared.roots_arg] in
+      let binding_type = SmtMisc.mklApp CoqTerms.ceq [|values_ty;model_values;actual_values|] in
+      let binding_proof = C.call "Corelib.Init.Logic.eq_refl" [values_ty;actual_values] in
+      (* A kernel-checked equality binds the complete ordered root vector to
+         the actual Boolean goal/hypotheses. No root is dropped or changed. *)
+      with_normalized_proof ~conversion_phase:"root_conversion" ~acceptance_phase:"checked_root"
+        binding_type binding_proof (fun binding ->
+      let facts =
+        let truth = R.mkLambda(R.mkName "b",bool_ty,
+          SmtMisc.mklApp CoqTerms.ceq [|bool_ty;R.mkRel 1;Lazy.force CoqTerms.ctrue|]) in
+        let rec build values proofs = match values,proofs with
+          | [],[] -> C.list bool_ty [],C.call "Corelib.Lists.ListDef.Forall_nil" [bool_ty;truth]
+          | v::vs,p::ps ->
+            let tail,proved = build vs ps in
+            SmtMisc.mklApp CoqTerms.ccons [|bool_ty;v;tail|],
+            C.call "Corelib.Lists.ListDef.Forall_cons" [bool_ty;truth;v;tail;p;proved]
           | _ -> R.raise_error "Eunoia: root proof length mismatch" in
-        build root_cs (neg_valid::ps) in
+        snd (build (List.map (R.lift 1) value_terms)
+          (neg_valid :: List.map (fun l -> R.lift 1 (lemma_valid l)) ls)) in
+
+      let roots_proof = C.call (tactic_api "root_values_correct")
+        [R.lift 1 rho;clauses root_cs;R.lift 1 actual_values;R.lift 1 binding;facts] in
       let contradiction = R.mkApp (R.lift 1 refutation,[|roots_proof|]) in
-      let hty = SmtMisc.mklApp CoqTerms.ceq [|(Lazy.force CoqTerms.cbool);eqb;Lazy.force CoqTerms.cfalse|] in
+      let hty = SmtMisc.mklApp CoqTerms.ceq [|bool_ty;eqb;Lazy.force CoqTerms.cfalse|] in
       let not_false = R.mkLambda(R.mkName "eunoia_false",hty,contradiction) in
       let is_true = C.call (std "Bool.Bool.not_false_is_true") [eqb;not_false] in
       let proof = C.call (std "Bool.Bool.eqb_prop") [a;b;is_true] in
-      phase_tactic "goal_conversion" (Tactics.exact_check (EConstr.of_constr proof)))
+      phase_tactic "goal_conversion" (Tactics.exact_check (EConstr.of_constr proof))))
+
       end
     with
     | EunoiaSolver.Error s | E.Error s | Failure s | Invalid_argument s ->

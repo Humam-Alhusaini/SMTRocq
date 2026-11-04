@@ -33,6 +33,18 @@ Proof.
     simpl; rewrite ?Lit.interp_neg, Hl; reflexivity.
 Qed.
 
+(* Bind a whole ordered root vector in one checked conversion. This shares
+   the existing valuation without changing any root or its interpretation. *)
+Definition root_values (rho : Valuation.t) (roots : list C.t) : list bool :=
+  map (C.interp rho) roots.
+Lemma root_values_correct : forall rho roots values,
+  root_values rho roots = values ->
+  Forall (fun b => b = true) values -> Forall (C.valid rho) roots.
+Proof.
+  intros rho roots values H Hvalues. subst values.
+  unfold root_values in Hvalues. rewrite Forall_map in Hvalues. exact Hvalues.
+Qed.
+
 Section Tables.
   Variable t_i : array CompDec.typ_compdec.
   Variable t_func : array (Atom.tval t_i).

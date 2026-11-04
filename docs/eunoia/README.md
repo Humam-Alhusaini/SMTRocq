@@ -6,14 +6,14 @@ interpreter, checks a semantic certificate for every inference, and applies a
 proved goal-checker correctness lemma. It uses SMTCoq's existing SMT-LIB
 interpretation and CNF/EUF/LIA checkers.
 
-The functional suites contain 22 public UF proofs, 11 additional Boolean UF
-proofs and 15 integer/mixed proofs, plus seven purification/constant/multi-goal regressions and 12 integer-cut proofs,
+The functional suites contain 23 public UF proofs, 11 additional Boolean UF
+proofs and 17 integer/mixed proofs, plus seven purification/constant/multi-goal regressions and 12 integer-cut proofs,
 with false-goal and corrupted-proof controls. They have passed compilation and
-baseline assumption audits. Larger valid benchmark goals exceed the current
-30-second compiler limit. This is an experimental backend, with explicitly
+baseline assumption audits. The recorded benchmark checkpoints retain compiler timeouts in their coverage
+denominators. This is an experimental backend, with explicitly
 bounded coverage and no competitive performance claim.
 
-The [current development checkpoint](backend-checkpoint-2026-11-04.md) records
+The [current development progress](backend-progress-2026-11-04.md) records
 new coverage, independent proof checks and the matched benchmark, including
 remaining failures and performance gaps.
 
