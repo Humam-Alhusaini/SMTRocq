@@ -79,6 +79,7 @@ python3 tools/eunoia/replay_fixtures.py --scoped tools/eunoia/tests/integer-fixt
   --output "$task_tmp/IntegerFixtureTests.v"
 python3 tools/eunoia/replay_helper_fixtures.py --output "$task_tmp/HelperFixtureTests.v"
 python3 tools/eunoia/replay_indexed_fixtures.py --output "$task_tmp/IndexedFixtureTests.v"
+python3 tools/eunoia/replay_staged_fixtures.py --output "$task_tmp/StagedFixtureTests.v"
 cp theories/checker/eunoia/EoSyntax.v theories/checker/eunoia/EoRuntime.v \
   theories/checker/eunoia/EoArithmetic.v theories/checker/eunoia/EoOrder.v \
   tools/eunoia/tests/LiaTraceReplay.v tools/eunoia/tests/LiaRuntimeTests.v \
@@ -90,9 +91,16 @@ cp theories/checker/eunoia/EoSyntax.v theories/checker/eunoia/EoRuntime.v \
   theories/checker/eunoia/CpcMemo.v theories/checker/eunoia/EoMemoCollector.v \
   theories/checker/eunoia/CpcMemoCollector.v \
   theories/checker/eunoia/EoNameIndex.v theories/checker/eunoia/EoIndexed.v \
-  theories/checker/eunoia/CpcIndexed.v "$task_tmp/"
+  theories/checker/eunoia/CpcIndexed.v \
+  theories/checker/eunoia/EoStaged.v \
+  theories/checker/eunoia/EoFuelLayers.v \
+  theories/checker/eunoia/EoCompiledPrograms.v \
+  theories/checker/eunoia/CpcStaged.v \
+  theories/checker/eunoia/CpcStagedEval.v \
+  theories/checker/eunoia/CpcStagedRules.v \
+  "$task_tmp/"
 cd "$task_tmp"
-for task_module in EoSyntax EoRuntime EoArithmetic EoOrder CpcGenerated EoCheckedMemo EoRuleMemo CpcMemo EoMemoCollector CpcMemoCollector EoNameIndex EoIndexed CpcIndexed TestGenerated MutatedGenerated MutatedCpcGenerated LiaMutatedGenerated TightenMutatedGenerated IntEqPremiseMutated IntEqResultMutated IntGeqPremiseMutated IntGeqResultMutated IntFloorMutated IntCastMutated IntPolyGuardMutated TraceReplay RuntimeTests FixtureTests TraceNegativeTests LiaTraceReplay LiaRuntimeTests LiaFixtureTests LiaTraceNegativeTests StrictShiftTests ReducedFixtureTests IntegerFixtureTests IntegerCastTests HelperMemoTests HelperFixtureTests IndexedFixtureTests; do
+for task_module in EoSyntax EoRuntime EoArithmetic EoOrder CpcGenerated EoCheckedMemo EoRuleMemo CpcMemo EoMemoCollector CpcMemoCollector EoNameIndex EoIndexed CpcIndexed EoStaged EoFuelLayers EoCompiledPrograms CpcStaged CpcStagedEval CpcStagedRules TestGenerated MutatedGenerated MutatedCpcGenerated LiaMutatedGenerated TightenMutatedGenerated IntEqPremiseMutated IntEqResultMutated IntGeqPremiseMutated IntGeqResultMutated IntFloorMutated IntCastMutated IntPolyGuardMutated TraceReplay RuntimeTests FixtureTests TraceNegativeTests LiaTraceReplay LiaRuntimeTests LiaFixtureTests LiaTraceNegativeTests StrictShiftTests ReducedFixtureTests IntegerFixtureTests IntegerCastTests HelperMemoTests HelperFixtureTests IndexedFixtureTests StagedFixtureTests; do
   "$task_env" rocq compile -q -Q . SMTCoq.checker.eunoia "$task_module.v"
 done
 "$task_env" rocq check -silent -Q . SMTCoq.checker.eunoia \
@@ -103,6 +111,7 @@ done
   SMTCoq.checker.eunoia.HelperMemoTests \
   SMTCoq.checker.eunoia.HelperFixtureTests \
   SMTCoq.checker.eunoia.IndexedFixtureTests \
+  SMTCoq.checker.eunoia.StagedFixtureTests \
   SMTCoq.checker.eunoia.ReducedFixtureTests \
   SMTCoq.checker.eunoia.IntegerFixtureTests SMTCoq.checker.eunoia.IntegerCastTests
 python3 "$task_root/tools/eunoia/tests/audit_integer_assumptions.py" "$task_tmp"

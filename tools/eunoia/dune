@@ -7,6 +7,7 @@
   replay_fixtures.py
   replay_helper_fixtures.py
   replay_indexed_fixtures.py
+  replay_staged_fixtures.py
   check-generated.sh
   rules.txt
   cpc-manifest.json
@@ -26,6 +27,12 @@
   ../../theories/checker/eunoia/CpcMemoCollector.v
   ../../theories/checker/eunoia/EoNameIndex.v
   ../../theories/checker/eunoia/EoIndexed.v
-  ../../theories/checker/eunoia/CpcIndexed.v)
+  ../../theories/checker/eunoia/CpcIndexed.v
+  ../../theories/checker/eunoia/EoStaged.v
+  ../../theories/checker/eunoia/EoFuelLayers.v
+  ../../theories/checker/eunoia/EoCompiledPrograms.v
+  ../../theories/checker/eunoia/CpcStaged.v
+  ../../theories/checker/eunoia/CpcStagedEval.v
+  ../../theories/checker/eunoia/CpcStagedRules.v)
  (action
   (run bash check-generated.sh)))

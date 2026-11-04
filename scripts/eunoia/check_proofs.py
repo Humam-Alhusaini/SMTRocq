@@ -37,6 +37,13 @@ def main():
     for i in range(0, len(mappings), 3):
         audit += ["--loadpath", mappings[i + 1], mappings[i + 2]]
     for module, names in {
+        "EoStaged": ["compile_refinement"],
+        "EoFuelLayers": ["fetch_make", "make_correct"],
+        "EoCompiledPrograms": ["execute_correct"],
+        "CpcStaged": ["execute_correct"],
+        "CpcStagedEval": ["evaluate_correct"],
+        "CpcStagedRules": ["run_rule_correct", "run_surface_correct", "derive_prepared_correct"],
+        "EunoiaStaged": ["checker_refinement", "checker_correct", "checker_b_refinement", "checker_b_correct", "checker_eq_refinement", "checker_eq_correct"],
         "EunoiaProgramIndex": ["checker_refinement", "checker_correct", "checker_b_correct", "checker_eq_correct"],
         "EoNameIndex": ["lookup_insert", "lookup_from_list"],
         "EoIndexed": ["evaluate_indexed_refinement", "run_rule_refinement", "run_surface_refinement"],
@@ -111,6 +118,7 @@ def main():
                   "SMTCoq.checker.eunoia.EoCheckedMemoTests",
                   "SMTCoq.checker.eunoia.EunoiaHelperCache",
                   "SMTCoq.checker.eunoia.EunoiaProgramIndex",
+                  "SMTCoq.checker.eunoia.EunoiaStagedTests",
                   "SMTCoq.checker.eunoia.EoNameIndexTests",
                   "SMTCoq.checker.eunoia.EunoiaProgramIndexTests",
                   "SMTCoq.checker.eunoia.EunoiaHelperCacheTests",

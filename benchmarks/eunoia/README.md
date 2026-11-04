@@ -228,3 +228,18 @@ found no repeated certificates in those cases. Forced sharing was approximately
 neutral on four cases and slower on the smallest UF case (median tactic time
 1.826 s reference versus 2.298 s shared). This motivated the adaptive default;
 it does not establish a shared-checker speedup.
+
+## Source-evaluator experiments
+
+The metadata also records `EUNOIA_DECLARED_CONCLUSIONS`,
+`EUNOIA_HELPER_CACHE`, `EUNOIA_PROGRAM_INDEX`, and `EUNOIA_STAGED_PROGRAMS`.
+Printed conclusions default to enabled; the other three default to disabled.
+Set every switch explicitly in matched experiments. Helper-cache mode takes
+precedence over specialization, which takes precedence over the program index.
+The isolated checker repository supplies separate component runners; their
+results do not measure the complete tactic.
+
+For the specialized evaluator, alternate `EUNOIA_STAGED_PROGRAMS=0|1` while
+keeping printed conclusions enabled and the helper cache and program index
+disabled. Use identical frozen sources and installed proof/plugin artifacts,
+retain failures and false controls, and preserve the whole-compiler timeout.

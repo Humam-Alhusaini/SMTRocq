@@ -14,8 +14,8 @@ ROOT = Path(__file__).resolve().parents[2]
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", type=Path)
-    parser.add_argument("--modes", nargs="+", choices=("Reference", "Shared", "Helpers", "Conclusions", "Indexed"),
-                        default=("Reference", "Shared", "Helpers", "Conclusions", "Indexed"))
+    parser.add_argument("--modes", nargs="+", choices=("Reference", "Shared", "Helpers", "Conclusions", "Indexed", "Staged"),
+                        default=("Reference", "Shared", "Helpers", "Conclusions", "Indexed", "Staged"))
     parser.add_argument("--fixtures", nargs="+",
                         choices=("Proof", "Lia", "IntegerCasts", "Division",
                                  "Uf", "UfBool", "Purification", "PublicLia", "PublicTactics"))
@@ -37,14 +37,14 @@ def main():
         for mode, disabled, forced, helpers, conclusions, indexed in (
                 ("Reference", "1", "0", "0", "0", "0"), ("Shared", "0", "1", "0", "0", "0"),
                 ("Helpers", "0", "1", "1", "0", "0"), ("Conclusions", "0", "1", "0", "1", "0"),
-                ("Indexed", "0", "1", "0", "1", "1")):
+                ("Indexed", "0", "1", "0", "1", "1"), ("Staged", "0", "1", "0", "1", "0")):
             if mode not in args.modes:
                 continue
             fixtures = [(name, ROOT / "src/eunoia_backend/tests/integration" / (name + ".v"))
                         for name in ("Proof", "Lia")]
             fixtures.append(("IntegerCasts", ROOT / "unit-tests/eunoia_integer_casts.v"))
             fixtures.append(("Division", ROOT / "unit-tests/eunoia_division.v"))
-            if mode in ("Conclusions", "Indexed"):
+            if mode in ("Conclusions", "Indexed", "Staged"):
                 fixtures += [(name, ROOT / "unit-tests" / (source + ".v")) for name, source in
                              (("Uf", "eunoia_uf"), ("UfBool", "eunoia_uf_bool"),
                               ("Purification", "eunoia_purification"), ("PublicLia", "eunoia_lia"),
@@ -61,6 +61,7 @@ def main():
                 summary["sources"][name] = hashlib.sha256(target.read_bytes()).hexdigest()
                 command = [wrapper, "env", "EUNOIA_DISABLE_CHECKED_CACHE=" + disabled,
                            "EUNOIA_FORCE_CHECKED_CACHE=" + forced, "EUNOIA_HELPER_CACHE=" + helpers,
+                           "EUNOIA_STAGED_PROGRAMS=" + ("1" if mode == "Staged" else "0"),
                            "EUNOIA_DECLARED_CONCLUSIONS=" + conclusions, "EUNOIA_PROGRAM_INDEX=" + indexed,
                            "dune", "exec", "--", "rocq", "compile", "-q", *compiler_flags, str(target)]
                 result, _ = bench.record_command(command, ROOT, 300, out / name)

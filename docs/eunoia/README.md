@@ -64,7 +64,7 @@ The committed signature is cvc5 1.4.2's complete 35-file CPC include closure.
 The compiler follows its declarations, patterns, binder types, ordered helper
 cases, requirements, aliases and computed conclusions. Selection in
 `tools/eunoia/rules.txt` currently includes 87 rules and 59 helpers; the manifest
-lists all source hashes and 524 excluded rules. There is no rule-name-dependent
+lists all source hashes and 522 excluded rules. There is no rule-name-dependent
 execution switch implementing the selected CPC inferences.
 
 ```sh
@@ -249,3 +249,7 @@ boundary and all exported public Eunoia theorem suites against the inherited
 The backend also supports [proved facts for Rocq integer division and modulo](division.md)
 through its existing UF/LIA semantics. The separate benchmark manifest retains
 signed/zero cases and false controls without changing the original workload.
+
+The experimental [signature-specialized evaluator](staged-evaluator.md)
+preserves complete reference computations while specializing generated helper
+bodies. It is opt-in pending full-tactic comparison.
