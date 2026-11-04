@@ -1,0 +1,114 @@
+{
+  "artifact_hashes": {
+    "cases.json": "3bcfe5b461e17ca7b54fea5f7754c46a11be41426dbdf15a7cf86df8d8f931b4",
+    "integrity.json": "0f9732071aabc96662979198c067859ad0bf8058fe95745ce8da23df1428a44c",
+    "metadata.json": "fadb40b2f8effe897eab0b4d5eb8ea32e693b78d52241947fc67dcb2e16a91b3",
+    "results.json": "30bdf758e01b2eee3bf75055b7b3f18e45e21f02f3c9a6fa047252067cf80ef0"
+  },
+  "checker_commit": "83b4dae",
+  "compiler_timeout_seconds": 30,
+  "integrity_passed": true,
+  "positive_case_timings": [
+    {
+      "case_id": "known_value_reverse_equality",
+      "qed_wall_s": 0.008,
+      "repeat": 1,
+      "status": "solved",
+      "tactic_wall_s": 0.659
+    },
+    {
+      "case_id": "known_value_remainder",
+      "qed_wall_s": 0.007,
+      "repeat": 1,
+      "status": "solved",
+      "tactic_wall_s": 0.489
+    },
+    {
+      "case_id": "known_value_negative_remainder",
+      "qed_wall_s": 0.005,
+      "repeat": 1,
+      "status": "solved",
+      "tactic_wall_s": 0.498
+    },
+    {
+      "case_id": "known_value_ground_expression",
+      "qed_wall_s": 0.005,
+      "repeat": 1,
+      "status": "solved",
+      "tactic_wall_s": 0.547
+    },
+    {
+      "case_id": "known_value_uf_result",
+      "qed_wall_s": 0.005,
+      "repeat": 1,
+      "status": "solved",
+      "tactic_wall_s": 0.542
+    },
+    {
+      "case_id": "known_value_reverse_equality",
+      "qed_wall_s": 0.008,
+      "repeat": 2,
+      "status": "solved",
+      "tactic_wall_s": 0.587
+    },
+    {
+      "case_id": "known_value_remainder",
+      "qed_wall_s": 0.007,
+      "repeat": 2,
+      "status": "solved",
+      "tactic_wall_s": 0.474
+    },
+    {
+      "case_id": "known_value_negative_remainder",
+      "qed_wall_s": 0.006,
+      "repeat": 2,
+      "status": "solved",
+      "tactic_wall_s": 0.492
+    },
+    {
+      "case_id": "known_value_ground_expression",
+      "qed_wall_s": 0.006,
+      "repeat": 2,
+      "status": "solved",
+      "tactic_wall_s": 0.529
+    },
+    {
+      "case_id": "known_value_uf_result",
+      "qed_wall_s": 0.005,
+      "repeat": 2,
+      "status": "solved",
+      "tactic_wall_s": 0.527
+    }
+  ],
+  "repeat": 2,
+  "schema_version": 1,
+  "summary": {
+    "cvc5_eunoia": {
+      "cases_solved_every_repeat": 5,
+      "per_theory": {
+        "LIA": {
+          "positive_attempts": 10,
+          "positive_scheduled": 10,
+          "solved_attempts": 10
+        },
+        "UF": {
+          "positive_attempts": 0,
+          "positive_scheduled": 0,
+          "solved_attempts": 0
+        }
+      },
+      "positive_attempts": 10,
+      "positive_cases": 5,
+      "positive_process_wall_sum_s": 27.568620231999375,
+      "positive_scheduled": 10,
+      "solved_attempts": 10,
+      "solved_qed_wall_sum_s": 0.062,
+      "solved_tactic_wall_median_s": 0.528,
+      "solved_tactic_wall_sum_s": 5.344,
+      "status_counts": {
+        "negative_rejected": 6,
+        "solved": 10
+      }
+    }
+  }
+}

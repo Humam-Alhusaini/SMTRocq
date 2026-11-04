@@ -48,7 +48,11 @@ were 117.198 s over two repeats (58.599 s per repeat), versus 101.657 s for the
 single preceding `8a5c14b` repeat. The three known-numerator cases fell from
 15.576/13.329/13.757 s to two-repeat medians around 0.53/0.55/0.51 s.
 The Boolean-wrapped reverse case still took 16.1–16.8 s at that checkpoint;
-its subsequent wrapper fix is separately validated and requires fresh timing.
+the separately validated `83b4dae` wrapper fix reduced it to 0.659/0.587 s.
+That frozen two-repeat known-value run retained 10/10 positives and six
+rejected controls, with 5.344 s total tactic time and all integrity checks
+passing. [Exact wrapper measurements](verified-boolean-known-values-2026-11-04.json)
+remain separate from the preceding checkpoint.
 [Exact results](verified-known-values-benchmarks-2026-11-04.json) preserve the
 unchanged manifests and scheduled denominators.
 
