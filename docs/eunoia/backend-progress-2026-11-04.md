@@ -19,6 +19,40 @@ proofs, plus the purification/constant/multi-goal regressions and false/corrupte
 controls. The eight-variable inequality cycle and its satisfiable non-strict
 variant exercise actual hypothesis bindings.
 
+## Verified checkpoint at d5af018
+
+The frozen implementation passed all 133 named assumption-audit targets,
+independent kernel checks, both native emitter modes, generated/corrupted proof
+replays and full repository runtest. All benchmark source/artifact integrity
+checks passed. The compiler timeout remained 30 seconds.
+
+| Workload | Repeats | Eunoia checked / scheduled | veriT checked / scheduled |
+| --- | ---: | ---: | ---: |
+| Original regression | 2 | 36/36 | 36/36 |
+| Integer-cut extension | 1 | 12/12 | 11/12 |
+| Scalability diagnostics | 1 | 21/21 | 18/21 |
+
+Both backends rejected all four scheduled standard-workload false controls and
+all five integer-cut controls. The scalability manifest contains positive cases
+only. Eunoia's formerly timed-out length-8 cycle now completes within the same
+limit. VeriT's parity error and three cycle errors remain unsolved.
+
+Standard-workload tactic totals over two repeats were **62.540 s** for Eunoia
+and **2.642 s** for veriT; Qed totals were 2.038 s and 1.067 s. Integer-cut tactic
+totals were 28.261 s on Eunoia's 12 successes and 0.908 s on veriT's 11 successes.
+For the **same 11** checked cases, totals were 27.016 s and 0.908 s. Scalability
+totals were 57.794 s on Eunoia's 21 successes and 2.281 s on veriT's 18 successes;
+on the **same 18**, they were 36.515 s and 2.281 s. Startup/process wall time,
+Qed and tactic time are distinct measurements. These samples establish coverage
+and show a remaining latency gap; they do not establish overall competitiveness.
+
+[Machine-readable results](verified-benchmarks-2026-11-04.json) retain the
+scheduled counts, failure IDs, common-success comparisons and artifact hashes.
+Reproduce with `benchmarks/eunoia/run.py --backends verit cvc5_eunoia --repeat 2
+--timeout 30`, selecting the committed integer-cut or scalability manifest with
+`--cases` for the extensions. Hardware is shared; use several rounds before
+making broader performance claims.
+
 ## Measured checkpoint at 9401f76
 
 Rocq 9.2, OCaml 4.14.2, Dune 3.21.1, pinned CVC5 1.4.2; serial fresh compilers,
@@ -63,7 +97,7 @@ Optional `EUNOIA_PROFILE_PHASES=1` reports preparation, certificate conversion,
 private-helper checking and final goal conversion. Nested phase times must not
 be added together. The benchmark records this option and the fixed solver profile.
 
-## Further proof-construction experiment
+## Checked proof-construction changes
 
 Standard VM goal normalization inside the private proof helper avoids ordinary
 reduction of the complete checker during proof elaboration. The helper still
@@ -80,8 +114,7 @@ A focused checked trial reduced the length-8 cycle to 10.216 s of tactic time
 and 0.221 s of Qed, within the standard compiler limit; all four positive cases
 and both false controls behaved as expected. The complete validation subsequently passed: 133 named assumption-audit targets,
 independent kernel checks, both emitter modes, corrupted/captured source tests and
-full repository runtest. Matched workload reruns are still needed before treating
-this trial as the next measured checkpoint.
+full repository runtest. The frozen matched reruns are recorded in the verified checkpoint above.
 
 Helper goal types are checked before normalization, and the reducer sees the
 current checked universe context. Abstract and quantified carriers retain their
