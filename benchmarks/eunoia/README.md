@@ -172,3 +172,26 @@ null. There is consequently no locally runnable Lean-SMT or Sledgehammer
 baseline in that environment; this PATH observation is not a machine-wide
 installation audit. No large toolchains were installed, and no performance
 comparison to those systems is asserted.
+
+## Producer cache ablations
+
+Set `EUNOIA_ENV` to an optional activated-toolchain wrapper; otherwise the
+repository's `scripts/eunoia/env` uses the caller's PATH. Install pinned cvc5
+with `python3 scripts/eunoia/install_toolchain.py` before measurement.
+
+`EUNOIA_DISABLE_TERM_CACHE=1`, `EUNOIA_DISABLE_DERIVE_CACHE=1`, and
+`EUNOIA_DISABLE_WITNESS_CACHE=1` disable only untrusted producer sharing. Both
+variants retain the same generated and semantic checking, `Qed`, assumption
+audits, negative controls, and timeout boundaries. Switch values appear in the
+metadata. Source and installed proof/plugin fingerprints must remain unchanged
+throughout each run; the report rejects a run with failed integrity.
+
+Compare the same cases and repeats, run variants serially on an idle machine,
+and retain failures and timeouts in the denominator. These switches do not
+remove trusted checker work and do not establish competitiveness by themselves.
+
+For an isolated comparison of verified certificate sharing, leave the producer
+caches unchanged and compare the default with `EUNOIA_DISABLE_CHECKED_CACHE=1`.
+The latter selects the original checked wrappers. `EUNOIA_CACHE_PROFILE=1` logs
+source-step/shared-certificate counts in both variants. The same source rules,
+typing, syntax binding, scope/liveness checks and kernel acceptance apply.

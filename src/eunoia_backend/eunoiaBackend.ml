@@ -7,6 +7,7 @@ let adapter n = "SMTCoq.checker.eunoia.EunoiaAdapter.EunoiaAdapter." ^ n
 let local n = "SMTCoq.checker.eunoia.EunoiaLocal.EunoiaLocal." ^ n
 let core n = "SMTCoq.checker.eunoia.EunoiaChecker.EunoiaChecker." ^ n
 let scoped n = "SMTCoq.checker.eunoia.EunoiaScopedAdapter.EunoiaScopedAdapter." ^ n
+let memo_api n = "SMTCoq.checker.eunoia.EunoiaMemo.EunoiaMemo." ^ n
 let scope n = "SMTCoq.checker.eunoia.EunoiaScope.EunoiaScope." ^ n
 let tactic_api n = "SMTCoq.checker.eunoia.EunoiaTactic.EunoiaTactic." ^ n
 let fuel_term n =
@@ -100,6 +101,7 @@ let reify t term =
   let loc = Lexing.dummy_pos,Lexing.dummy_pos in
   let ident s = A.QualIdentifierId(loc,A.IdSymbol(loc,A.Symbol(loc,s))) in
   let rec ast term = match E.spine term with
+    | E.Symbol "@purify", [x] -> ast x
     | E.Symbol s,[] when String.length s > 0 &&
         (s.[0]='-' || (s.[0]>='0' && s.[0]<='9')) ->
       (try ignore (Big_int.big_int_of_string s)
@@ -126,6 +128,8 @@ type prepared = {
 
 let prepare ?(fuel=10000) ~witness env t roots parsed =
   if roots=[] || fuel<=0 || fuel>100000 then R.raise_error "Eunoia: invalid roots or computation fuel";
+  let term = C.make_term_encoder () in
+  let term_list xs = C.list (C.term_type ()) (List.map term xs) in
   register_instances env t;
   let ns = names t in
   let fuel = fuel_term fuel in
@@ -139,12 +143,28 @@ let prepare ?(fuel=10000) ~witness env t roots parsed =
   let root_terms = List.map (fun r -> encode [r]) roots in
   let query = C.call (adapter "typeof")
     [List.nth table_args 0;List.nth table_args 1;ns;fuel] in
-  let derive rule args premises =
+  let derive_uncached rule args premises =
     C.compute_term_option env (C.call "SMTCoq.checker.eunoia.CpcGenerated.derive"
-      [fuel;query;C.string rule;C.term_list args;C.term_list premises]) in
-  let derive_assuming rule assumption args premises =
+      [fuel;query;C.string rule;term_list args;term_list premises]) in
+  let derive_assuming_uncached rule assumption args premises =
     C.compute_term_option env (C.call "SMTCoq.checker.eunoia.CpcGenerated.derive_assuming"
-      [fuel;query;C.string rule;C.term assumption;C.term_list args;C.term_list premises]) in
+      [fuel;query;C.string rule;term assumption;term_list args;term_list premises]) in
+  (* The query/tables/fuel are fixed during elaboration. Cache producer-side
+     syntax candidates, never acceptance. The complete applied checker reruns
+     generated evaluation and semantic certification for every occurrence. *)
+  let candidates = Hashtbl.create 127 in
+  let memo key compute =
+    if Sys.getenv_opt "EUNOIA_DISABLE_DERIVE_CACHE" = Some "1" then compute () else
+    match Hashtbl.find_opt candidates key with
+    | Some result -> result
+    | None -> let result = compute () in
+      if Hashtbl.length candidates < 4096 then Hashtbl.add candidates key result;
+      result in
+  let derive rule args premises =
+    memo (rule,None,args,premises) (fun () -> derive_uncached rule args premises) in
+  let derive_assuming rule assumption args premises =
+    memo (rule,Some assumption,args,premises)
+      (fun () -> derive_assuming_uncached rule assumption args premises) in
   let metadata_literals = Hashtbl.create 17 in
   let is_metadata_literal s =
     (* Lexical prefilter only. Actual admission is EoArithmetic's exact
@@ -156,7 +176,7 @@ let prepare ?(fuel=10000) ~witness env t roots parsed =
       | Some b -> b
       | None ->
         let b = Stdlib.Option.is_some (C.compute_term_option env
-          (C.call "SMTCoq.checker.eunoia.EoArithmetic.EoArithmetic.normalize" [C.term (E.Symbol s)])) in
+          (C.call "SMTCoq.checker.eunoia.EoArithmetic.EoArithmetic.normalize" [term (E.Symbol s)])) in
         Hashtbl.add metadata_literals s b; b in
   let proof = E.elaborate ~signature_names:(C.signature_names env) ~is_metadata_literal
     ~declarations:(declarations t) ~roots:root_terms ~derive ~derive_assuming parsed in
@@ -168,9 +188,13 @@ let prepare ?(fuel=10000) ~witness env t roots parsed =
     let mapped = Hashtbl.create proof.capacity in
     List.iter2 (fun (i,_) r -> Hashtbl.add mapped i [r]) proof.roots roots;
     let checked_steps = ref [] in
+    let memoize = Sys.getenv_opt "EUNOIA_DISABLE_CHECKED_CACHE" <> Some "1" in
+    let certificates = ref [] in
+    let inline_certificates = ref 0 in
+    let certificate_index = Hashtbl.create 127 in
     let result_clause st =
       if st.E.result=E.Symbol "false" then [] else [reify t st.result] in
-    let evidence st syntax_cs cs c =
+    let evidence ?assumption ?source_assumption st syntax_cs cs c =
       let w = match witness ~atoms:t.atoms ~forms:t.forms ~premises:cs ~conclusion:c with
         | Ok w -> w
         | Error e -> R.raise_error
@@ -178,13 +202,31 @@ let prepare ?(fuel=10000) ~witness env t roots parsed =
             st.E.name st.rule e
             (Format.pp_print_list ~pp_sep:Format.pp_print_space E.pp_term) st.premise_terms
             E.pp_term st.result in
-      checked_steps := (st,syntax_cs,cs,c,w)::!checked_steps;
-      Hashtbl.add mapped st.id c; w in
-    let witness_ty = C.global (local "witness") in
+      checked_steps := (st,assumption,source_assumption,syntax_cs,cs,c,w)::!checked_steps;
+      Hashtbl.add mapped st.id c;
+      if not memoize then w else
+      let cs_ids = List.map (List.map Form.to_lit) cs and c_ids = List.map Form.to_lit c in
+      let key = cs_ids,c_ids in
+      let bucket = Stdlib.Option.value ~default:[] (Hashtbl.find_opt certificate_index key) in
+      match List.find_opt (fun (_,old_w) -> R.eq_constr w old_w) bucket with
+      | Some (id,_) -> C.call (memo_api "Cached") [CoqTerms.mkNat id]
+      | None when List.length !certificates >= 512 ->
+        incr inline_certificates; C.call (memo_api "Inline") [w]
+      | None ->
+        let id = List.length !certificates in
+        let entry = C.call (memo_api "CacheEntry") [clauses cs;clause c;w] in
+        certificates := entry :: !certificates;
+        Hashtbl.replace certificate_index key ((id,w)::bucket);
+        C.call (memo_api "Cached") [CoqTerms.mkNat id] in
+    let witness_ty = C.global (if memoize then memo_api "witness_ref" else local "witness") in
     let rule_ty = C.global (adapter "rule_payload") in
     let parameters = [rule_ty;rule_ty;witness_ty] in
-    let payload st c = C.call (adapter "Payload") [C.string st.E.rule;
-      C.term_list st.arguments;C.term_list st.premise_terms;C.term st.result;clause c] in
+    let payload ?assumption st c =
+      let args = [C.string st.E.rule;term_list st.arguments;
+        term_list st.premise_terms;term st.result;clause c] in
+      match assumption with
+      | None -> C.call (adapter "Payload") args
+      | Some raw -> C.call (adapter "ScopedPayload") (args @ [term raw]) in
     let ordinary st =
       let cs = List.map (Hashtbl.find mapped) st.E.premises in
       let c = result_clause st in
@@ -208,17 +250,19 @@ let prepare ?(fuel=10000) ~witness env t roots parsed =
         let guarded = List.sort_uniq (fun a b -> Int.compare (Form.to_lit a) (Form.to_lit b))
           (Form.neg pushed :: endpoint_clause) in
         let c = result_clause st in
-        let w = evidence st [endpoint_clause] [guarded] c in
+        let w = evidence ~assumption:pushed ~source_assumption:assumption
+          st [endpoint_clause] [guarded] c in
         let discharge = C.call (scope "Discharge") [rule_ty;witness_ty;
-          mkint endpoint;mkint st.id;payload st c;clause c;w] in
+          mkint endpoint;mkint st.id;payload ~assumption st c;clause c;w] in
         Hashtbl.clear mapped; Hashtbl.iter (Hashtbl.add mapped) saved;
         Hashtbl.add mapped st.id c;
         let tail = nested rest in
-        let some = SmtMisc.mklApp CoqTerms.cSome [|C.global (scoped "discharge");discharge|] in
+        let some = SmtMisc.mklApp CoqTerms.cSome
+          [|C.global ((if memoize then memo_api else scoped) "discharge");discharge|] in
         C.call (scope "Push") (parameters @ [mkint slot;mkint (Form.to_lit pushed);body;some;tail]) in
     let has_scopes = List.exists (fun c -> match c.Eunoia_frontend.EunoiaProof.command with
       | Eunoia_frontend.EunoiaProof.Assume_push _ -> true | _ -> false) parsed.commands in
-    let trace = if has_scopes then nested proof.trace else
+    let trace = if memoize || has_scopes then nested proof.trace else
       C.list (C.call (core "step") [rule_ty;witness_ty]) (List.map ordinary proof.steps) in
     (* Witness search may intern auxiliary equalities. Snapshot only after all
        results and witness candidates have populated the authoritative tables. *)
@@ -234,13 +278,25 @@ let prepare ?(fuel=10000) ~witness env t roots parsed =
       check "invalid final reification tables"
         (C.call (adapter "tables_wf") (tables @ [ns]));
       check "CPC roots differ from the authoritative formulas"
-        (C.call (adapter "bind_terms") (tables @ [ns;fuel;clauses root_clauses;C.term_list root_terms]));
-      List.iter (fun (st,syntax_cs,cs,c,evidence) ->
+        (C.call (adapter "bind_terms") (tables @ [ns;fuel;clauses root_clauses;term_list root_terms]));
+      List.iter (fun (st,assumption,source_assumption,syntax_cs,cs,c,evidence) ->
         let context stage = Printf.sprintf "%s at %s (%s)" stage st.E.name st.rule in
         check (context "premise syntax binding failed")
-          (C.call (adapter "bind_terms") (tables @ [ns;fuel;clauses syntax_cs;C.term_list st.premise_terms]));
+          (C.call (adapter "bind_terms") (tables @ [ns;fuel;clauses syntax_cs;term_list st.premise_terms]));
         check (context "conclusion syntax binding failed")
-          (C.call (adapter "binds") (tables @ [ns;fuel;clause c;C.term st.result]));
+          (C.call (adapter "binds") (tables @ [ns;fuel;clause c;term st.result]));
+        let generated = match assumption,syntax_cs with
+          | None,_ -> C.call (adapter "eval")
+              (tables @ [ns;fuel;payload st c;clauses syntax_cs])
+          | Some a,[endpoint] -> C.call (scoped "scope_eval")
+              (tables @ [ns;fuel;payload ?assumption:source_assumption st c;
+                mkint (Form.to_lit a);clause endpoint])
+          | _ -> R.raise_error "Eunoia: malformed diagnostic scope endpoint" in
+        let expected = SmtMisc.mklApp CoqTerms.cSome [|clause_ty ();clause c|] in
+        (match R.vm_conv Conversion.CUMUL env generated expected with
+         | Result.Ok () -> ()
+         | Result.Error () -> R.raise_error "Eunoia: %s"
+             (context "generated source evaluation failed"));
         let gate = C.call (local "gate") (tables @ [clauses cs;clause c;evidence]) in
         (match R.vm_conv Conversion.CUMUL env gate (Lazy.force CoqTerms.ctrue) with
         | Result.Ok () -> ()
@@ -277,13 +333,20 @@ let prepare ?(fuel=10000) ~witness env t roots parsed =
           Stdlib.Option.iter (fun m -> inspect 0 m commands) (machine loaded);
           R.raise_error "Eunoia: %s; source result: %a"
             (context "local semantic certificate failed") E.pp_term st.result)) (List.rev !checked_steps) in
+    let memo_args = if memoize then
+      [C.list (C.global (memo_api "cache_entry"))
+        (List.rev !certificates)] else [] in
+    if Sys.getenv_opt "EUNOIA_CACHE_PROFILE" = Some "1" then
+      Printf.eprintf "EUNOIA_CACHE event=prepared enabled=%b source_steps=%d shared_entries=%d inline=%d\n%!"
+        memoize (List.length proof.steps) (List.length !certificates)
+        (if memoize then !inline_certificates else List.length proof.steps);
     {table_args=tables;
-     common_args=tables @ [ns;fuel;mkint proof.capacity];
+     common_args=tables @ [ns;fuel] @ memo_args @ [mkint proof.capacity];
      roots_arg=clauses root_clauses;
-     tail_args=[C.term_list root_terms;
+     tail_args=[term_list root_terms;
        claims (List.map2 (fun (i,_) c -> i,c) proof.roots root_clauses);
        trace;mkint proof.conflict];diagnose;
-     checker_api=(if has_scopes then scoped else tactic_api)})
+     checker_api=(if memoize then memo_api else if has_scopes then scoped else tactic_api)})
 
 let refutation env sigma p =
   let args = p.common_args @ [p.roots_arg] @ p.tail_args in

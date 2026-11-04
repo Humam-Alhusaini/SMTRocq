@@ -23,7 +23,7 @@ sys.path.insert(0, str(ROOT / "tools/eunoia"))
 from replay_fixtures import decode, generate
 from compile import atom, parse, seq
 
-ENV = Path("/home/charles/code/friends/.toolchains/smtrocq-env")
+ENV = Path(os.environ.get("EUNOIA_ENV", str(next(p for p in Path(__file__).resolve().parents if (p / "dune-project").is_file()) / "scripts/eunoia/env")))
 MODULES = ("EoSyntax", "EoRuntime", "EoArithmetic", "EoOrder", "CpcGenerated",
            "TraceReplay", "LiaTraceReplay")
 

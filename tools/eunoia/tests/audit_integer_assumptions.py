@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Audit named computation examples and their new runtime/query entry points."""
 from pathlib import Path
+import os
 import json
 import re
 import subprocess
@@ -24,7 +25,7 @@ source = ['From Stdlib Require Import String.',
 for name in names:
     source += [f'Eval compute in "audit:{name}".', f'Print Assumptions {name}.']
 (artifacts / 'IntegerAssumptionAudit.v').write_text('\n'.join(source) + '\n')
-command = ['/home/charles/code/friends/.toolchains/smtrocq-env', 'rocq', 'compile',
+command = [os.environ.get("EUNOIA_ENV", str(next(p for p in Path(__file__).resolve().parents if (p / "dune-project").is_file()) / "scripts/eunoia/env")), 'rocq', 'compile',
            '-q', '-Q', '.', 'SMTCoq.checker.eunoia', 'IntegerAssumptionAudit.v']
 proc = subprocess.run(command, cwd=artifacts, text=True, capture_output=True)
 output = proc.stdout + proc.stderr

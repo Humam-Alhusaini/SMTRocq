@@ -15,3 +15,7 @@
 (alias
  (name runtest)
  (deps Proof.vo Public.vo Lia.vo))
+(rule
+ (target assumptionsCompat.ml)
+ (deps gen_assumptions_compat.py)
+ (action (run python3 %{dep:gen_assumptions_compat.py} %{target})))

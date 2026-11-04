@@ -49,7 +49,12 @@ Fixpoint lower_arithmetic (fuel : nat) (t : term) : option term :=
     let '(head, args) := spine t [] in
     match head, traverse (lower_arithmetic k) args with
     | Symbol s, Some xs =>
-      if String.eqb s "+" || String.eqb s "*" then
+      if String.eqb s "@purify" then
+        (* CPC purification names the original term. Keep raw syntax for
+           generated rule evaluation; only the table-binding view unfolds it.
+           Every resulting local implication is still certified by the gate. *)
+        match xs with [x] => Some x | _ => None end
+      else if String.eqb s "+" || String.eqb s "*" then
         match xs with
         | a :: b :: c :: rest =>
           let fix chain x xs := match xs with
@@ -343,7 +348,9 @@ Section Tables.
     end.
 
   Definition builtin_type (s : string) (xs : list Typ.type) : option Typ.type :=
-    if String.eqb s "true" || String.eqb s "false" then
+    if String.eqb s "@purify" then
+      match xs with [ty] => Some ty | _ => None end
+    else if String.eqb s "true" || String.eqb s "false" then
       match xs with [] => Some Typ.Tbool | _ => None end
     else if String.eqb s "not" then
       match xs with [Typ.Tbool] => Some Typ.Tbool | _ => None end
@@ -470,13 +477,19 @@ Section Tables.
     names_wf && Form.check_form t_form && Atom.check_atom t_atom &&
     Atom.wt t_i t_func t_atom.
 
-  Record rule_payload := Payload {
+  Record rule_payload := MakePayload {
     rule_name : string;
     arguments : list term;
     premise_terms : list term;
     result_term : term;
-    result_clause : C.t
+    result_clause : C.t;
+    source_assumption : option term
   }.
+
+  Definition Payload name args premises result clause :=
+    MakePayload name args premises result clause None.
+  Definition ScopedPayload name args premises result clause assumption :=
+    MakePayload name args premises result clause (Some assumption).
 
   (* Polymorphic only to expose the binding theorem independently of generator
      correctness. The public evaluator below always uses CpcGenerated.derive. *)
@@ -486,6 +499,9 @@ Section Tables.
     let ready := tables_wf in
     let query := typeof fuel in
     fun p cs =>
+    match source_assumption p with
+    | Some _ => None
+    | None =>
     if ready && bind_terms fuel cs (premise_terms p) then
       match derive fuel query (rule_name p) (arguments p) (premise_terms p) with
       | Some t =>
@@ -493,7 +509,8 @@ Section Tables.
         then Some (result_clause p) else None
       | None => None
       end
-    else None.
+    else None
+    end.
 
   Definition eval := eval_with CpcGenerated.derive.
 
@@ -505,6 +522,7 @@ Section Tables.
     binds fuel c (result_term p) = true /\ c = result_clause p.
   Proof.
     intros derive fuel p cs c H; unfold eval_with in H.
+    destruct (source_assumption p); try discriminate.
     destruct (tables_wf && bind_terms fuel cs (premise_terms p)) eqn:Hg;
       try discriminate.
     destruct (derive fuel (typeof fuel) (rule_name p) (arguments p) (premise_terms p))

@@ -7,6 +7,7 @@ For modules not installed yet, --build-loadpaths selects only the explicitly
 supplied Dune theory mappings, avoiding overlapping build/install libraries.
 """
 
+import os
 import argparse
 import json
 from pathlib import Path
@@ -46,7 +47,7 @@ def main():
     root = Path(__file__).resolve().parent.parent
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--env", type=Path, default=Path(
-        "/home/charles/code/friends/.toolchains/smtrocq-env"))
+        os.environ.get("EUNOIA_ENV", str(next(p for p in Path(__file__).resolve().parents if (p / "dune-project").is_file()) / "scripts/eunoia/env"))))
     parser.add_argument("--import", dest="imports", type=identifier, action="append", required=True)
     parser.add_argument("--theorem", type=identifier, action="append", required=True)
     parser.add_argument("--baseline", type=Path,

@@ -40,6 +40,7 @@
    "keyword: automation"
    "logpath:SMTCoq"))
  (depends
+  conf-python-3
   num
   (rocq-core
    (>= 9.0.0))

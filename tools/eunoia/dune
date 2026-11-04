@@ -1,6 +1,7 @@
 (rule
  (alias runtest)
  (deps
+  ../../scripts/eunoia/env
   compile.py
   regenerate.py
   replay_fixtures.py

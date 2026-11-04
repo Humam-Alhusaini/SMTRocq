@@ -6,6 +6,16 @@ open Common
 open SmtAtom
 module B = Eunoia_backend.EunoiaBackend
 module C = Eunoia_backend.EunoiaRocq
+let check_marshalling () =
+  let module E = Eunoia_backend.EunoiaElaborate in
+  let shared = E.app "+" [E.Symbol "-12345678901234567890"; E.Symbol "x"] in
+  let cases = [E.Symbol ""; E.Symbol "quoted \" symbol; λ";
+    E.app "=" [shared;shared]; E.app "@purify" [shared]] in
+  let encode = C.make_term_encoder () in
+  List.iter (fun t ->
+    if not (RocqInterface.eq_constr (encode t) (C.term t)) || C.decode_term (encode t) <> t
+    then failwith "Eunoia: shared encoder changed source syntax") cases;
+  Proofview.tclUNIT ()
 let local s = C.call ("SMTCoq.checker.eunoia.EunoiaLocal.EunoiaLocal." ^ s)
 let action s = C.call ("SMTCoq.checker.MainChecker.Checker_Ext." ^ s)
 let int () = Lazy.force CoqTerms.cint
@@ -209,15 +219,13 @@ let helper_assumptions name ~opaque_access =
     | _ -> Constr.iter inspect t in
   inspect body;
   if !casts=0 then RocqInterface.raise_error "Eunoia test: no saved checker certificate found";
-  let theory,assumptions = Assumptions.assumptions opaque_access
-    TransparentState.full !refs in
-  let env = Global.env () in
-  Feedback.msg_notice (Printer.pr_assumptionset env (Evd.from_env env) theory assumptions)
+  Feedback.msg_notice (AssumptionsCompat.print opaque_access !refs)
 }
 VERNAC COMMAND EXTEND EunoiaHelperAssumptions CLASSIFIED AS QUERY STATE opaque_access
 | [ "Eunoia_helper_assumptions" string(name) ] -> { helper_assumptions name }
 END
 TACTIC EXTEND Backend_replay
+| [ "backend_encoding" ] -> { check_marshalling () }
 | [ "backend_replay" ] -> { replay () }
 | [ "backend_corrupted" ] -> { corrupted () }
 | [ "backend_bad_unused" ] -> { bad_unused () }

@@ -12,7 +12,7 @@ import tarfile
 import zipfile
 
 
-DEFAULT_ROOT = "/home/charles/code/friends/.toolchains"
+DEFAULT_ROOT = str(Path(os.environ.get("XDG_CACHE_HOME") or Path.home() / ".cache") / "smtrocq")
 MANIFEST = Path(__file__).with_name("cvc5-1.4.2.json")
 
 
@@ -95,7 +95,7 @@ def verify_toolchain(root):
 
 def add_root_argument(parser):
     parser.add_argument("--toolchain-root", default=os.environ.get(
-        "EUNOIA_TOOLCHAIN_ROOT", DEFAULT_ROOT), help="private root (never searched on PATH)")
+        "EUNOIA_TOOLCHAIN_ROOT") or DEFAULT_ROOT, help="private root (never searched on PATH)")
 
 
 def main():

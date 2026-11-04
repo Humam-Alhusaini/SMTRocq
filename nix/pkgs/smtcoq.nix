@@ -9,6 +9,9 @@
   cvc4,
   cvc5,
   flock,
+  python3,
+  fetchurl,
+  unzip,
   rocq-core,
   rocq-elpi,
   stdlib,
@@ -22,6 +25,24 @@
 
 let
   case = case: out: { inherit case out; };
+
+  eunoiaPins = builtins.fromJSON (builtins.readFile ../../scripts/eunoia/cvc5-1.4.2.json);
+  eunoiaArchive = kind: fetchurl {
+    inherit (eunoiaPins.archives.${kind}) url sha256;
+  };
+  eunoia-toolchain = stdenv.mkDerivation {
+    name = "smtrocq-eunoia-cvc5-${eunoiaPins.version}";
+    nativeBuildInputs = [ unzip ];
+    phases = [ "installPhase" ];
+    installPhase = ''
+      mkdir -p "$out/downloads" "$out/${eunoiaPins.install_directory}"
+      cp ${eunoiaArchive "binary"} "$out/downloads/${eunoiaPins.archives.binary.filename}"
+      cp ${eunoiaArchive "source"} "$out/downloads/${eunoiaPins.archives.source.filename}"
+      unzip -q ${eunoiaArchive "binary"} -d "$out/${eunoiaPins.install_directory}"
+      tar -xzf ${eunoiaArchive "source"} -C "$out/${eunoiaPins.install_directory}" \
+        cvc5-cvc5-1.4.2/proofs/eo/cpc
+    '';
+  };
 
   lfsc-sigs = stdenv.mkDerivation {
     name = "lfsc-sigs";
@@ -65,6 +86,8 @@ mkRocqDerivation rec {
           || builtins.match ".*\\.(v|elpi)$" name != null
           || builtins.match ".*\\.(ml|mli|mll|mly|mlg|mlpack)$" name != null
           || builtins.match ".*\\.(cnf|lfsc|smt2|sh|plf|vtlog|zlog)$" name != null
+          || name == "env"
+          || builtins.match ".*\\.(py|json|txt|eo|cpc)$" name != null
         );
     };
   };
@@ -79,7 +102,11 @@ mkRocqDerivation rec {
   ];
 
   doCheck = true;
-  nativeCheckInputs = [ flock ];
+  # The pinned static release is Linux x86-64; keep older PATH solvers for
+  # the original backends. Other platforms require their own verified pin.
+  EUNOIA_TOOLCHAIN_ROOT = lib.optionalString
+    (stdenv.hostPlatform.isLinux && stdenv.hostPlatform.isx86_64) "${eunoia-toolchain}";
+  nativeCheckInputs = [ flock python3 ];
   checkPhase = ''
     runHook preCheck
     patchShebangs ./unit-tests/files/run_zchaff.sh
@@ -87,7 +114,7 @@ mkRocqDerivation rec {
     runHook postCheck
   '';
 
-  passthru = { inherit lfsc-sigs; };
+  passthru = { inherit lfsc-sigs eunoia-toolchain; };
 
   meta = {
     description = "A Rocq plugin that checks proof witnesses coming from external SAT and SMT solvers";

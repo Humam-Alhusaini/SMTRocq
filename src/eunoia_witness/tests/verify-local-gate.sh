@@ -4,7 +4,7 @@ set -euo pipefail
 # certificates through its real VM computation. All writes stay in /tmp.
 repo=$(cd "$(dirname "$0")/../../.." && pwd)
 gate=${1:?Usage: verify-local-gate.sh /absolute/path/to/EunoiaLocal.v}
-env=/home/charles/code/friends/.toolchains/smtrocq-env
+env="${EUNOIA_ENV:-$repo/scripts/eunoia/env}"
 scratch=$(mktemp -d /tmp/smtrocq-witness-probe.XXXXXX)
 cd "$repo"
 "$env" dune build -j2 src/eunoia_witness theories/checker/MainChecker.vo

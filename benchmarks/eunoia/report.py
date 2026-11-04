@@ -78,6 +78,8 @@ def main():
     parser.add_argument('results', type=Path, help='one results.json from run.py')
     args = parser.parse_args()
     data = json.loads(args.results.read_text())
+    if data.get('integrity_passed') is False:
+        parser.error('checker sources or compiled artifacts changed; this run cannot be compared')
     if data.get('schema_version') != 1:
         parser.error('Unsupported results schema')
     print(markdown(data['rows']), end='')

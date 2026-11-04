@@ -134,15 +134,35 @@ END
 
 {
 
-let eunoia_witness ~atoms ~forms ~premises ~conclusion =
+let make_eunoia_witness () =
+  let candidates = Hashtbl.create 127 in
+  let owner = ref None in
+  let enabled = Sys.getenv_opt "EUNOIA_DISABLE_WITNESS_CACHE" <> Some "1" in
+  fun ~atoms ~forms ~premises ~conclusion ->
+  (* A tactic expression may be reused on multiple goals. IDs are meaningful
+     only in their owning tables, so never reuse candidates across them. *)
+  (match !owner with
+   | Some (old_atoms,old_forms) when old_atoms == atoms && old_forms == forms -> ()
+   | _ -> Hashtbl.clear candidates; owner := Some (atoms,forms));
+  let key = List.map (List.map SmtAtom.Form.to_lit) premises,
+    List.map SmtAtom.Form.to_lit conclusion in
+  let cached = if enabled then Hashtbl.find_opt candidates key else None in
+  match cached with
+  | Some candidate -> Ok candidate
+  | None ->
   match Eunoia_witness.Search.produce ~atoms ~forms ~premises ~conclusion () with
   | Error error -> Error (Eunoia_witness.Search.string_of_failure error)
   | Ok candidate ->
-      Ok (Eunoia_witness.Certificate.to_coq
+      let candidate = Eunoia_witness.Certificate.to_coq
         ~local:(fun name -> Eunoia_backend.EunoiaRocq.global
           ("SMTCoq.checker.eunoia.EunoiaLocal.EunoiaLocal." ^ name))
         ~step:(fun name -> Eunoia_backend.EunoiaRocq.global
-          ("SMTCoq.checker.MainChecker.Checker_Ext." ^ name)) candidate)
+          ("SMTCoq.checker.MainChecker.Checker_Ext." ^ name)) candidate in
+      (* Tables only grow during this invocation. Reuse producer data with
+         identical ordered clauses; every source occurrence still goes
+         through the complete generated checker and local semantic gate. *)
+      if enabled && Hashtbl.length candidates < 256 then Hashtbl.replace candidates key candidate;
+      Ok candidate
 
 let eunoia_tactic lpl =
   let lpl = EConstr.Unsafe.to_constr lpl in
@@ -150,7 +170,7 @@ let eunoia_tactic lpl =
     | None -> []
     | Some tuple -> CoqTerms.list_of_constr_tuple tuple
   in
-  Eunoia_backend.EunoiaBackend.tactic ~witness:eunoia_witness ~lemmas ()
+  Eunoia_backend.EunoiaBackend.tactic ~witness:(make_eunoia_witness ()) ~lemmas ()
 
 }
 

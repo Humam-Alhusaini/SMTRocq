@@ -9,7 +9,7 @@ From SMTCoq.utils Require Import PArray.
 From SMTCoq.checker.fol Require Import State Terms.
 From SMTCoq.checker Require Import MainChecker.
 From SMTCoq.checker.eunoia Require Import
-  EoSyntax EunoiaAdapter EunoiaChecker EunoiaLocal EunoiaTactic.
+  EoSyntax CpcGenerated EunoiaAdapter EunoiaChecker EunoiaLocal EunoiaTactic.
 
 Import ListNotations.
 Local Open Scope uint63_scope.
@@ -20,6 +20,26 @@ Module A := EunoiaAdapter.Examples.
 
 Definition eqxx := EunoiaAdapter.app "=" [A.x; A.x].
 Definition not_eqxx := EunoiaAdapter.app "not" [eqxx].
+
+Example purification_binding :
+  EunoiaAdapter.lower_arithmetic 20
+    (EunoiaAdapter.app "@purify" [EunoiaAdapter.app "@purify" [A.x]]) = Some A.x.
+Proof. vm_compute; reflexivity. Qed.
+Example purification_wrong_arity_rejected :
+  EunoiaAdapter.lower_arithmetic 20
+    (EunoiaAdapter.app "@purify" [A.x; A.x]) = None.
+Proof. vm_compute; reflexivity. Qed.
+Example generated_purification_rule :
+  CpcGenerated.derive 500
+    (EunoiaAdapter.typeof A.sorts A.funcs A.names 100)
+    "skolem_intro" [EunoiaAdapter.app "@purify" [A.x]] [] =
+    Some (EunoiaAdapter.app "=" [EunoiaAdapter.app "@purify" [A.x]; A.x]).
+Proof. vm_compute; reflexivity. Qed.
+Example purification_non_skolem_argument_rejected :
+  CpcGenerated.derive 500
+    (EunoiaAdapter.typeof A.sorts A.funcs A.names 100)
+    "skolem_intro" [A.x] [] = None.
+Proof. vm_compute; reflexivity. Qed.
 Definition pair (a b : clause_id) : resolution := (PArray.make 2 a).[1 <- b].
 
 Definition refl_evidence := EunoiaLocal.Witness 3 [(0, [Lit.nlit 14])]

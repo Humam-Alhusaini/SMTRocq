@@ -23,7 +23,7 @@ def main():
     args = parser.parse_args()
     root = Path(__file__).resolve().parents[2]
     installed = root / "_build/install/default/lib"
-    wrapper = "/home/charles/code/friends/.toolchains/smtrocq-env"
+    wrapper = os.environ.get("EUNOIA_ENV", str(next(p for p in Path(__file__).resolve().parents if (p / "dune-project").is_file()) / "scripts/eunoia/env"))
     args.output.mkdir(parents=True, exist_ok=False)
     rows = []
     metadata = {

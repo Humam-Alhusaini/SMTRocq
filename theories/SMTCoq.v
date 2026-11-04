@@ -16,6 +16,7 @@ From Trakt Require Export Trakt.
 From SMTCoq.structures Require Export CompDecInstances.
 From SMTCoq.checker.fol Require Export State Terms.
 From SMTCoq.checker Require Export MainChecker.
+From SMTCoq.checker.eunoia Require Import EunoiaMemo.
 From SMTCoq.tactics Require Export Tactics DatabaseTrakt Conversion.
 
 Export Atom Form Sat_Checker Cnf_Checker Euf_Checker.

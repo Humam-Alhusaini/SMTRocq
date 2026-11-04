@@ -27,6 +27,37 @@ let rec term = function
   | EunoiaElaborate.Symbol s -> call (syntax ^ "Symbol") [string s]
   | EunoiaElaborate.Apply(f,a) -> call (syntax ^ "Apply") [term f;term a]
 let term_list xs = list (term_type ()) (List.map term xs)
+
+(* Immutable producer syntax, shared only within one proof invocation.
+   Generated computation and semantic checking still process every step. *)
+let make_term_encoder () =
+  if Sys.getenv_opt "EUNOIA_DISABLE_TERM_CACHE" = Some "1" then term else
+  let symbols = Hashtbl.create 127 and terms = Hashtbl.create 1021 in
+  let symbol = global (syntax ^ "Symbol") and apply = global (syntax ^ "Apply") in
+  let ascii = global "Stdlib.Strings.Ascii.Ascii" in
+  let cons = global "Stdlib.Strings.String.String" in
+  let empty = global "Stdlib.Strings.String.EmptyString" in
+  let chars = Array.init 256 (fun n ->
+    R.mkApp (ascii, Array.init 8 (fun b -> Lazy.force
+      (if n land (1 lsl b) <> 0 then CoqTerms.ctrue else CoqTerms.cfalse)))) in
+  let encode_string s = match Hashtbl.find_opt symbols s with
+    | Some c -> c
+    | None ->
+      let c = ref empty in
+      for i = String.length s - 1 downto 0 do
+        c := R.mkApp (cons,[|chars.(Char.code s.[i]);!c|])
+      done;
+      if Hashtbl.length symbols < 4096 then Hashtbl.add symbols s !c;
+      !c in
+  let rec encode t = match Hashtbl.find_opt terms t with
+    | Some c -> c
+    | None ->
+      let c = match t with
+        | EunoiaElaborate.Symbol s -> R.mkApp (symbol,[|encode_string s|])
+        | EunoiaElaborate.Apply(f,a) -> R.mkApp (apply,[|encode f;encode a|]) in
+      if Hashtbl.length terms < 16384 then Hashtbl.add terms t c;
+      c in
+  encode
 let decode_string t =
   let empty = global "Stdlib.Strings.String.EmptyString" in
   let cons = global "Stdlib.Strings.String.String" in

@@ -7,7 +7,7 @@ proved goal-checker correctness lemma. It uses SMTCoq's existing SMT-LIB
 interpretation and CNF/EUF/LIA checkers.
 
 The functional suites contain 22 public UF proofs, 11 additional Boolean UF
-proofs and 15 integer/mixed proofs,
+proofs and 15 integer/mixed proofs, plus seven purification/constant/multi-goal regressions,
 with false-goal and corrupted-proof controls. They have passed compilation and
 baseline assumption audits. Larger valid benchmark goals exceed the current
 30-second compiler limit. This is an experimental backend, with explicitly
@@ -15,20 +15,21 @@ bounded coverage and no competitive performance claim.
 
 ## Build and use
 
-All local dependencies are isolated. The development wrapper is
-`/home/charles/code/friends/.toolchains/smtrocq-env`; it selects Rocq 9.3.0,
-OCaml 4.14.2 and the project dependencies. From the repository root:
+Activate an OCaml/Rocq toolchain (Rocq 9.2 or newer, Dune 3.21 or newer,
+Python 3.9 or newer), then run from the repository root:
 
 ```sh
-/home/charles/code/friends/.toolchains/smtrocq-env dune build -j2
-/home/charles/code/friends/.toolchains/smtrocq-env dune runtest -j2
+python3 -B scripts/eunoia/install_toolchain.py
+dune build --ignore-promoted-rules -j2 theories
+sh scripts/eunoia/ci.sh
 ```
 
-The solver runner selects private cvc5 1.4.2 explicitly, independently of the
-older cvc5 on the existing backend's PATH. See
-[the toolchain manifest and offline verification](../../scripts/eunoia/README.md)
-for its paths, archive pins and matching signature files. The scripts verify
-an existing installation; they do not install system packages.
+The solver runner uses pinned cvc5 1.4.2 from the same private cache as the
+installer, independently of older PATH solvers. See the
+[installer and verifier](../../scripts/eunoia/README.md) for checksum pins and
+`EUNOIA_TOOLCHAIN_ROOT`. `EUNOIA_ENV` selects an optional command wrapper for
+profiling/audits; the default uses the activated toolchain, with no private
+machine paths. The pinned release currently supports Linux x86-64.
 
 ```coq
 From SMTCoq Require Import SMTCoq.
@@ -58,8 +59,8 @@ with `cvc5_eunoia`.
 The committed signature is cvc5 1.4.2's complete 35-file CPC include closure.
 The compiler follows its declarations, patterns, binder types, ordered helper
 cases, requirements, aliases and computed conclusions. Selection in
-`tools/eunoia/rules.txt` currently includes 51 rules and 53 helpers; the manifest
-lists all source hashes and 558 excluded rules. There is no rule-name-dependent
+`tools/eunoia/rules.txt` currently includes 84 rules and 53 helpers; the manifest
+lists all source hashes and 525 excluded rules. There is no rule-name-dependent
 execution switch implementing the selected CPC inferences.
 
 ```sh
@@ -69,7 +70,7 @@ EUNOIA_KEEP_TEST_DIR=1 tools/eunoia/check-generated.sh
 
 Regeneration updates `theories/checker/eunoia/CpcGenerated.v` and
 `tools/eunoia/cpc-manifest.json`. Validation checks deterministic regeneration,
-47 Python tests, source/helper/guard mutations, all 1,158 steps in 32 actual
+48 Python tests, source/helper/guard mutations, all 1,158 steps in 32 actual
 original/reduced solver captures, and independent kernel checks. These fixture
 replays establish source computation coverage; semantic proof acceptance uses
 the additional gate described below. See the [compiler interface](../../tools/eunoia/INTERFACE.md)
@@ -122,7 +123,7 @@ use a checked deterministic right-fold representation preserving operand order,
 duplicates and existing binary subtrees. Explicit negations and signed literal
 spellings remain represented. See the [exact binding contract](adapter-interface.md).
 
-For each inference, `EunoiaLocal` checks a refutation of the exact premise
+For each inference, a checked local certificate refutes the exact premise
 clauses plus negated conclusion. It preserves disjunctive premises, checks live
 reads, bounds, fresh outputs and every expected intermediate clause, and
 rejects failure fallbacks. Candidate search cannot authorize a clause. The
@@ -166,7 +167,58 @@ Final comparisons must use the same integrated revision and workload. Published
 versions and timing boundaries; it supplies no speed ratio for this backend.
 
 Known limits include excluded source rules, finite generation/search budgets,
-some purification and Boolean-constant argument cases, and proofs requiring
+higher-order purification and Boolean-constant cases outside the default local-equality normalization, and proofs requiring
 object-level Real/`to_real`/`to_int` intermediates. Rational/decimal metadata
 support does not add real-arithmetic semantics. Bitvectors, arrays and other
 theory extensions are outside this UF/LIA change.
+
+## Producer sharing and source-preserving scopes
+
+The frontend shares immutable marshaled syntax and repeated generated candidates
+within one preparation. The public tactic may reuse successful local witness
+candidates only for identical ordered clauses in the same Atom/Form tables.
+Caches are bounded and never store a proof-acceptance Boolean; the final applied
+checker still evaluates and semantically gates every source occurrence, including
+unused steps. No candidate is shared across unrelated goals or proof contexts.
+
+For matched producer ablations, set `EUNOIA_DISABLE_TERM_CACHE=1`,
+`EUNOIA_DISABLE_DERIVE_CACHE=1`, and `EUNOIA_DISABLE_WITNESS_CACHE=1`. The benchmark
+records these switches and fingerprints the source and loaded proof/plugin
+artifacts before and after measurement; changed checkers invalidate the run.
+These producer optimizations do not memoize the trusted generated evaluator's
+side-condition execution.
+
+Purification keeps raw `@purify` syntax for generated computation and uses its
+original term only in the checked table-binding view. Scoped payloads retain the
+raw pushed assumption: its binding to the actual pushed literal is checked
+before generated discharge. The local gate still proves the exact guarded
+consequence, and parent-state restoration remains unchanged. The ordinary payload
+constructor remains compatible; ordinary steps reject scope-only metadata.
+
+The public tactic normalizes local Boolean variable equalities with `true`/`false`
+using kernel equality elimination before capturing local hypotheses. Explicitly
+supplied lemmas keep their original context. This avoids the legacy reifier's
+formula-versus-atom assertion for the tested constant-argument goals. It does not
+provide a general Boolean-formula-as-UF-argument representation.
+
+The default `EunoiaMemo` wrapper additionally shares *checked* local certificate
+validation. Up to 512 exact certificate entries are validated once, including
+unused entries. Each source occurrence must still pass generated rule
+evaluation, exact syntax binding, bounds/freshness/liveness checks, and an exact
+ordered-premise/conclusion match to its selected entry. Remaining certificates
+use the original inline semantic gate. The reference wrappers remain available
+with `EUNOIA_DISABLE_CHECKED_CACHE=1`; no checking is disabled by this switch.
+
+`EunoiaMemo.gate_correct` and its scoped/Boolean/equality correctness wrappers
+are proved in Rocq from the existing local gate and scope theorems. Cache
+entries contain certificate data, never caller-provided acceptance Booleans or
+new semantic assumptions. The regression suite rejects corrupted unused entries,
+wrong references, changed conclusions, reordered premises, invalid inline
+certificates and unsupported generated rules.
+
+Set `EUNOIA_CACHE_PROFILE=1` to record preparation counts (source steps, shared
+entries and inline certificates). Counts describe producer data; successful
+`Qed`, assumption audits and independent kernel checks remain the acceptance
+criteria. `python3 -B scripts/eunoia/check_proofs.py` audits the correctness
+boundary and all exported public Eunoia theorem suites against the inherited
+52-name baseline, then recursively checks the saved proofs independently.

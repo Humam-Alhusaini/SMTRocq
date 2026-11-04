@@ -13,6 +13,22 @@ import run
 
 
 class BenchmarkIntegrity(unittest.TestCase):
+    def test_checker_fingerprint_detects_source_and_loaded_artifact_changes(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            source = root / "theories/Checker.v"
+            artifact = root / "_build/install/default/lib/Checker.vo"
+            source.parent.mkdir(parents=True)
+            artifact.parent.mkdir(parents=True)
+            source.write_text("original source")
+            artifact.write_bytes(b"original artifact")
+            before = run.checker_fingerprint(root)
+            source.write_text("changed source")
+            self.assertNotEqual(before, run.checker_fingerprint(root))
+            source.write_text("original source")
+            artifact.write_bytes(b"changed artifact")
+            self.assertNotEqual(before, run.checker_fingerprint(root))
+
     def setUp(self):
         self.positive = {"expected": "proved"}
         self.negative = {"expected": "rejected"}

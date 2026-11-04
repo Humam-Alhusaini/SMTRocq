@@ -7,6 +7,7 @@ val string : string -> RocqInterface.constr
 val term_type : unit -> RocqInterface.constr
 val term : EunoiaElaborate.term -> RocqInterface.constr
 val term_list : EunoiaElaborate.term list -> RocqInterface.constr
+val make_term_encoder : unit -> (EunoiaElaborate.term -> RocqInterface.constr)
 val decode_term : RocqInterface.constr -> EunoiaElaborate.term
 val compute_term_option :
   Environ.env -> RocqInterface.constr -> EunoiaElaborate.term option

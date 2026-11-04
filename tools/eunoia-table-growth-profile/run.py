@@ -15,7 +15,7 @@ import subprocess
 import time
 
 ROOT = Path(__file__).resolve().parents[2]
-WRAPPER = '/home/charles/code/friends/.toolchains/smtrocq-env'
+WRAPPER = os.environ.get("EUNOIA_ENV", str(next(p for p in Path(__file__).resolve().parents if (p / "dune-project").is_file()) / "scripts/eunoia/env"))
 
 
 def write(path, value):

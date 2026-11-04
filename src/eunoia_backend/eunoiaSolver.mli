@@ -6,8 +6,9 @@ type limits = {
   max_bytes : int;
 }
 val default_limits : limits
-val binary : string
-val signature : string
+val toolchain_root : unit -> string
+val binary : unit -> string
+val signature : unit -> string
 exception Error of string
 val run : ?limits:limits -> string -> Eunoia_frontend.EunoiaProof.proof
 (** Input must come from the table-based exporter. Requests CPC with trust

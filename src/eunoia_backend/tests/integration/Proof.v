@@ -1,5 +1,6 @@
 From Stdlib Require Import Bool String List.
 From SMTCoq.checker.eunoia Require Import EunoiaAdapter EunoiaLocal EunoiaTactic EunoiaScopedAdapter.
+From SMTCoq.checker.eunoia Require Import EunoiaMemo.
 Declare ML Module "rocq-smtcoq.eunoia_backend_test".
 
 Lemma replay_reflexive (p:bool) : p = p.
@@ -61,3 +62,5 @@ Print Assumptions scoped_export_false.
 Lemma signature_metadata_replay (p:bool) : p = p.
 Proof. backend_metadata_replay. Qed.
 Print Assumptions signature_metadata_replay.
+Example shared_encoding_preserves_source : True.
+Proof. backend_encoding. exact I. Qed.

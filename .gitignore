@@ -10,3 +10,7 @@ _RocqProject
 
 # Lia
 *.lia.cache
+
+# Python developer tools
+__pycache__/
+*.pyc

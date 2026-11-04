@@ -16,6 +16,15 @@ let run ?(declarations=decl) ?(roots=[p;np]) s =
   elaborate ~declarations ~roots ~derive (parse s)
 let prefix = "(declare-const p Bool)(assume a p)(assume b (not p))"
 let () =
+  let previous = Sys.getenv_opt "EUNOIA_TOOLCHAIN_ROOT" in
+  Fun.protect ~finally:(fun () -> Unix.putenv "EUNOIA_TOOLCHAIN_ROOT"
+    (Stdlib.Option.value ~default:"" previous)) (fun () ->
+    Unix.putenv "EUNOIA_TOOLCHAIN_ROOT" "/tmp/smtrocq-config-test";
+    assert (EunoiaSolver.binary () =
+      "/tmp/smtrocq-config-test/cvc5-1.4.2/cvc5-Linux-x86_64-static/bin/cvc5");
+    Unix.putenv "EUNOIA_TOOLCHAIN_ROOT" "relative/path";
+    (try ignore (EunoiaSolver.binary ()); failwith "relative solver root accepted"
+     with EunoiaSolver.Error _ -> ()));
   let proof = run (prefix ^ "(step c false :rule contra :premises (a b))") in
   assert (proof.capacity=3 && proof.conflict=2);
   assert ((List.hd proof.steps).premises=[0;1]);

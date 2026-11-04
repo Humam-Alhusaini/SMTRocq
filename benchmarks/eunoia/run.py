@@ -24,7 +24,7 @@ import time
 
 HERE = Path(__file__).resolve().parent
 REPO = HERE.parents[1]
-WRAPPER = Path("/home/charles/code/friends/.toolchains/smtrocq-env")
+WRAPPER = Path(os.environ.get("EUNOIA_ENV", str(next(p for p in Path(__file__).resolve().parents if (p / "dune-project").is_file()) / "scripts/eunoia/env")))
 BACKENDS = {name: name for name in ("verit", "cvc4", "cvc5_eunoia")}
 BASELINE_PATH = REPO / "docs/eunoia/baseline-assumptions.txt"
 BASELINE = {line.strip() for line in BASELINE_PATH.read_text().splitlines()
@@ -299,6 +299,21 @@ def rocq_loadpath(repo):
     return flags
 
 
+def checker_fingerprint(repo):
+    """Fingerprint the exact sources and built proof/plugin artifacts in use."""
+    sources = {}
+    for base in ("theories", "src", "tools/eunoia"):
+        for path in sorted((repo / base).rglob("*")):
+            if path.is_file() and path.suffix in (".v", ".ml", ".mli", ".mlg", ".py", ".eo", ".txt", ".json"):
+                sources[str(path.relative_to(repo))] = sha256(path)
+    artifacts = {str(path.relative_to(repo)): sha256(path)
+                 for path in sorted((repo / "_build/install/default/lib").rglob("*"))
+                 if path.is_file() and path.suffix in (".vo", ".cmxs")}
+    if not artifacts:
+        raise ValueError("No built proof/plugin artifacts found; build before benchmarking")
+    return {"sources": sources, "artifacts": artifacts}
+
+
 def parse_args():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--wrapper", type=Path, default=WRAPPER)
@@ -340,7 +355,11 @@ def main():
         "argv": sys.argv, "python": sys.version, "platform": platform.platform(),
         "cpu_count": os.cpu_count(), "loadavg_start": load_average(),
         "profiling_environment": {name: os.environ.get(name) for name in
-                                  ("EUNOIA_WITNESS_PROFILE", "EUNOIA_TABLE_PROFILE",
+                                  ("EUNOIA_DISABLE_CHECKED_CACHE",
+                                   "EUNOIA_CACHE_PROFILE",
+                                   "EUNOIA_DISABLE_TERM_CACHE", "EUNOIA_DISABLE_DERIVE_CACHE",
+                                   "EUNOIA_DISABLE_WITNESS_CACHE",
+                                   "EUNOIA_WITNESS_PROFILE", "EUNOIA_TABLE_PROFILE",
                                    "ROCQ_PROFILE_COMPONENTS")},
         "configuration": vars(args) | {"wrapper": str(wrapper), "output": str(output),
                                        "cases": str(cases_path)},
@@ -394,6 +413,9 @@ def main():
         if build["exit_code"] != 0 or build["timeout"]:
             print("Build failed; see build/output.log", file=sys.stderr)
             return 2
+    frozen_checker = checker_fingerprint(REPO)
+    metadata["checker_fingerprint"] = frozen_checker
+    write_json(output / "metadata.json", metadata)
     compiler = [str(wrapper), "dune", "exec", f"-j{args.jobs}", "--", "rocq", "c",
                 "-q", "-color", "no", *rocq_loadpath(REPO),
                 "-I", str(REPO / "_build/install/default/lib")]
@@ -441,12 +463,19 @@ def main():
                     stream.write(json.dumps(row, sort_keys=True) + "\n")
                 print(f"{repeat}/{args.repeat} {backend} {case['id']}: {row['status']}", flush=True)
     summary = summarize(rows)
-    write_json(output / "results.json", {"schema_version": 1, "rows": rows, "summary": summary})
+    integrity_passed = checker_fingerprint(REPO) == frozen_checker
+    write_json(output / "results.json", {"schema_version": 1, "rows": rows, "summary": summary,
+                                         "integrity_passed": integrity_passed})
     with (output / "results.csv").open("w", newline="") as stream:
         writer = csv.DictWriter(stream, fieldnames=list(rows[0]))
         writer.writeheader()
         writer.writerows(rows)
     write_json(output / "summary.json", summary)
+    if not integrity_passed:
+        write_json(output / "integrity.json", {"passed": False, "error": "checker sources or compiled artifacts changed during benchmark"})
+        print("Checker changed during benchmark; measurements are invalid", file=sys.stderr)
+        return 2
+    write_json(output / "integrity.json", {"passed": True})
     print(json.dumps(summary, indent=2))
     # Unsupported positive goals and timeouts are reported and make the run fail.
     return 0 if all(r["status"] in ("solved", "negative_rejected") for r in rows) else 1

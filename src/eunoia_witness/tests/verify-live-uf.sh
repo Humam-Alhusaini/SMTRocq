@@ -3,7 +3,7 @@ set -euo pipefail
 # Independently compile the unchanged UF suite against the built install tree
 # and audit its exported theorems, with all outputs in /tmp.
 repo=$(cd "$(dirname "$0")/../../.." && pwd)
-env=/home/charles/code/friends/.toolchains/smtrocq-env
+env="${EUNOIA_ENV:-$repo/scripts/eunoia/env}"
 scratch=$(mktemp -d /tmp/smtrocq-live-uf.XXXXXX)
 cd "$repo"
 printf 'Live UF evidence: %s\n' "$scratch"

@@ -194,6 +194,19 @@ Tactic Notation "cvc4_no_check" := ltac2:(cvc4_tac true).
 Ltac2 cvc5_eunoia_tac global :=
   Control.enter (fun () =>
     ltac1:(intros; unfold is_true in *);
+    (* Kernel equality elimination avoids passing a formula-valued Boolean
+       constant as a UF atom to the legacy SMT-LIB reifier. Normalize before
+       capturing local proof terms. Explicit supplied lemmas keep their
+       original context and follow the unchanged path. *)
+    (match global with
+     | [] => ltac1:(repeat match goal with
+         | H : ?x = true |- _ => is_var x; subst x
+         | H : true = ?x |- _ => is_var x; subst x
+         | H : ?x = false |- _ => is_var x; subst x
+         | H : false = ?x |- _ => is_var x; subst x
+         end)
+     | _ => ()
+     end);
     let local := List.map (fun (id, _) => (Some id, Control.hyp id)) (get_hyps_prop ()) in
     let global := List.map (fun t => (None, t)) global in
     let hsglob := pose_hyps global [] in

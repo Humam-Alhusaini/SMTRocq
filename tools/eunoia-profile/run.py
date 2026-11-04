@@ -20,7 +20,7 @@ import time
 
 
 ROOT = Path(__file__).resolve().parents[2]
-WRAPPER = "/home/charles/code/friends/.toolchains/smtrocq-env"
+WRAPPER = os.environ.get("EUNOIA_ENV", str(next(p for p in Path(__file__).resolve().parents if (p / "dune-project").is_file()) / "scripts/eunoia/env"))
 CASES = {
     "reflexivity": ("forall (A : Type) (HA : CompDec A) (x : A), x = x", "cvc5_eunoia"),
     "congruence": ("forall (A : Type) (HA : CompDec A) (f : A -> A) (x y : A), "

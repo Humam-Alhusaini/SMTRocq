@@ -1,20 +1,27 @@
 # Private cvc5 / CPC capture tools
 
-These Python 3.9+ standard-library tools verify an existing private installation
-and capture CPC output. They do not install, download, extract, modify
-the toolchain, change `PATH`, or search for a system solver. The versioned
-[manifest](cvc5-1.4.2.json) pins upstream download URLs and both supplied SHA256
-checksums. Verification is offline and idempotent. Keep the cached archives:
-installed file existence or `--version` alone is insufficient verification.
+These Python 3.9+ standard-library tools install and verify the pinned cvc5
+1.4.2 binary and matching CPC signatures, or capture solver output. The installer
+uses a private cache, verifies both archive SHA256 pins before extraction, and
+verifies installed bytes against those archives. It is repeatable and preserves
+existing installations; corruption fails rather than overwriting user files.
+TLS and checksum verification remain enabled. The pinned binary requires Linux
+x86-64. Older PATH solvers used by existing backends remain separate.
 
-The default private root is `/home/charles/code/friends/.toolchains`. Override it
-with `--toolchain-root /absolute/private/root` or `EUNOIA_TOOLCHAIN_ROOT`. System
-roots are rejected. Expected paths relative to that root are:
+```sh
+python3 -B scripts/eunoia/install_toolchain.py
+python3 -B scripts/eunoia/verify_toolchain.py
+```
+
+The default cache is `$XDG_CACHE_HOME/smtrocq`, or `$HOME/.cache/smtrocq` when
+XDG_CACHE_HOME is unset or empty. Override it with `EUNOIA_TOOLCHAIN_ROOT` or
+`--toolchain-root /absolute/private/root`. The OCaml tactic uses the same root
+and never searches PATH for its CPC solver. Expected relative paths are:
 
 * `downloads/cvc5-1.4.2-Linux-x86_64-static.zip`
 * `downloads/cvc5-1.4.2-source.tar.gz`
 * `cvc5-1.4.2/cvc5-Linux-x86_64-static/bin/cvc5`
-* `cvc5-1.4.2/cvc5-cvc5-1.4.2/proofs/eo/cpc/` (the entire signature tree)
+* `cvc5-1.4.2/cvc5-cvc5-1.4.2/proofs/eo/cpc/`
 
 The verifier compares the executable bytes to the pinned ZIP, checks its version
 and revision, and compares every file in the installed CPC tree with the pinned
@@ -26,8 +33,7 @@ Linux x86-64 binary is cvc5 1.4.2, revision `282d5e0`.
 Run commands from the repository root:
 
 ```sh
-python3 -B scripts/eunoia/verify_toolchain.py \
-  --toolchain-root /home/charles/code/friends/.toolchains
+python3 -B scripts/eunoia/verify_toolchain.py
 
 # All seven UF and seven LIA inputs, both option profiles; directory must be new.
 python3 -B scripts/eunoia/dump_cpc.py --output /tmp/eunoia-regressions
@@ -37,14 +43,13 @@ python3 -B scripts/eunoia/dump_cpc.py --profile default \
   --output /tmp/eunoia-samples \
   unit-tests/files/uf4.smt2 unit-tests/files/lia1.smt2
 
-/home/charles/code/friends/.toolchains/smtrocq-env \
-  python3 -B scripts/eunoia/test_tooling.py
+python3 -B -m unittest discover -s scripts/eunoia -p 'test_*.py'
 ```
 
-No script reads, replaces, or links `solvers/cvc5` (the separate 1.0.7 binary used
-by baseline abduction tests). There is no dune or tactic integration in this
-directory. The coordinator can run the last command as an independent check;
-no shared dune stanza change is required for these developer tools.
+`scripts/eunoia/env` runs commands in the caller's activated Rocq toolchain.
+Set `EUNOIA_ENV=/absolute/path/to/wrapper` for an isolated toolchain; regeneration,
+audits and benchmark drivers honor it. `sh scripts/eunoia/ci.sh` installs the
+pinned solver and runs the checked backend suites without old solver backends.
 
 `dump_cpc.py` always uses `--dump-proofs --proof-format=cpc
 --proof-granularity=dsl-rewrite --no-proof-allow-trust --proof-check=eager

@@ -45,11 +45,31 @@ Section Tables.
       (CpcGenerated.derive_with extra).
   Definition eval := eval_with CpcGenerated.default_primitive.
 
+  (* Source syntax is retained across lowering (including purification).
+     It must bind to the actual pushed literal before generated discharge. *)
+  Definition scope_assumption fuel (p : EunoiaAdapter.rule_payload) a :=
+    match EunoiaAdapter.source_assumption p with
+    | Some raw => if binds fuel [a] raw then Some raw else None
+    | None => encode_literal fuel a
+    end.
+
+  Lemma scope_assumption_binding : forall fuel p a raw,
+    scope_assumption fuel p a = Some raw ->
+    (EunoiaAdapter.source_assumption p = Some raw /\ binds fuel [a] raw = true) \/
+    (EunoiaAdapter.source_assumption p = None /\ encode_literal fuel a = Some raw).
+  Proof.
+    intros fuel p a raw H; unfold scope_assumption in H.
+    destruct (EunoiaAdapter.source_assumption p) as [source|] eqn:Hs.
+    - destruct (binds fuel [a] source) eqn:Hb; try discriminate.
+      inversion H; subst; left; auto.
+    - right; auto.
+  Qed.
+
   Definition scope_eval_with (extra : EoRuntime.primitive_hook) (fuel : nat) :=
     let tables_ready := tables_wf in
     fun (p : EunoiaAdapter.rule_payload) (a : _lit) (c : C.t) =>
     if tables_ready && bind_terms fuel [c] (EunoiaAdapter.premise_terms p) then
-      match encode_literal fuel a with
+      match scope_assumption fuel p a with
       | None => None
       | Some pushed =>
         match CpcGenerated.derive_assuming_with extra fuel (typeof fuel)
@@ -70,7 +90,7 @@ Section Tables.
     tables_wf = true /\
     bind_terms fuel [c] (EunoiaAdapter.premise_terms p) = true /\
     exists pushed,
-      encode_literal fuel a = Some pushed /\
+      scope_assumption fuel p a = Some pushed /\
       CpcGenerated.derive_assuming_with extra fuel (typeof fuel)
         (EunoiaAdapter.rule_name p) pushed (EunoiaAdapter.arguments p)
         (EunoiaAdapter.premise_terms p) = Some (EunoiaAdapter.result_term p) /\
@@ -80,7 +100,7 @@ Section Tables.
     intros extra fuel p a c result H; unfold scope_eval_with in H.
     destruct (tables_wf && bind_terms fuel [c] (EunoiaAdapter.premise_terms p))
       eqn:Hg; try discriminate.
-    destruct (encode_literal fuel a) as [pushed|] eqn:Ha; try discriminate.
+    destruct (scope_assumption fuel p a) as [pushed|] eqn:Ha; try discriminate.
     destruct (CpcGenerated.derive_assuming_with extra fuel (typeof fuel)
       (EunoiaAdapter.rule_name p) pushed (EunoiaAdapter.arguments p)
       (EunoiaAdapter.premise_terms p)) as [generated|] eqn:Hd; try discriminate.
@@ -106,7 +126,7 @@ Section Tables.
       parent local a d = Some next ->
     exists c pushed,
       EunoiaChecker.fetch local [EunoiaScope.endpoint d] = Some [c] /\
-      encode_literal fuel a = Some pushed /\
+      scope_assumption fuel (EunoiaScope.scope_payload d) a = Some pushed /\
       bind_terms fuel [c]
         (EunoiaAdapter.premise_terms (EunoiaScope.scope_payload d)) = true /\
       CpcGenerated.derive_assuming_with extra fuel (typeof fuel)
@@ -229,6 +249,7 @@ Section Tables.
 End Tables.
 
 Print Assumptions scope_eval_with_binding.
+Print Assumptions scope_assumption_binding.
 Print Assumptions close_with_binding.
 Print Assumptions checker_with_binding.
 Print Assumptions checker_with_correct.

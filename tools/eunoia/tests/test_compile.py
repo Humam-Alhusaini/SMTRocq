@@ -1,5 +1,6 @@
 """Generator regressions. Run from any directory with Python's unittest."""
 import importlib.util
+import re
 from pathlib import Path
 import subprocess
 import sys
@@ -19,6 +20,14 @@ RULE = '(declare-rule brand_new ((F Bool)) :args (F) :conclusion F)\n'
 
 
 class CompileTests(unittest.TestCase):
+    def test_all_pinned_boolean_rules_are_generated(self):
+        source = INITIAL.parent / "rules/Booleans.eo"
+        names = set(re.findall(r"^\(declare-rule\s+(\S+)", source.read_text(), re.M))
+        self.assertTrue(names)
+        _, manifest = eoc.Compiler(INITIAL).compile(RULES)
+        self.assertTrue(names <= set(manifest["selected_rules"]))
+        self.assertFalse(names & set(manifest["excluded_rules"]))
+
     def compile_text(self, text, rules=("brand_new",)):
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / "Sig.eo"

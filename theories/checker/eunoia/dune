@@ -18,6 +18,7 @@
   EunoiaScopeTests.vo
   EunoiaScopedAdapterTests.vo
   EunoiaContextTests.vo
+  EunoiaMemoTests.vo
   EoArithmeticTests.vo
   EoRuntime.vo
   CpcGenerated.vo))

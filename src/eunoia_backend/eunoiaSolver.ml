@@ -10,11 +10,23 @@ let default_limits = {
   wall_seconds = 65.; solver_milliseconds = 60000;
   resources = 10000000; max_bytes = 32 * 1024 * 1024;
 }
-let root = "/home/charles/code/friends/.toolchains/cvc5-1.4.2/"
-let binary = root ^ "cvc5-Linux-x86_64-static/bin/cvc5"
-let signature = root ^ "cvc5-cvc5-1.4.2/proofs/eo/cpc/Cpc.eo"
 exception Error of string
 let fail fmt = Format.kasprintf (fun s -> raise (Error s)) fmt
+let toolchain_root () =
+  let nonempty name = match Sys.getenv_opt name with Some s when s <> "" -> Some s | _ -> None in
+  let root = match nonempty "EUNOIA_TOOLCHAIN_ROOT" with
+    | Some s -> s
+    | None ->
+      let cache = match nonempty "XDG_CACHE_HOME" with
+        | Some s -> s
+        | None -> match nonempty "HOME" with
+          | Some s -> Filename.concat s ".cache"
+          | None -> fail "Eunoia: set EUNOIA_TOOLCHAIN_ROOT (HOME is unavailable)" in
+      Filename.concat cache "smtrocq" in
+  if Filename.is_relative root then fail "Eunoia: EUNOIA_TOOLCHAIN_ROOT/cache path must be absolute";
+  root
+let binary () = Filename.concat (toolchain_root ()) "cvc5-1.4.2/cvc5-Linux-x86_64-static/bin/cvc5"
+let signature () = Filename.concat (toolchain_root ()) "cvc5-1.4.2/cvc5-cvc5-1.4.2/proofs/eo/cpc/Cpc.eo"
 let remove f = try Sys.remove f with Sys_error _ -> ()
 let read_file path limit =
   let ic = open_in_bin path in
@@ -25,6 +37,9 @@ let run ?(limits=default_limits) input =
   if limits.wall_seconds <= 0. || not (Float.is_finite limits.wall_seconds) ||
      limits.solver_milliseconds <= 0 || limits.resources <= 0 || limits.max_bytes <= 0
   then fail "Invalid Eunoia solver resource limits";
+  let binary = binary () in
+  (try Unix.access binary [Unix.X_OK] with Unix.Unix_error _ ->
+    fail "Eunoia: pinned cvc5 is unavailable at %s; run python3 scripts/eunoia/install_toolchain.py or set EUNOIA_TOOLCHAIN_ROOT" binary);
   let files = ref [] in
   let temp suffix =
     let f, oc = Filename.open_temp_file "smtrocq-eunoia-" suffix in
@@ -92,7 +107,7 @@ let run ?(limits=default_limits) input =
         | Unix.WSTOPPED n -> "stopped " ^ string_of_int n in
       fail "cvc5 failed (%s): %s" why (read_file err 4096));
     match P.parse_file ~limits:{P.default_limits with max_bytes=limits.max_bytes} out with
-    | Error d -> fail "cvc5 CPC parse failed: %a; stderr: %s"
-        P.pp_diagnostic d (read_file err 4096)
+    | Error d -> fail "cvc5 CPC parse failed: %a; stdout: %s; stderr: %s"
+        P.pp_diagnostic d (read_file out 4096) (read_file err 4096)
     | Ok ({P.envelope=P.Unsat_parenthesized; _} as p) -> p
     | Ok _ -> fail "cvc5 did not return an unsat CPC envelope")

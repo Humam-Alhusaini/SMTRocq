@@ -1,6 +1,8 @@
 (rule
  (alias runtest)
  (deps
+  install_toolchain.py
+  test_install.py
   cpc_inventory.py
   dump_cpc.py
   verify_toolchain.py
@@ -9,4 +11,4 @@
   (source_tree ../../unit-tests/eunoia-fixtures)
   (source_tree ../../unit-tests/files))
  (action
-  (run python3 -B %{dep:test_tooling.py})))
+  (run python3 -B -m unittest discover -s . -p test_*.py -v)))

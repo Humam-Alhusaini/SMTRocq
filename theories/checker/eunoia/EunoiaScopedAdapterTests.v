@@ -73,6 +73,9 @@ Definition process_false := EunoiaLocal.Witness 6 [(0,[8]);(1,[4])]
   [command (Checker_Ext.ImmBuildDef 2 0) [2;5];
    command (Checker_Ext.CFalse 3) [3]; resolve 4 2 3 [5]; resolve 5 1 4 []] 5.
 Definition scope_p := payload "scope" [] [f] hp [8].
+Definition purified_p := app "@purify" [p].
+Definition purified_scope := EunoiaAdapter.ScopedPayload "scope" [] [f]
+  (app "=>" [purified_p; f]) [8] purified_p.
 Definition process_p := payload "process_scope" [f] [hp] (neg p) [5].
 Definition contra_p := payload "contra" [] [p;neg p] f [].
 Definition body := EunoiaScope.Next (step 3 [2;1] contra_p [] (contradiction 4)) done.
@@ -88,6 +91,20 @@ Definition check_single t goal := check roots root_terms claims t goal.
 Example checked_tables : EunoiaAdapter.tables_wf sorts funcs atoms forms names = true.
 Proof. vm_compute; reflexivity. Qed.
 Example source_scope : scope_eval scope_p 4 [] = Some [8].
+Proof. vm_compute; reflexivity. Qed.
+Example source_purified_scope : scope_eval purified_scope 4 [] = Some [8].
+Proof. vm_compute; reflexivity. Qed.
+Example source_purified_scope_wrong_literal : scope_eval purified_scope 6 [] = None.
+Proof. vm_compute; reflexivity. Qed.
+Example source_purified_scope_wrong_result :
+  scope_eval (EunoiaAdapter.ScopedPayload "scope" [] [f] hp [8] purified_p) 4 [] = None.
+Proof. vm_compute; reflexivity. Qed.
+Example source_purified_scope_wrong_assumption :
+  scope_eval (EunoiaAdapter.ScopedPayload "scope" [] [f]
+    (app "=>" [purified_p; f]) [8] q) 4 [] = None.
+Proof. vm_compute; reflexivity. Qed.
+Example ordinary_payload_cannot_carry_scope_assumption :
+  eval (EunoiaAdapter.ScopedPayload "refl" [p] [] pp [18] p) [] = None.
 Proof. vm_compute; reflexivity. Qed.
 Example source_scope_exact_disjunctive_endpoint :
   scope_eval (payload "scope" [] [app "or" [p;q]] (app "=>" [p;app "or" [p;q]]) [22])

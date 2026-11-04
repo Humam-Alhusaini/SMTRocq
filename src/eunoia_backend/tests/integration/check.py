@@ -5,12 +5,13 @@ Unmerged dependency copies are kept in /tmp and never written to the repository.
 Every command and exit code is printed for coordinator reproduction.
 """
 import argparse
+import os
 from pathlib import Path
 import shutil
 import subprocess
 
 REPO = Path(__file__).resolve().parents[4]
-WRAPPER = '/home/charles/code/friends/.toolchains/smtrocq-env'
+WRAPPER = os.environ.get("EUNOIA_ENV", str(REPO / "scripts/eunoia/env"))
 
 
 def main():

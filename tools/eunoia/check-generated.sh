@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 task_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-task_env=/home/charles/code/friends/.toolchains/smtrocq-env
+task_env="${EUNOIA_ENV:-$task_root/scripts/eunoia/env}"
 task_tmp="$(mktemp -d /tmp/smtrocq-eunoia.XXXXXXXX)"
 if [[ "${EUNOIA_KEEP_TEST_DIR:-0}" == 1 ]]; then
   echo "Retaining validation artifacts: $task_tmp"
