@@ -50,3 +50,24 @@ cp tools/eunoia/tests/HelperMemoBench.v "$artifact_dir/"
 For complete tactic measurements, use `benchmarks/eunoia/run.py` on a frozen
 revision, alternate `EUNOIA_HELPER_CACHE=0` and `=1`, and keep identical cases,
 timeouts, compiler and artifacts. The harness records the switch in metadata.
+
+## Frozen end-to-end comparison
+
+Checkpoint `9c45f40` passed repository runtest, the install build, an expanded
+224-target assumption audit and recursive kernel checking. Actual source
+fixtures also passed through the combined candidate/collection producer.
+The helper-enabled native replays included nonempty caches, scoped proofs,
+corrupted evidence and the expanded integer-division tests.
+
+The seven-case `helper-cache.json` workload ran serially in off/on/on/off
+order with the same artifacts and a 30-second whole-compiler timeout. Both
+modes checked all ten positive attempts and rejected all four scheduled false
+controls. All source/artifact integrity checks passed. Tactic totals were
+**34.926 s without sharing** and **48.569 s with sharing** over two rounds per
+mode; `Qed` totals were 0.636 s and 0.744 s. This workload therefore does not
+justify enabling the feature by default. Candidate collection is included in
+these tactic timings. The repeated-rule component result above must not be
+substituted for this complete measurement.
+
+[Exact rows and artifact hashes](helper-cache-comparison-2026-11-04.json)
+retain this checkpoint independently of subsequent experiments.
