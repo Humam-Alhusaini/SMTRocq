@@ -55,3 +55,24 @@ competitiveness result. A broader regression/comparison is required when changin
 
 [Exact rows and artifact hashes](producer-comparison-2026-11-04.json) preserve
 these results independently of later changes.
+
+## Broader default validation
+
+At `f8f7b36`, the full build, regression suite, 239-target assumption audit and
+recursive kernel check passed. The unchanged standard benchmark ran in
+strict/default/default/strict order with a 30-second whole-compiler timeout.
+Each run proved all 18 positive cases and rejected both false controls with
+both backends. Over two rounds, CVC5 tactic totals were 65.122 s for strict
+production and 59.870 s for printed conclusions; veriT control totals were
+3.136 s and 2.950 s respectively. The control variation and small sample limit
+the precision of this comparison; the backend remains substantially slower
+than veriT on this workload.
+
+The default additionally passed all 12 integer-cut, 21 scalability, 27 division
+and five known-value cases, rejecting all 16 associated false controls. Across
+the default standard rounds and extensions, that is 101 successful positive
+attempts and 20 rejected false controls, with intact source/artifact checks.
+Division coverage includes proved arithmetic facts supplied to the backend.
+
+[Complete rows, command status and artifact hashes](verified-default-benchmarks-2026-11-04.json)
+record these runs separately from later optimization experiments.
