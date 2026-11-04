@@ -31,6 +31,43 @@ unnecessary arithmetic search; its zero-budget regression exercises the actual
 arithmetic certificate path. All 98 native witness cases and mutations run
 against the production gate in routine tests.
 
+## Verified division checkpoint at 8a5c14b
+
+The expanded implementation passed 186 named assumption targets with no
+additions to the inherited baseline, independent kernel checking, both emitter
+modes, full repository runtest and the final install build. The mode replay is
+`eunoia-mode-replay-8m_h_ahf`; the successful audit is
+`eunoia-proof-audit-va2kmmom`. The audit runner's integration loadpath was fixed
+before the successful audit and remaining repository checks.
+
+Serial fresh-compiler benchmarks retained the same 30-second whole-compiler
+limit and passed every source/artifact integrity check:
+
+| Workload | Repeats | Eunoia checked / scheduled | veriT checked / scheduled |
+| --- | ---: | ---: | ---: |
+| Original regression | 2 | 36/36 | 36/36 |
+| Integer cuts | 1 | 12/12 | 11/12 |
+| Scalability | 1 | 21/21 | 18/21 |
+| Rocq division extension | 1 | 27/27 | 1/27 |
+
+Both backends rejected all four scheduled original controls, five integer-cut
+controls and eight division controls. Scalability contains positives only.
+Division uses additional proved Rocq facts in Eunoia; baseline tactics receive
+their normal preprocessing. Their division results do not compare equivalent
+theory support. The sole common division success is modulo congruence.
+
+On the original workload, tactic totals were 60.968 s versus 2.706 s over two
+repeats, and Qed totals were 1.714 s versus 1.077 s. Common-success tactic totals
+were 25.412 s versus 0.871 s for 11 integer-cut attempts, and 35.617 s versus
+2.337 s for 18 scalability attempts. The latency gap remains substantial;
+small changes from d5af018 on shared hardware do not establish an improvement.
+
+All 27 Eunoia division proofs completed, with 101.657 s total tactic time.
+This extends measured coverage; it is not an overall performance claim.
+[The separate machine-readable report](verified-division-benchmarks-2026-11-04.json)
+retains exact counts, failures, common-success timings and artifact hashes.
+Raw evidence is preserved under `_build/eunoia-evidence/eunoia-8a5c14b-*`.
+
 ## Verified checkpoint at d5af018
 
 The frozen 85-rule/57-helper implementation passed all 133 named assumption-audit targets,

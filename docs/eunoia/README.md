@@ -63,7 +63,7 @@ with `cvc5_eunoia`.
 The committed signature is cvc5 1.4.2's complete 35-file CPC include closure.
 The compiler follows its declarations, patterns, binder types, ordered helper
 cases, requirements, aliases and computed conclusions. Selection in
-`tools/eunoia/rules.txt` currently includes 85 rules and 57 helpers; the manifest
+`tools/eunoia/rules.txt` currently includes 87 rules and 59 helpers; the manifest
 lists all source hashes and 524 excluded rules. There is no rule-name-dependent
 execution switch implementing the selected CPC inferences.
 

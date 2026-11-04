@@ -18,6 +18,13 @@ the outer divisor is a positive constant. The positive outer-divisor restriction
 is required by Rocq's floor division; the analogous negative case is false.
 Constants are normalized as Rocq integers, without conversion to OCaml integers.
 
+Root binding uses ordinary lazy kernel conversion when division facts are
+present. Eager VM normalization of symbolic integer computations can generate
+very large residual terms even when both sides use the same functions. The
+encoding equality is still checked at its complete type with `exact_check`,
+synchronously checked as a private helper, and checked again by independent
+kernel replay. Certificate acceptance continues to use standard VM normalization.
+
 Every fact is an actual proof term. It is reified and bound to the complete
 ordered source-root vector alongside user hypotheses. The final proof applies
 these terms, and the kernel checks the certificate helpers and resulting
@@ -39,3 +46,9 @@ quotients, including false controls. The separate
 apart from the original UF/LIA benchmark. A baseline backend is measured with
 its normal tactic behavior, without Eunoia's added theory facts; report that
 scope difference when comparing results.
+
+The frozen [8a5c14b benchmark report](verified-division-benchmarks-2026-11-04.json)
+records 27/27 checked positives and eight rejected false controls at an unchanged
+30-second whole-compiler timeout. The original, integer-cut and scalability
+workloads also retained their checked Eunoia coverage. These samples do not
+establish performance competitiveness with other prover ecosystems.
