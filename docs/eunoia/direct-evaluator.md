@@ -43,3 +43,21 @@ The integrated snapshot passed the full repository regression build, install
 build, expanded 285-target assumption audit, and recursive kernel checking.
 Native replay validation covers normal adaptive selection plus forced shared
 and forced reference selection before matched tactic timing.
+
+## Matched tactic result
+
+At frozen implementation `67cc9a3`, all 17 native fixture groups passed: nine
+normal direct groups plus four each with forced sharing and forced reference
+representation. Their independent kernel check also passed.
+
+The unchanged seven-case diagnostic then ran reference/direct/direct/reference
+with printed conclusions enabled, other experimental optimizations disabled,
+normal adaptive sharing preserved, identical source/artifact fingerprints and
+a 30-second whole-compiler timeout. Both paths checked 10/10 positive attempts
+and rejected all four false controls. Tactic totals were **32.552 s reference
+versus 35.044 s direct**; `Qed` totals were 0.453 s and 0.477 s.
+
+The direct path remains disabled by default. Its modest complete-rule component
+gain did not transfer to this tactic workload.
+[Complete rows and artifact hashes](direct-comparison-2026-11-04.json) retain
+the negative result independently of later optimizations.
