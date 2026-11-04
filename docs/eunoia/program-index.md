@@ -27,3 +27,18 @@ For comparisons set `EUNOIA_HELPER_CACHE=0`, freeze sources/artifacts, and vary
 Both switches are recorded by the benchmark harness. A populated experimental
 helper cache takes precedence over the indexed trace representation, so the
 optimizations should be compared separately.
+
+## Frozen trie-only experiment
+
+Implementation `389a044` passed all nine indexed public/integration replays,
+repository regressions, the install build, and its expanded assumption/kernel
+audit. Eight serial matched rounds preserved 10/10 positives and all four
+false controls per configuration. Total tactic times were 35.296 s reference,
+40.548 s indexed, 32.287 s printed conclusions, and 37.949 s combined.
+Indexing is therefore not enabled by default.
+
+[Exact rows and hashes](program-index-comparison-2026-11-04.json) retain the
+experiment. An isolated cycle profile located the regression in checked
+acceptance/reduction; forcing the same certificate representation did not
+remove it. A short-prefix/trie hybrid was also rejected after its focused
+diagnostic failed to improve that cost.

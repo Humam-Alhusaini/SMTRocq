@@ -9,6 +9,9 @@ val default_limits : limits
 val toolchain_root : unit -> string
 val binary : unit -> string
 val signature : unit -> string
+val use_declared_conclusions : unit -> bool
+(** Printed conclusions are producer hints; set EUNOIA_DECLARED_CONCLUSIONS=0
+    to use the strict producer computation path. Final checking is unchanged. *)
 val profile_options : unit -> string array
 (** Fixed preprocessing profiles only; proof checking and trust flags are unchanged. *)
 exception Error of string

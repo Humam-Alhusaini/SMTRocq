@@ -1,9 +1,12 @@
 # Printed CPC conclusions as untrusted producer hints
 
-`EUNOIA_DECLARED_CONCLUSIONS=1` is an experimental producer optimization.
+The integrated tactic uses printed CPC conclusions as untrusted producer hints
+by default. `EUNOIA_DECLARED_CONCLUSIONS=0` restores producer computation;
+`=1` explicitly enables the default path.
 It asks pinned CVC5 to print every CPC step's conclusion and uses those terms
-as candidate syntax during native elaboration. It is disabled by default
-until matched end-to-end measurements justify promotion.
+as candidate syntax during native elaboration. The default was promoted after
+the matched diagnostic preserved every success and rejection and consistently
+reduced tactic time.
 
 This removes a duplicate producer evaluation; it changes no source-rule
 acceptance condition. The final applied checker still runs generated CPC
@@ -48,8 +51,7 @@ whole-compiler timeout. Each mode checked 10/10 positive attempts and rejected
 all four scheduled false controls. Tactic totals over two rounds were 34.916 s
 for reference evaluation, 32.479 s with printed conclusions and 45.363 s with
 helper sharing. This is a modest focused improvement, not an overall
-competitiveness result. The source printed-conclusion option remains explicit
-pending a broader comparison.
+competitiveness result. A broader regression/comparison is required when changing this default.
 
 [Exact rows and artifact hashes](producer-comparison-2026-11-04.json) preserve
 these results independently of later changes.

@@ -27,6 +27,7 @@ let toolchain_root () =
   root
 let binary () = Filename.concat (toolchain_root ()) "cvc5-1.4.2/cvc5-Linux-x86_64-static/bin/cvc5"
 let signature () = Filename.concat (toolchain_root ()) "cvc5-1.4.2/cvc5-cvc5-1.4.2/proofs/eo/cpc/Cpc.eo"
+let use_declared_conclusions () = Sys.getenv_opt "EUNOIA_DECLARED_CONCLUSIONS" <> Some "0"
 let profile_options () =
   match Sys.getenv_opt "EUNOIA_CVC5_PROFILE" with
   | None | Some "" | Some "default" -> [||]
@@ -71,7 +72,7 @@ let run ?(limits=default_limits) input =
     let argv = Array.concat [[|binary; "--lang=smt2"; "--dump-proofs"; "--proof-format=cpc";
       "--proof-granularity=dsl-rewrite"; "--no-proof-allow-trust";
       "--proof-check=eager"; "--check-proofs-complete"|]; profile;
-      (if Sys.getenv_opt "EUNOIA_DECLARED_CONCLUSIONS" = Some "1" then [|"--proof-print-conclusion"|] else [||]);
+      (if use_declared_conclusions () then [|"--proof-print-conclusion"|] else [||]);
       [|"--tlimit=" ^ string_of_int limits.solver_milliseconds;
         "--rlimit=" ^ string_of_int limits.resources; src|]] in
     let started = Unix.gettimeofday () in
