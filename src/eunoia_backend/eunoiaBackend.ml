@@ -503,7 +503,7 @@ let tactic_using produce ?fuel ?(preprocess=Tactics.intros) ~witness ?(lemmas=[]
         | _ -> R.raise_error "Eunoia: lemma must prove a quantifier-free Boolean fact" in
       let supplied = List.map (fun p -> p,lemma_value p) lemmas in
       let arithmetic = phase "division_facts" (fun () ->
-        EunoiaDivisionFacts.collect env (a::b::List.map snd supplied)) in
+        EunoiaDivisionFacts.collect env ~equalities:supplied (a::b::List.map snd supplied)) in
       let supplied = supplied @ List.map (fun p -> p,lemma_value p) arithmetic in
       let has_lemmas = supplied <> [] in
       let t = create_tables () in

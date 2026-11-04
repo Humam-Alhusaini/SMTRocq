@@ -22,7 +22,7 @@ variant exercise actual hypothesis bindings.
 
 [Proved Rocq division facts](division.md) extend the backend with signed and
 zero constant division/modulo, constant shifts and nested quotients. There are
-27 positive division regressions and eight false controls. These use actual
+32 positive division regressions and eleven public false controls. These use actual
 standard-library proofs as bound roots in the existing UF/LIA semantics.
 Native arithmetic candidates now preserve the verified builder's association,
 branch numbering and Boolean connective shapes, without interning extra
@@ -30,6 +30,23 @@ proof-only Boolean expansions. A bounded Boolean resolution prefix avoids
 unnecessary arithmetic search; its zero-budget regression exercises the actual
 arithmetic certificate path. All 98 native witness cases and mutations run
 against the production gate in routine tests.
+
+## Proved ground-value extension
+
+Known numerator equalities now produce quotient/remainder value facts with
+actual equality and ground-calculation proofs. Reversed equalities and UF
+numerators are covered. The expanded implementation passed all 198 named
+assumption targets, both checker modes with independent kernel replay, full
+repository runtest and the install build. Evidence: `eunoia-mode-replay-gq2efr_n`,
+`eunoia-proof-audit-rx6mb32o` and `eunoia-association-regression-mutation`.
+
+The arithmetic branch-order regression uses a compound root and disables the
+Boolean prefix to bypass the direct-equality shortcut. Restoring the old
+left-associated native conjunction makes the verified local gate reject the
+Micromega certificate at source congruence step `@p17`; restoring the fix makes
+the same proof pass. The original 35-case division workload remains unchanged;
+five additional known-value positives and three false controls have a separate
+manifest. Fresh performance measurements follow validation.
 
 ## Verified division checkpoint at 8a5c14b
 

@@ -3,7 +3,7 @@ module R = RocqInterface
 module C = EunoiaRocq
 (* Only proved facts about actual Rocq functions; these are not new SMT-LIB
    operators. Every emitted fact remains a proof argument to the checked tactic. *)
-let collect env terms =
+let collect env ~equalities terms =
   let div = C.global "Stdlib.ZArith.BinInt.Z.div"
   and modulo = C.global "Stdlib.ZArith.BinInt.Z.modulo" in
   let z0 = Lazy.force CoqTerms.cZ0 and zpos = Lazy.force CoqTerms.cZpos
@@ -60,6 +60,22 @@ let collect env terms =
             | None -> ())
           | None -> ())
        | _ -> ()) in
+  let known_value head x d =
+    let instantiate y equality =
+      if numeral y && List.length !facts < 64 then begin
+        let value = normalize_application head [y;d] in
+        emit (if R.eq_constr head div then "quotient_value" else "remainder_value")
+          [x;y;d;value;equality;CoqTerms.eq_refl_true ()]
+      end in
+    if numeral x then instantiate x (C.call "Stdlib.ZArith.BinInt.Z.eqb_refl" [x]);
+    List.iter (fun (proof,value) ->
+      let h,args = R.decompose_app_list value in
+      match args with
+      | [a;b] when R.eq_constr h (Lazy.force CoqTerms.ceqbZ) ->
+        if R.eq_constr a x then instantiate b proof
+        else if R.eq_constr b x then instantiate a
+          (C.call "SMTCoq.checker.eunoia.EunoiaDivision.EunoiaDivision.eqb_swap" [a;b;proof])
+      | _ -> ()) equalities in
   let add head x divisor =
     if List.length !facts < 64 && numeral divisor then begin
       let d = R.cbv_vm env divisor (Lazy.force CoqTerms.cZ) in
@@ -75,7 +91,8 @@ let collect env terms =
           seen := (x,d)::!seen;
           emit name args
       end;
-      algebra head x d
+      algebra head x d;
+      known_value head x d
     end in
   let rec visit t =
     if !budget > 0 then begin

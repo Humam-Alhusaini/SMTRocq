@@ -56,7 +56,8 @@ def main():
           "shift_laws", "positive_shift_laws", "negative_shift_laws",
           "positive_division_shift", "positive_modulo_shift",
           "negative_division_shift", "negative_modulo_shift",
-          "nested_positive_law", "nested_positive_positive", "nested_negative_positive"],
+          "nested_positive_law", "nested_positive_positive", "nested_negative_positive",
+          "eqb_swap", "quotient_value", "remainder_value"],
         "EunoiaTactic": ["root_values_correct", "checker_correct", "checker_b_correct", "checker_eq_correct"],
     }.items():
         prefix = "SMTCoq.checker.eunoia." + module

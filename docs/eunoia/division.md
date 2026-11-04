@@ -11,6 +11,13 @@ negative divisors get reconstruction and the appropriate signed remainder
 bounds. Zero uses Rocq's actual convention: `x/0 = 0` and `x mod 0 = x`.
 This distinction matters when comparing with solvers' totalized division.
 
+When an actual supplied Boolean equality proves that a numerator has a ground
+value, the collector also provides the resulting quotient/remainder value.
+It passes both the equality proof and a checked ground calculation to a proved
+lemma; reversed equalities use a proved symmetry lemma. This covers compound
+UF numerators such as `f x = 7` as well as variables. Closed numerators use a
+reflexivity proof. No value is accepted from native computation alone.
+
 The collector also supplies periodicity and quotient-shift identities for
 `x + k` and `x - k` when the ground offset is divisible by the nonzero divisor.
 Nested quotients normalize when the inner divisor is a nonzero constant and
@@ -43,7 +50,10 @@ a goal unsolved; it does not relax checking.
 constants, large integers, hypotheses, UF composition, shifts and nested
 quotients, including false controls. The separate
 [division manifest](../../benchmarks/eunoia/division.json) keeps these results
-apart from the original UF/LIA benchmark. A baseline backend is measured with
+apart from the original UF/LIA benchmark. The separate
+[known-value manifest](../../benchmarks/eunoia/known-values.json) adds five
+positive cases and three false controls while preserving the 35-case division
+manifest used by the frozen checkpoint. A baseline backend is measured with
 its normal tactic behavior, without Eunoia's added theory facts; report that
 scope difference when comparing results.
 
@@ -52,3 +62,10 @@ records 27/27 checked positives and eight rejected false controls at an unchange
 30-second whole-compiler timeout. The original, integer-cut and scalability
 workloads also retained their checked Eunoia coverage. These samples do not
 establish performance competitiveness with other prover ecosystems.
+
+The known-value extension passed 198 named assumption targets, both checker
+modes with independent kernel replay, full repository tests and the final
+install build. An association-bug mutation is rejected by the local semantic
+gate at a real congruence step; the corrected implementation passes the same
+regression. Its compound hypothesis bypasses the known-value shortcut so that
+the test continues to exercise arithmetic certificate construction.

@@ -56,6 +56,19 @@ Lemma negative_modulo_shift : forall x k (p:positive),
   ((x+k*Zneg p) mod Zneg p =? x mod Zneg p) = true.
 Proof. intros; apply Z.eqb_eq; apply Z.mod_add; lia. Qed.
 Print Assumptions negative_modulo_shift.
+(* Ground evaluation under an actual proved equality. The producer may choose
+   the numeral, but both the equality and the calculation are proof arguments. *)
+Lemma eqb_swap : forall x y, (x =? y) = true -> (y =? x) = true.
+Proof. intros x y; rewrite Z.eqb_sym; trivial. Qed.
+Lemma quotient_value : forall x y d v,
+  (x =? y) = true -> (y/d =? v) = true -> (x/d =? v) = true.
+Proof. intros x y d v H Hvalue; apply Z.eqb_eq in H; subst x; exact Hvalue. Qed.
+Lemma remainder_value : forall x y d v,
+  (x =? y) = true -> (y mod d =? v) = true -> (x mod d =? v) = true.
+Proof. intros x y d v H Hvalue; apply Z.eqb_eq in H; subst x; exact Hvalue. Qed.
+Print Assumptions eqb_swap.
+Print Assumptions quotient_value.
+Print Assumptions remainder_value.
 Print Assumptions shift_laws.
 Print Assumptions positive_shift_laws.
 Print Assumptions negative_shift_laws.

@@ -56,9 +56,23 @@ Proof.
  backend_lia_lower.
 Qed.
 Print Assumptions backend_lia_lower_mutations.
-(* Disable the Boolean search prefix to exercise Micromega's branch order.
+(* A compound root bypasses the direct-equality ground-value shortcut.
+   Disable the Boolean search prefix to exercise Micromega's branch order.
    This previously produced a certificate rejected by the verified checker. *)
-Lemma backend_lia_branch_order_regression (x : Z) (hp : (x =? 7) = true) :
+Lemma backend_lia_branch_order_regression (x : Z) (hp : ((x =? 7) && true) = true) :
   (x/3 =? 2) = true.
 Proof. backend_lia_branch_order. Qed.
 Print Assumptions backend_lia_branch_order_regression.
+
+Lemma backend_ground_quotient_value (f : Z -> Z) : (f (7/3) =? f 2) = true.
+Proof. backend_live. Qed.
+Print Assumptions backend_ground_quotient_value.
+Lemma backend_ground_zero_value (f : Z -> Z) : (f (7/0) =? f 0) = true.
+Proof. backend_live. Qed.
+Print Assumptions backend_ground_zero_value.
+Example backend_ground_value_false_controls : True.
+Proof.
+ Fail assert (forall f : Z -> Z, (f (7/3) =? f 3) = true) by backend_live.
+ exact I.
+Qed.
+Print Assumptions backend_ground_value_false_controls.

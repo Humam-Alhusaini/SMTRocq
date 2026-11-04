@@ -112,3 +112,28 @@ Proof.
  exact I.
 Qed.
 Print Assumptions false_algebra_controls.
+
+Lemma known_value_reverse_equality : forall x : Z,
+  (7 =? x) = true -> (x/3 =? 2) = true.
+Proof. cvc5_eunoia. Qed.
+Print Assumptions known_value_reverse_equality.
+Lemma known_value_remainder : forall x : Z, x = -7 -> x mod 3 = 2.
+Proof. cvc5_eunoia. Qed.
+Print Assumptions known_value_remainder.
+Lemma known_value_negative_remainder : forall x : Z, x = 7 -> x mod (-3) = -2.
+Proof. cvc5_eunoia. Qed.
+Print Assumptions known_value_negative_remainder.
+Lemma known_value_ground_expression : forall x : Z, x = 4+3 -> x/(-3) = -3.
+Proof. cvc5_eunoia. Qed.
+Print Assumptions known_value_ground_expression.
+Lemma known_value_uf_result : forall (f : Z -> Z) (x : Z), f x = 7 -> (f x)/3 = 2.
+Proof. cvc5_eunoia. Qed.
+Print Assumptions known_value_uf_result.
+Example known_value_false_controls : True.
+Proof.
+ Fail assert (forall x : Z, (7 =? x) = true -> (x/3 =? 3) = true) by cvc5_eunoia.
+ Fail assert (forall x : Z, x = -7 -> x mod 3 = -1) by cvc5_eunoia.
+ Fail assert (forall (f : Z -> Z) (x : Z), f x = 7 -> (f x)/3 = 3) by cvc5_eunoia.
+ exact I.
+Qed.
+Print Assumptions known_value_false_controls.

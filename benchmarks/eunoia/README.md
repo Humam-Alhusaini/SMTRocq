@@ -36,7 +36,9 @@ cycles. Its outcomes remain separate from the original regression workload.
 `division.json` separately exercises proved facts about Rocq integer division
 and modulo, including negative/zero divisors and false controls. See
 [the semantic scope](../../docs/eunoia/division.md); baseline tactics do not
-receive Eunoia's automatically proved facts.
+receive Eunoia's automatically proved facts. `known-values.json` adds five
+positive equality-guided evaluations and three false controls; it does not
+change the division checkpoint's 35-case manifest.
 The original 20-case manifest is retained
 unchanged, so historical solved counts remain comparable.
 `EUNOIA_CVC5_PROFILE` is recorded in metadata when comparing fixed solver profiles.
