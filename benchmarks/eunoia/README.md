@@ -8,7 +8,8 @@ solver-only benchmark or external-prover performance claim here.
 
 ## Reproduce
 
-From the repository root, using the private toolchain:
+From the repository root, using an activated Rocq/OCaml toolchain (see
+[setup](../../scripts/eunoia/README.md)):
 
 ```sh
 python3 -B -m unittest discover -s benchmarks/eunoia -p test_run.py -v
@@ -16,7 +17,7 @@ python3 benchmarks/eunoia/run.py --backends verit cvc4 --repeat 3 --timeout 30 -
 ```
 
 The runner prints a fresh `/tmp/smtrocq-eunoia-*` results directory. It invokes
-`/home/charles/code/friends/.toolchains/smtrocq-env dune build -j2 theories` first,
+`scripts/eunoia/env dune build -j2 theories` first,
 with a 900-second build timeout, and runs cases serially. All Rocq, OCaml, Dune,
 and solver discovery goes through that wrapper. No installation, system changes,
 shared Dune edits, or server is needed. Python uses only its standard library.
@@ -40,10 +41,10 @@ python3 benchmarks/eunoia/run.py --backends verit cvc4 cvc5_eunoia --repeat 3 --
 A preflight imports the requested modules and resolves each actual tactic name
 without invoking a solver. Missing tactics/imports are recorded as `unavailable`,
 with null timing fields and no solved attempts; no fallback tactic is used.
-The private wrapper's `cvc5` on PATH is distinct from the pinned 1.4.2 executable
+A `cvc5` on PATH may be distinct from the pinned 1.4.2 executable
 selected by the new backend. The ordinary PATH probe records the older binary
 and its hash. When `cvc5_eunoia` is selected, the harness additionally runs
-`scripts/eunoia/verify_toolchain.py`, which verifies the private 1.4.2 binary,
+`scripts/eunoia/verify_toolchain.py`, which verifies the cached 1.4.2 binary,
 archives and matching signature files and reports their exact paths, hashes and
 version. Failure ends the benchmark with status 2. Metadata also records the
 backend solver source hash, so its fixed executable selection is reviewable.
@@ -195,3 +196,19 @@ caches unchanged and compare the default with `EUNOIA_DISABLE_CHECKED_CACHE=1`.
 The latter selects the original checked wrappers. `EUNOIA_CACHE_PROFILE=1` logs
 source-step/shared-certificate counts in both variants. The same source rules,
 typing, syntax binding, scope/liveness checks and kernel acceptance apply.
+
+## Checked-certificate cache experiments
+
+The default backend selects checked sharing adaptively from exact certificate
+repetition. `EUNOIA_FORCE_CHECKED_CACHE=1` forces the proved shared representation;
+`EUNOIA_DISABLE_CHECKED_CACHE=1` forces the reference representation and takes
+precedence. `EUNOIA_CACHE_PROFILE=1` records selection and repetition counts.
+The result metadata records these flags plus the three producer-cache switches.
+Compare runs only with identical source/artifact fingerprints, workload and
+compiler. A changed fingerprint invalidates a run.
+
+A two-repeat, five-positive/two-negative matched experiment on commit `9f31bb6`
+found no repeated certificates in those cases. Forced sharing was approximately
+neutral on four cases and slower on the smallest UF case (median tactic time
+1.826 s reference versus 2.298 s shared). This motivated the adaptive default;
+it does not establish a shared-checker speedup.

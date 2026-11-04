@@ -9,4 +9,5 @@ dune build --ignore-promoted-rules -j 2 theories \
 dune runtest --ignore-promoted-rules -j 2 \
   src/eunoia src/eunoia_backend src/eunoia_witness \
   tools/eunoia scripts/eunoia benchmarks/eunoia
+python3 -B scripts/eunoia/check_modes.py
 python3 -B scripts/eunoia/check_proofs.py

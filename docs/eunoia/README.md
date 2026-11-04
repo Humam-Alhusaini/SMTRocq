@@ -201,13 +201,20 @@ supplied lemmas keep their original context. This avoids the legacy reifier's
 formula-versus-atom assertion for the tested constant-argument goals. It does not
 provide a general Boolean-formula-as-UF-argument representation.
 
-The default `EunoiaMemo` wrapper additionally shares *checked* local certificate
-validation. Up to 512 exact certificate entries are validated once, including
+The backend selects the proved `EunoiaMemo` wrapper when at least four local
+certificate validations can be shared and at least a quarter of source steps
+reuse an exact certificate. Otherwise it retains the original representation.
+This is a conservative producer heuristic, not a measured performance guarantee.
+Up to 512 exact certificate entries are validated once, including
 unused entries. Each source occurrence must still pass generated rule
 evaluation, exact syntax binding, bounds/freshness/liveness checks, and an exact
 ordered-premise/conclusion match to its selected entry. Remaining certificates
 use the original inline semantic gate. The reference wrappers remain available
-with `EUNOIA_DISABLE_CHECKED_CACHE=1`; no checking is disabled by this switch.
+with `EUNOIA_DISABLE_CHECKED_CACHE=1`. Set `EUNOIA_FORCE_CHECKED_CACHE=1`
+to exercise sharing regardless of repetition; disable takes precedence. No
+checking is disabled by these switches. Fresh reference and forced-shared
+proofs, including corruption controls, are independently kernel checked by
+`scripts/eunoia/check_modes.py` in CI.
 
 `EunoiaMemo.gate_correct` and its scoped/Boolean/equality correctness wrappers
 are proved in Rocq from the existing local gate and scope theorems. Cache
@@ -217,7 +224,7 @@ wrong references, changed conclusions, reordered premises, invalid inline
 certificates and unsupported generated rules.
 
 Set `EUNOIA_CACHE_PROFILE=1` to record preparation counts (source steps, shared
-entries and inline certificates). Counts describe producer data; successful
+entries, inline certificates and sharing hits). Counts describe producer data; successful
 `Qed`, assumption audits and independent kernel checks remain the acceptance
 criteria. `python3 -B scripts/eunoia/check_proofs.py` audits the correctness
 boundary and all exported public Eunoia theorem suites against the inherited

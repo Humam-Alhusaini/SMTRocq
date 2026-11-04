@@ -11,7 +11,8 @@ jobs:
       - name: Verify pinned solver, build, and check public proofs
         run: |
           docker run --rm --user "$(id -u):$(id -g)" \
+            -e EUNOIA_TOOLCHAIN_ROOT=/work/_build/eunoia-toolchain \
             --mount "type=bind,src=$PWD,dst=/work" -w /work \
             --entrypoint /bin/bash \
             ghcr.io/rocq-trakt/rocq@sha256:21d9edc7a97aabe15577ae442854c2a03cc81097ff7b5fa899d8d6fe62d05c68 \
-            -lc 'sh scripts/eunoia/ci.sh'
+            -c 'export PATH=/home/rocq/.opam/4.14.2+flambda/bin:$PATH; sh scripts/eunoia/ci.sh'

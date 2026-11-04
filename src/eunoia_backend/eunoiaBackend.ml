@@ -188,7 +188,8 @@ let prepare ?(fuel=10000) ~witness env t roots parsed =
     let mapped = Hashtbl.create proof.capacity in
     List.iter2 (fun (i,_) r -> Hashtbl.add mapped i [r]) proof.roots roots;
     let checked_steps = ref [] in
-    let memoize = Sys.getenv_opt "EUNOIA_DISABLE_CHECKED_CACHE" <> Some "1" in
+    let collect_cache = Sys.getenv_opt "EUNOIA_DISABLE_CHECKED_CACHE" <> Some "1" in
+    let cache_slots = Hashtbl.create 127 in
     let certificates = ref [] in
     let inline_certificates = ref 0 in
     let certificate_index = Hashtbl.create 127 in
@@ -204,21 +205,20 @@ let prepare ?(fuel=10000) ~witness env t roots parsed =
             E.pp_term st.result in
       checked_steps := (st,assumption,source_assumption,syntax_cs,cs,c,w)::!checked_steps;
       Hashtbl.add mapped st.id c;
-      if not memoize then w else
-      let cs_ids = List.map (List.map Form.to_lit) cs and c_ids = List.map Form.to_lit c in
-      let key = cs_ids,c_ids in
-      let bucket = Stdlib.Option.value ~default:[] (Hashtbl.find_opt certificate_index key) in
-      match List.find_opt (fun (_,old_w) -> R.eq_constr w old_w) bucket with
-      | Some (id,_) -> C.call (memo_api "Cached") [CoqTerms.mkNat id]
-      | None when List.length !certificates >= 512 ->
-        incr inline_certificates; C.call (memo_api "Inline") [w]
-      | None ->
-        let id = List.length !certificates in
-        let entry = C.call (memo_api "CacheEntry") [clauses cs;clause c;w] in
-        certificates := entry :: !certificates;
-        Hashtbl.replace certificate_index key ((id,w)::bucket);
-        C.call (memo_api "Cached") [CoqTerms.mkNat id] in
-    let witness_ty = C.global (if memoize then memo_api "witness_ref" else local "witness") in
+      if collect_cache then begin
+        let key = List.map (List.map Form.to_lit) cs, List.map Form.to_lit c in
+        let bucket = Stdlib.Option.value ~default:[] (Hashtbl.find_opt certificate_index key) in
+        match List.find_opt (fun (_,old_w) -> R.eq_constr w old_w) bucket with
+        | Some (id,_) -> Hashtbl.add cache_slots st.id id
+        | None when List.length !certificates >= 512 -> incr inline_certificates
+        | None ->
+          let id = List.length !certificates in
+          certificates := (cs,c,w) :: !certificates;
+          Hashtbl.replace certificate_index key ((id,w)::bucket);
+          Hashtbl.add cache_slots st.id id
+      end;
+      w in
+    let witness_ty = C.global (local "witness") in
     let rule_ty = C.global (adapter "rule_payload") in
     let parameters = [rule_ty;rule_ty;witness_ty] in
     let payload ?assumption st c =
@@ -258,12 +258,50 @@ let prepare ?(fuel=10000) ~witness env t roots parsed =
         Hashtbl.add mapped st.id c;
         let tail = nested rest in
         let some = SmtMisc.mklApp CoqTerms.cSome
-          [|C.global ((if memoize then memo_api else scoped) "discharge");discharge|] in
+          [|C.global (scoped "discharge");discharge|] in
         C.call (scope "Push") (parameters @ [mkint slot;mkint (Form.to_lit pushed);body;some;tail]) in
     let has_scopes = List.exists (fun c -> match c.Eunoia_frontend.EunoiaProof.command with
       | Eunoia_frontend.EunoiaProof.Assume_push _ -> true | _ -> false) parsed.commands in
-    let trace = if memoize || has_scopes then nested proof.trace else
+    let reference_trace = if has_scopes then nested proof.trace else
       C.list (C.call (core "step") [rule_ty;witness_ty]) (List.map ordinary proof.steps) in
+    let sharing_hits = List.length proof.steps - List.length !certificates - !inline_certificates in
+    let memoize = collect_cache &&
+      (Sys.getenv_opt "EUNOIA_FORCE_CHECKED_CACHE" = Some "1" ||
+       (sharing_hits >= 4 && sharing_hits * 4 >= List.length proof.steps)) in
+    (* Keep the original representation for nonrepeating proofs. If sharing
+       pays, emit references from already-produced data; never repeat search
+       or skip a source inference. Both representations are kernel checked. *)
+    let trace = if not memoize then reference_trace else begin
+      let info = Hashtbl.create proof.capacity in
+      List.iter (fun (st,a,_,_,_,c,w) -> Hashtbl.add info st.E.id (a,c,w)) !checked_steps;
+      let witness_ty = C.global (memo_api "witness_ref") in
+      let parameters = [rule_ty;rule_ty;witness_ty] in
+      let data st = let _,c,w = Hashtbl.find info st.E.id in
+        let reference = match Hashtbl.find_opt cache_slots st.id with
+          | Some id -> C.call (memo_api "Cached") [CoqTerms.mkNat id]
+          | None -> C.call (memo_api "Inline") [w] in
+        c,reference in
+      let ordinary st = let c,w = data st in
+        C.call (core "Step") [rule_ty;witness_ty;mkint st.E.id;
+          C.list (Lazy.force CoqTerms.cint) (List.map mkint st.premises);payload st c;clause c;w] in
+      let rec emit = function
+        | E.Done -> C.call (scope "Done") parameters
+        | E.Next(st,rest) -> C.call (scope "Next") (parameters @ [ordinary st;emit rest])
+        | E.Push(slot,assumption,body,st,rest) ->
+          let pushed = match Hashtbl.find info st.E.id with
+            | Some a,_,_ -> a
+            | _ -> R.raise_error "Eunoia: missing prepared scope assumption" in
+          let endpoint = match st.premises with
+            | [id] -> id | _ -> R.raise_error "Eunoia: invalid prepared scope endpoint" in
+          let c,w = data st in
+          let discharge = C.call (scope "Discharge") [rule_ty;witness_ty;
+            mkint endpoint;mkint st.id;payload ~assumption st c;clause c;w] in
+          let closing = SmtMisc.mklApp CoqTerms.cSome
+            [|C.global (memo_api "discharge");discharge|] in
+          C.call (scope "Push") (parameters @ [mkint slot;mkint (Form.to_lit pushed);
+            emit body;closing;emit rest]) in
+      emit proof.trace
+    end in
     (* Witness search may intern auxiliary equalities. Snapshot only after all
        results and witness candidates have populated the authoritative tables. *)
     let tables = snapshot t in
@@ -335,11 +373,13 @@ let prepare ?(fuel=10000) ~witness env t roots parsed =
             (context "local semantic certificate failed") E.pp_term st.result)) (List.rev !checked_steps) in
     let memo_args = if memoize then
       [C.list (C.global (memo_api "cache_entry"))
-        (List.rev !certificates)] else [] in
+        (List.rev_map (fun (cs,c,w) -> C.call (memo_api "CacheEntry") [clauses cs;clause c;w])
+          !certificates)] else [] in
     if Sys.getenv_opt "EUNOIA_CACHE_PROFILE" = Some "1" then
-      Printf.eprintf "EUNOIA_CACHE event=prepared enabled=%b source_steps=%d shared_entries=%d inline=%d\n%!"
-        memoize (List.length proof.steps) (List.length !certificates)
-        (if memoize then !inline_certificates else List.length proof.steps);
+      Printf.eprintf "EUNOIA_CACHE event=prepared enabled=%b source_steps=%d shared_entries=%d inline=%d sharing_hits=%d\n%!"
+        memoize (List.length proof.steps) (if memoize then List.length !certificates else 0)
+        (if memoize then !inline_certificates else List.length proof.steps)
+        (if collect_cache then sharing_hits else 0);
     {table_args=tables;
      common_args=tables @ [ns;fuel] @ memo_args @ [mkint proof.capacity];
      roots_arg=clauses root_clauses;

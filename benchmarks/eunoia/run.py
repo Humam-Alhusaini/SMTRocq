@@ -356,6 +356,7 @@ def main():
         "cpu_count": os.cpu_count(), "loadavg_start": load_average(),
         "profiling_environment": {name: os.environ.get(name) for name in
                                   ("EUNOIA_DISABLE_CHECKED_CACHE",
+                                   "EUNOIA_FORCE_CHECKED_CACHE",
                                    "EUNOIA_CACHE_PROFILE",
                                    "EUNOIA_DISABLE_TERM_CACHE", "EUNOIA_DISABLE_DERIVE_CACHE",
                                    "EUNOIA_DISABLE_WITNESS_CACHE",
