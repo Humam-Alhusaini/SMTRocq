@@ -1,6 +1,12 @@
 (rule
  (alias runtest)
- (deps run.py report.py cases.json test_run.py test_report.py
-  ../../tools/audit-eunoia-assumptions.py ../../docs/eunoia/baseline-assumptions.txt)
+ (deps
+  run.py
+  report.py
+  cases.json
+  test_run.py
+  test_report.py
+  ../../tools/audit-eunoia-assumptions.py
+  ../../docs/eunoia/baseline-assumptions.txt)
  (action
   (run python3 -B -m unittest discover -s . -p test_*.py -v)))

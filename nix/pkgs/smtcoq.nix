@@ -27,9 +27,11 @@ let
   case = case: out: { inherit case out; };
 
   eunoiaPins = builtins.fromJSON (builtins.readFile ../../scripts/eunoia/cvc5-1.4.2.json);
-  eunoiaArchive = kind: fetchurl {
-    inherit (eunoiaPins.archives.${kind}) url sha256;
-  };
+  eunoiaArchive =
+    kind:
+    fetchurl {
+      inherit (eunoiaPins.archives.${kind}) url sha256;
+    };
   eunoia-toolchain = stdenv.mkDerivation {
     name = "smtrocq-eunoia-cvc5-${eunoiaPins.version}";
     nativeBuildInputs = [ unzip ];
@@ -104,9 +106,13 @@ mkRocqDerivation rec {
   doCheck = true;
   # The pinned static release is Linux x86-64; keep older PATH solvers for
   # the original backends. Other platforms require their own verified pin.
-  EUNOIA_TOOLCHAIN_ROOT = lib.optionalString
-    (stdenv.hostPlatform.isLinux && stdenv.hostPlatform.isx86_64) "${eunoia-toolchain}";
-  nativeCheckInputs = [ flock python3 ];
+  EUNOIA_TOOLCHAIN_ROOT = lib.optionalString (
+    stdenv.hostPlatform.isLinux && stdenv.hostPlatform.isx86_64
+  ) "${eunoia-toolchain}";
+  nativeCheckInputs = [
+    flock
+    python3
+  ];
   checkPhase = ''
     runHook preCheck
     patchShebangs ./unit-tests/files/run_zchaff.sh

@@ -10,6 +10,7 @@
  (libraries witness_cases))
 
 ; Loaded only by the optional cross-worktree gate probe; see witness-search.md.
+
 (library
  (name witness_gate_probe)
  (public_name rocq-smtcoq.eunoia_witness_gate_probe)
