@@ -3,6 +3,27 @@ open SmtAtom
 module R = RocqInterface
 module C = EunoiaRocq
 module E = EunoiaElaborate
+(* Optional phase timings only; all certificate checking remains unchanged. *)
+let phase_start () =
+  if Sys.getenv_opt "EUNOIA_PROFILE_PHASES" <> Some "1" then None else
+  let cpu = Unix.times () in
+  Some (Unix.gettimeofday (),cpu.Unix.tms_utime +. cpu.Unix.tms_stime)
+let phase_end label = function
+  | None -> ()
+  | Some (wall,cpu) ->
+    let now = Unix.times () in
+    Printf.eprintf "EUNOIA_PHASE stage=%s wall_s=%.6f cpu_s=%.6f\n%!" label
+      (Unix.gettimeofday () -. wall)
+      (now.Unix.tms_utime +. now.Unix.tms_stime -. cpu)
+let phase label f =
+  let started = phase_start () in
+  Fun.protect ~finally:(fun () -> phase_end label started) f
+let phase_tactic label tactic =
+  if Sys.getenv_opt "EUNOIA_PROFILE_PHASES" <> Some "1" then tactic else
+  Proofview.Goal.enter (fun _ ->
+    let started = phase_start () in
+    Proofview.tclBIND tactic (fun result ->
+      phase_end label started; Proofview.tclUNIT result))
 let adapter n = "SMTCoq.checker.eunoia.EunoiaAdapter.EunoiaAdapter." ^ n
 let local n = "SMTCoq.checker.eunoia.EunoiaLocal.EunoiaLocal." ^ n
 let core n = "SMTCoq.checker.eunoia.EunoiaChecker.EunoiaChecker." ^ n
@@ -102,7 +123,7 @@ let reify env t fuel term =
         String.contains s '/' || String.contains s '.'
     | E.Apply(f,a) -> needs_embedding f || needs_embedding a in
   let term = if not (needs_embedding term) then term else
-    let tables = snapshot t in
+    let tables = phase "final_snapshot" (fun () -> snapshot t) in
     match C.compute_term_option env (C.call (adapter "normalize_source")
       [List.nth tables 0;List.nth tables 1;names t;fuel;C.term term]) with
     | Some lowered -> lowered
@@ -143,13 +164,13 @@ let prepare ?(fuel=10000) ~witness env t roots parsed =
   register_instances env t;
   let ns = names t in
   let fuel = fuel_term fuel in
-  let table_args = snapshot t in
+  let table_args = phase "initial_snapshot" (fun () -> snapshot t) in
   if SmtBtype.get_cuts t.sorts <> [] then
     R.raise_error "Eunoia: missing CompDec for an intermediate carrier; supply an existing instance";
-  let encode c = match C.compute_term_option env
+  let encode c = phase "encode_root" (fun () -> match C.compute_term_option env
       (C.call (adapter "encode_clause") (table_args @ [ns;fuel;clause c])) with
     | Some x -> x
-    | None -> R.raise_error "Eunoia: exported root has no exact adapter encoding" in
+    | None -> R.raise_error "Eunoia: exported root has no exact adapter encoding") in
   let root_terms = List.map (fun r -> encode [r]) roots in
   let query = C.call (adapter "typeof")
     [List.nth table_args 0;List.nth table_args 1;ns;fuel] in
@@ -171,10 +192,10 @@ let prepare ?(fuel=10000) ~witness env t roots parsed =
       if Hashtbl.length candidates < 4096 then Hashtbl.add candidates key result;
       result in
   let derive rule args premises =
-    memo (rule,None,args,premises) (fun () -> derive_uncached rule args premises) in
+    memo (rule,None,args,premises) (fun () -> phase "derive" (fun () -> derive_uncached rule args premises)) in
   let derive_assuming rule assumption args premises =
     memo (rule,Some assumption,args,premises)
-      (fun () -> derive_assuming_uncached rule assumption args premises) in
+      (fun () -> phase "derive_assuming" (fun () -> derive_assuming_uncached rule assumption args premises)) in
   let metadata_literals = Hashtbl.create 17 in
   let is_metadata_literal s =
     (* Lexical prefilter only. Actual admission is EoArithmetic's exact
@@ -188,8 +209,9 @@ let prepare ?(fuel=10000) ~witness env t roots parsed =
         let b = Stdlib.Option.is_some (C.compute_term_option env
           (C.call "SMTCoq.checker.eunoia.EoArithmetic.EoArithmetic.normalize" [term (E.Symbol s)])) in
         Hashtbl.add metadata_literals s b; b in
-  let proof = E.elaborate ~signature_names:(C.signature_names env) ~is_metadata_literal
-    ~declarations:(declarations t) ~roots:root_terms ~derive ~derive_assuming parsed in
+  let proof = phase "elaborate" (fun () ->
+    E.elaborate ~signature_names:(C.signature_names env) ~is_metadata_literal
+      ~declarations:(declarations t) ~roots:root_terms ~derive ~derive_assuming parsed) in
   SmtMaps.clear ();
   List.iter (fun (i,ty) -> SmtMaps.add_btype (name_sort i) (SmtBtype.Tindex ty))
     (SmtBtype.to_list t.sorts);
@@ -203,10 +225,10 @@ let prepare ?(fuel=10000) ~witness env t roots parsed =
     let certificates = ref [] in
     let inline_certificates = ref 0 in
     let certificate_index = Hashtbl.create 127 in
-    let result_clause st =
-      if st.E.result=E.Symbol "false" then [] else [reify env t fuel st.result] in
+    let result_clause st = phase "reify_result" (fun () ->
+      if st.E.result=E.Symbol "false" then [] else [reify env t fuel st.result]) in
     let evidence ?assumption ?source_assumption st syntax_cs cs c =
-      let w = match witness ~atoms:t.atoms ~forms:t.forms ~premises:cs ~conclusion:c with
+      let w = match phase "witness" (fun () -> witness ~atoms:t.atoms ~forms:t.forms ~premises:cs ~conclusion:c) with
         | Ok w -> w
         | Error e -> R.raise_error
             "Eunoia: local witness failed at %s (%s): %s; source premises: %a; result: %a"
@@ -231,12 +253,12 @@ let prepare ?(fuel=10000) ~witness env t roots parsed =
     let witness_ty = C.global (local "witness") in
     let rule_ty = C.global (adapter "rule_payload") in
     let parameters = [rule_ty;rule_ty;witness_ty] in
-    let payload ?assumption st c =
+    let payload ?assumption st c = phase "payload" (fun () ->
       let args = [C.string st.E.rule;term_list st.arguments;
         term_list st.premise_terms;term st.result;clause c] in
       match assumption with
       | None -> C.call (adapter "Payload") args
-      | Some raw -> C.call (adapter "ScopedPayload") (args @ [term raw]) in
+      | Some raw -> C.call (adapter "ScopedPayload") (args @ [term raw])) in
     let ordinary st =
       let cs = List.map (Hashtbl.find mapped) st.E.premises in
       let c = result_clause st in
@@ -314,7 +336,7 @@ let prepare ?(fuel=10000) ~witness env t roots parsed =
     end in
     (* Witness search may intern auxiliary equalities. Snapshot only after all
        results and witness candidates have populated the authoritative tables. *)
-    let tables = snapshot t in
+    let tables = phase "final_snapshot" (fun () -> snapshot t) in
     let root_clauses = List.map (fun r -> [r]) roots in
     (* Recompute individual stages only after the final checker rejects. These
        diagnostics cannot turn rejection into acceptance or omit a step. *)
@@ -417,16 +439,18 @@ let build_refutation_from_cpc ?sigma ?fuel ~witness env t roots parsed =
    then kernel-checks its body synchronously before invoking [use]. No Boolean
    success is cached and no private constant is declared without its body. *)
 let with_checked_acceptance p computation use =
+  let started = phase_start () in
   let ty = SmtMisc.mklApp CoqTerms.ceq
     [|Lazy.force CoqTerms.cbool;computation;Lazy.force CoqTerms.ctrue|] in
   let certificate = R.mkCast (CoqTerms.eq_refl_true (),R.vmcast,ty) in
   let checked = Abstract.cache_term_by_tactic_then ~opaque:true ~name_op:None
     ~goal_type:(Some (EConstr.of_constr ty))
-    (Tactics.exact_check (EConstr.of_constr certificate))
+    (phase_tactic "certificate_conversion" (Tactics.exact_check (EConstr.of_constr certificate)))
     (fun lemma args -> Proofview.Goal.enter (fun gl ->
       let sigma = Proofview.Goal.sigma gl in
       let accepted = EConstr.to_constr sigma
         (EConstr.mkApp (lemma,Array.of_list args)) in
+      phase_end "checked_acceptance" started;
       use accepted)) in
   Proofview.tclORELSE checked (fun (error,info) ->
     p.diagnose ();
@@ -464,8 +488,8 @@ let tactic_using produce ?fuel ?(preprocess=Tactics.intros) ~witness ?(lemmas=[]
       if SmtBtype.get_cuts t.sorts <> [] then
         R.raise_error "Eunoia: supply CompDec instances through existing preprocessing";
       let roots = ng :: List.map (fun (f,_,_) -> f) ls in
-      let parsed = produce env t roots in
-      let prepared = prepare ?fuel ~witness env t roots parsed in
+      let parsed = phase "solver_and_parse" (fun () -> produce env t roots) in
+      let prepared = phase "prepare" (fun () -> prepare ?fuel ~witness env t roots parsed) in
       if lemmas=[] then begin
         let name,args = if boolean_result then
           "checker_b",[Form.to_coq fa;b]
@@ -473,7 +497,7 @@ let tactic_using produce ?fuel ?(preprocess=Tactics.intros) ~witness ?(lemmas=[]
         let args = prepared.common_args @ args @ prepared.tail_args in
         with_checked_acceptance prepared (C.call (prepared.checker_api name) args) (fun accepted ->
           let proof = C.call (prepared.checker_api (name ^ "_correct")) (args @ [accepted]) in
-          Tactics.exact_check (EConstr.of_constr proof))
+          phase_tactic "goal_conversion" (Tactics.exact_check (EConstr.of_constr proof)))
       end else begin
       let args = prepared.common_args @ [prepared.roots_arg] @ prepared.tail_args in
       with_checked_acceptance prepared (C.call (prepared.checker_api "checker") args) (fun accepted ->
@@ -509,7 +533,7 @@ let tactic_using produce ?fuel ?(preprocess=Tactics.intros) ~witness ?(lemmas=[]
       let not_false = R.mkLambda(R.mkName "eunoia_false",hty,contradiction) in
       let is_true = C.call (std "Bool.Bool.not_false_is_true") [eqb;not_false] in
       let proof = C.call (std "Bool.Bool.eqb_prop") [a;b;is_true] in
-      Tactics.exact_check (EConstr.of_constr proof))
+      phase_tactic "goal_conversion" (Tactics.exact_check (EConstr.of_constr proof)))
       end
     with
     | EunoiaSolver.Error s | E.Error s | Failure s | Invalid_argument s ->
