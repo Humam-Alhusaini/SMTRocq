@@ -25,6 +25,16 @@ let () =
     Unix.putenv "EUNOIA_TOOLCHAIN_ROOT" "relative/path";
     (try ignore (EunoiaSolver.binary ()); failwith "relative solver root accepted"
      with EunoiaSolver.Error _ -> ()));
+  let previous = Sys.getenv_opt "EUNOIA_CVC5_PROFILE" in
+  Fun.protect ~finally:(fun () -> Unix.putenv "EUNOIA_CVC5_PROFILE"
+    (Stdlib.Option.value ~default:"" previous)) (fun () ->
+    Unix.putenv "EUNOIA_CVC5_PROFILE" "default";
+    assert (EunoiaSolver.profile_options () = [||]);
+    Unix.putenv "EUNOIA_CVC5_PROFILE" "reduced";
+    assert (Array.mem "--simplification=none" (EunoiaSolver.profile_options ()));
+    Unix.putenv "EUNOIA_CVC5_PROFILE" "default --proof-allow-trust";
+    (try ignore (EunoiaSolver.profile_options ()); failwith "unknown solver profile accepted"
+     with EunoiaSolver.Error _ -> ()));
   let proof = run (prefix ^ "(step c false :rule contra :premises (a b))") in
   assert (proof.capacity=3 && proof.conflict=2);
   assert ((List.hd proof.steps).premises=[0;1]);

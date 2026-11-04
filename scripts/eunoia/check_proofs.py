@@ -34,16 +34,26 @@ def main():
     for module, names in {
         "EunoiaMemo": ["gate_correct", "checker_correct", "checker_b_correct", "checker_eq_correct"],
         "EunoiaScopedAdapter": ["checker_correct", "checker_b_correct", "checker_eq_correct",
-                                "scope_assumption_binding", "scope_eval_with_binding"],
+                                "scope_assumption_binding", "scope_eval_with_binding",
+                                "cached_scope_eval_with_refinement", "prepared_scope_eval_with_refinement"],
         "EunoiaLocal": ["gate_correct"],
-        "EunoiaAdapter": ["eval_with_binding", "checker_correct"],
+        "EunoiaAdapter": ["eval_with_binding", "checker_correct", "encode_atom_refinement",
+                          "encode_literal_refinement", "typeof_with_ready_refinement",
+                          "prepared_eval_with_refinement", "normalize_source_ordinary",
+                          "lookup_encoding_sound", "memo_encoding_refinement",
+                          "cached_clause_refinement", "cached_binds_refinement",
+                          "cached_bind_terms_refinement", "cached_eval_with_refinement"],
+        "EunoiaIntegerEmbedding": ["normalize_ordinary", "positive_denominator",
+                                   "fraction_eq_cross", "fraction_le_cross", "fraction_lt_cross",
+                                   "fraction_eq_same", "fraction_le_same", "fraction_lt_same",
+                                   "floor_integer", "fraction_add", "fraction_mul", "fraction_neg"],
         "EunoiaTactic": ["checker_correct", "checker_b_correct", "checker_eq_correct"],
     }.items():
         prefix = "SMTCoq.checker.eunoia." + module
         audit += ["--import", prefix]
         for name in names:
             audit += ["--theorem", prefix + "." + module + "." + name]
-    public_modules = ("eunoia_tactics", "eunoia_uf", "eunoia_uf_bool", "eunoia_lia", "eunoia_purification")
+    public_modules = ("eunoia_tactics", "eunoia_uf", "eunoia_uf_bool", "eunoia_lia", "eunoia_purification", "eunoia_integer_casts")
     for module in public_modules:
         public = "SMTCoq.tests." + module
         audit += ["--import", public]
@@ -56,6 +66,7 @@ def main():
         kernel = [wrapper, "rocq", "check", "-silent", *mappings,
                   "SMTCoq.checker.eunoia.EunoiaMemoTests",
                   "SMTCoq.checker.eunoia.EunoiaScopedAdapter",
+                  "SMTCoq.checker.eunoia.EunoiaIntegerEmbeddingTests",
                   *["SMTCoq.tests." + module for module in public_modules]]
         for name, command in (("assumptions", audit), ("kernel", kernel)):
             result, _ = bench.record_command(command, ROOT, 900, output / name)

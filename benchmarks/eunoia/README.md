@@ -29,6 +29,10 @@ stanzas rather than adding a benchmark stanza to shared files.
 `--cases PATH` selects a JSON workload manifest for a focused diagnostic run;
 the exact manifest, its source path and hash are retained with the results.
 Compare backends on the same selected manifest.
+`integer-cuts.json` is a separate extension with 12 positive integer-cut/mixed-UF
+goals and five explicit false controls. The original 20-case manifest is retained
+unchanged, so historical solved counts remain comparable.
+`EUNOIA_CVC5_PROFILE` is recorded in metadata when comparing fixed solver profiles.
 
 To exercise the integrated tactic:
 

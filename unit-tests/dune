@@ -21,6 +21,7 @@
   eunoia_uf
   eunoia_uf_bool
   eunoia_lia
+  eunoia_integer_casts
   eunoia_purification
   lfsc_tactics
   verit_tactics

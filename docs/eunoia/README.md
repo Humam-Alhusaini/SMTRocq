@@ -7,7 +7,7 @@ proved goal-checker correctness lemma. It uses SMTCoq's existing SMT-LIB
 interpretation and CNF/EUF/LIA checkers.
 
 The functional suites contain 22 public UF proofs, 11 additional Boolean UF
-proofs and 15 integer/mixed proofs, plus seven purification/constant/multi-goal regressions,
+proofs and 15 integer/mixed proofs, plus seven purification/constant/multi-goal regressions and 12 integer-cut proofs,
 with false-goal and corrupted-proof controls. They have passed compilation and
 baseline assumption audits. Larger valid benchmark goals exceed the current
 30-second compiler limit. This is an experimental backend, with explicitly
@@ -63,8 +63,8 @@ with `cvc5_eunoia`.
 The committed signature is cvc5 1.4.2's complete 35-file CPC include closure.
 The compiler follows its declarations, patterns, binder types, ordered helper
 cases, requirements, aliases and computed conclusions. Selection in
-`tools/eunoia/rules.txt` currently includes 84 rules and 53 helpers; the manifest
-lists all source hashes and 525 excluded rules. There is no rule-name-dependent
+`tools/eunoia/rules.txt` currently includes 85 rules and 57 helpers; the manifest
+lists all source hashes and 524 excluded rules. There is no rule-name-dependent
 execution switch implementing the selected CPC inferences.
 
 ```sh
@@ -80,9 +80,10 @@ replays establish source computation coverage; semantic proof acceptance uses
 the additional gate described below. See the [compiler interface](../../tools/eunoia/INTERFACE.md)
 and [integer-tightening capture](../../tools/eunoia/STRICT-SHIFT-VALIDATION.md).
 The [integer-cast captures](integer-cast-signature-coverage.md) add generated
-parity/coefficient-bound computations, including nested scopes. Their raw
-Real-valued intermediates still need a checked integer representation before
-the live tactic can accept them. Source-declared polymorphic operators are
+parity/coefficient-bound computations, including nested scopes. The live tactic now accepts restricted rational intermediates through an
+integer representation: positive-denominator cross products, exact closed floors,
+and integral cast round trips. Free Real terms and non-ground fractional floors
+remain unsupported. See [integer embedding](integer-embedding.md). Source-declared polymorphic operators are
 generated metadata; distinct applications may use distinct type instances.
 
 The runtime's argument-conversion optimization has a pointwise refinement proof

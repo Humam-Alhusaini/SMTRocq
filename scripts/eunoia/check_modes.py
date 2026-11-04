@@ -30,8 +30,10 @@ def main():
     modules = []
     try:
         for mode, disabled, forced in (("Reference", "1", "0"), ("Shared", "0", "1")):
-            for fixture in ("Proof", "Lia"):
-                source = ROOT / "src/eunoia_backend/tests/integration" / (fixture + ".v")
+            fixtures = [(name, ROOT / "src/eunoia_backend/tests/integration" / (name + ".v"))
+                        for name in ("Proof", "Lia")]
+            fixtures.append(("IntegerCasts", ROOT / "unit-tests/eunoia_integer_casts.v"))
+            for fixture, source in fixtures:
                 name = fixture + mode
                 target = out / (name + ".v")
                 target.write_bytes(source.read_bytes())

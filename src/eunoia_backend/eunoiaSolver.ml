@@ -27,6 +27,12 @@ let toolchain_root () =
   root
 let binary () = Filename.concat (toolchain_root ()) "cvc5-1.4.2/cvc5-Linux-x86_64-static/bin/cvc5"
 let signature () = Filename.concat (toolchain_root ()) "cvc5-1.4.2/cvc5-cvc5-1.4.2/proofs/eo/cpc/Cpc.eo"
+let profile_options () =
+  match Sys.getenv_opt "EUNOIA_CVC5_PROFILE" with
+  | None | Some "" | Some "default" -> [||]
+  | Some "reduced" -> [|"--simplification=none"; "--no-static-learning";
+      "--no-ite-simp"; "--no-unconstrained-simp"; "--no-repeat-simp"|]
+  | Some name -> fail "Unknown EUNOIA_CVC5_PROFILE %S (expected default or reduced)" name
 let remove f = try Sys.remove f with Sys_error _ -> ()
 let read_file path limit =
   let ic = open_in_bin path in
@@ -34,6 +40,7 @@ let read_file path limit =
     really_input_string ic (min limit (in_channel_length ic)))
 
 let run ?(limits=default_limits) input =
+  let profile = profile_options () in
   if limits.wall_seconds <= 0. || not (Float.is_finite limits.wall_seconds) ||
      limits.solver_milliseconds <= 0 || limits.resources <= 0 || limits.max_bytes <= 0
   then fail "Invalid Eunoia solver resource limits";
@@ -61,11 +68,11 @@ let run ?(limits=default_limits) input =
     let oc = open_out_bin src in
     Fun.protect ~finally:(fun () -> close_out_noerr oc)
       (fun () -> output_string oc input);
-    let argv = [|binary; "--lang=smt2"; "--dump-proofs"; "--proof-format=cpc";
+    let argv = Array.concat [[|binary; "--lang=smt2"; "--dump-proofs"; "--proof-format=cpc";
       "--proof-granularity=dsl-rewrite"; "--no-proof-allow-trust";
-      "--proof-check=eager"; "--check-proofs-complete";
-      "--tlimit=" ^ string_of_int limits.solver_milliseconds;
-      "--rlimit=" ^ string_of_int limits.resources; src|] in
+      "--proof-check=eager"; "--check-proofs-complete"|]; profile;
+      [|"--tlimit=" ^ string_of_int limits.solver_milliseconds;
+        "--rlimit=" ^ string_of_int limits.resources; src|]] in
     let started = Unix.gettimeofday () in
     let child = Unix.fork () in
     if child = 0 then begin

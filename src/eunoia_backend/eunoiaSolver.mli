@@ -9,6 +9,8 @@ val default_limits : limits
 val toolchain_root : unit -> string
 val binary : unit -> string
 val signature : unit -> string
+val profile_options : unit -> string array
+(** Fixed preprocessing profiles only; proof checking and trust flags are unchanged. *)
 exception Error of string
 val run : ?limits:limits -> string -> Eunoia_frontend.EunoiaProof.proof
 (** Input must come from the table-based exporter. Requests CPC with trust

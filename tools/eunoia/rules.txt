@@ -13,6 +13,7 @@ arith_mult_neg
 arith_poly_norm
 arith_poly_norm_rel
 arith_sum_ub
+arith_trichotomy
 bool-double-not-elim
 bool-eq-false
 bool-eq-true

@@ -96,7 +96,17 @@ let export ?(env=Global.env ()) t roots =
 
 (* Translate syntax into the existing SMT-LIB reifier, never declarations or
    interpretations. Exact adapter binding is subsequently checked in Rocq. *)
-let reify t term =
+let reify env t fuel term =
+  let rec needs_embedding = function
+    | E.Symbol s -> s = "to_real" || s = "to_int" ||
+        String.contains s '/' || String.contains s '.'
+    | E.Apply(f,a) -> needs_embedding f || needs_embedding a in
+  let term = if not (needs_embedding term) then term else
+    let tables = snapshot t in
+    match C.compute_term_option env (C.call (adapter "normalize_source")
+      [List.nth tables 0;List.nth tables 1;names t;fuel;C.term term]) with
+    | Some lowered -> lowered
+    | None -> R.raise_error "Eunoia: unsupported rational intermediate %a" E.pp_term term in
   let module A = Smtlib2.Smtlib2_ast in
   let loc = Lexing.dummy_pos,Lexing.dummy_pos in
   let ident s = A.QualIdentifierId(loc,A.IdSymbol(loc,A.Symbol(loc,s))) in
@@ -194,7 +204,7 @@ let prepare ?(fuel=10000) ~witness env t roots parsed =
     let inline_certificates = ref 0 in
     let certificate_index = Hashtbl.create 127 in
     let result_clause st =
-      if st.E.result=E.Symbol "false" then [] else [reify t st.result] in
+      if st.E.result=E.Symbol "false" then [] else [reify env t fuel st.result] in
     let evidence ?assumption ?source_assumption st syntax_cs cs c =
       let w = match witness ~atoms:t.atoms ~forms:t.forms ~premises:cs ~conclusion:c with
         | Ok w -> w
@@ -240,7 +250,7 @@ let prepare ?(fuel=10000) ~witness env t roots parsed =
         let tail = nested rest in
         C.call (scope "Next") (parameters @ [node;tail])
       | E.Push(slot,assumption,body,st,rest) ->
-        let pushed = reify t assumption in
+        let pushed = reify env t fuel assumption in
         let saved = Hashtbl.copy mapped in
         Hashtbl.add mapped slot [pushed];
         let body = nested body in

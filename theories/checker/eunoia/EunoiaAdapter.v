@@ -8,7 +8,7 @@ From SMTCoq.utils Require Import Misc PArray CompDec.
 From SMTCoq.structures Require Import CompDecInstances.
 From SMTCoq.checker.fol Require Import State Terms.
 From SMTCoq.checker Require Import MainChecker.
-From SMTCoq.checker.eunoia Require Import EoSyntax EoArithmetic CpcGenerated EunoiaChecker EunoiaBridge.
+From SMTCoq.checker.eunoia Require Import EoSyntax EoArithmetic EunoiaIntegerEmbedding CpcGenerated EunoiaChecker EunoiaBridge.
 
 Import ListNotations.
 Local Open Scope string_scope.
@@ -91,7 +91,7 @@ Definition is_numeral (s : string) : bool :=
 Definition reserved : list string :=
   ["Bool"; "Int"; "Type"; "->"; "true"; "false"; "not"; "and";
    "or"; "=>"; "xor"; "ite"; "="; "+"; "-"; "*"; "<"; "<="; ">"; ">=";
-   "Real"; "@List"; "@list"; "@list.nil";
+   "Real"; "to_real"; "to_int"; "/"; "/_total"; "@purify"; "@List"; "@list"; "@list.nil";
    "eo::List"; "eo::List::cons"; "eo::List::nil"].
 
 Definition is_literal_name (s : string) : bool :=
@@ -444,70 +444,6 @@ Section Tables.
       [reflexivity | apply memo_encoding_refinement | now rewrite H].
   Qed.
 
-  Definition binds (fuel : nat) (c : C.t) (t : term) : bool :=
-    EunoiaChecker.clause_wf (PArray.length t_form) c &&
-    match encode_clause fuel c, lower_arithmetic fuel t with
-    | Some u, Some v => term_eqb u v
-    | _, _ => false
-    end.
-
-  Definition cached_binds entries fuel c t :=
-    EunoiaChecker.clause_wf (PArray.length t_form) c &&
-    match cached_clause entries fuel c, lower_arithmetic fuel t with
-    | Some u, Some v => term_eqb u v | _, _ => false end.
-  Lemma cached_binds_refinement : forall fuel keys c t,
-    cached_binds (encoding_entries fuel keys) fuel c t = binds fuel c t.
-  Proof.
-    intros; unfold cached_binds, binds; rewrite cached_clause_refinement; reflexivity.
-  Qed.
-
-  Lemma binds_spec : forall fuel c t, binds fuel c t = true <->
-    EunoiaChecker.clause_wf (PArray.length t_form) c = true /\
-    exists u, encode_clause fuel c = Some u /\ lower_arithmetic fuel t = Some u.
-  Proof.
-    intros fuel c t; unfold binds; rewrite andb_true_iff.
-    destruct (encode_clause fuel c) as [u | ] eqn:Hu;
-      destruct (lower_arithmetic fuel t) as [v | ] eqn:Hv.
-    - rewrite term_eqb_spec; split.
-      + intros [H ->]; split; [exact H| eauto].
-      + intros [H [w [H1 H2]]]; inversion H1; inversion H2; subst; auto.
-    - split; [intros [_ H]; discriminate| intros [_ [w [_ H]]]; discriminate].
-    - split; [intros [_ H]; discriminate| intros [_ [w [H _]]]; discriminate].
-    - split; [intros [_ H]; discriminate| intros [_ [w [H _]]]; discriminate].
-  Qed.
-
-  Fixpoint bind_terms (fuel : nat) (cs : list C.t) (ts : list term) : bool :=
-    match cs, ts with
-    | [], [] => true
-    | c :: cs, t :: ts => binds fuel c t && bind_terms fuel cs ts
-    | _, _ => false
-    end.
-
-  Fixpoint cached_bind_terms entries fuel cs ts :=
-    match cs,ts with
-    | [],[] => true
-    | c::cs,t::ts => cached_binds entries fuel c t && cached_bind_terms entries fuel cs ts
-    | _,_ => false end.
-  Lemma cached_bind_terms_refinement : forall fuel keys cs ts,
-    cached_bind_terms (encoding_entries fuel keys) fuel cs ts = bind_terms fuel cs ts.
-  Proof.
-    intros fuel keys cs; induction cs as [ | c cs IH]; intros [ | t ts]; simpl;
-      try reflexivity. rewrite cached_binds_refinement, IH; reflexivity.
-  Qed.
-
-  Lemma bind_terms_spec : forall fuel cs ts, bind_terms fuel cs ts = true <->
-    Forall2 (fun c t =>
-      EunoiaChecker.clause_wf (PArray.length t_form) c = true /\
-      (exists u, encode_clause fuel c = Some u /\ lower_arithmetic fuel t = Some u)) cs ts.
-  Proof.
-    intros fuel cs; induction cs as [ | c cs IH]; destruct ts as [ | t ts]; simpl.
-    - split; constructor.
-    - split; [discriminate | intro H; inversion H].
-    - split; [discriminate | intro H; inversion H].
-    - rewrite andb_true_iff, binds_spec, IH.
-      split; [intros [H1 H2]; constructor; assumption | intro H; inversion H; auto].
-  Qed.
-
   (* A partial syntactic type query, derived from the same function signatures
      as Atom.check_aux. It neither interprets SMT-LIB nor reads a term map. *)
   Fixpoint function_named (s : string) (ns : list (int * string))
@@ -618,6 +554,57 @@ Section Tables.
         else match infer fuel t with Some ft => type_term ft | None => None end
       end.
 
+  Fixpoint consume_term_types (expected actual : list term) : option (list term) :=
+    match expected,actual with
+    | _,[] => Some expected
+    | e::es,a::xs => if term_eqb e a then consume_term_types es xs else None
+    | _,_ => None end.
+  Definition syntax_builtin_type (name : string) (types : list term) : option term :=
+    let all_real := forallb (fun ty => term_eqb ty (Symbol "Real")) types in
+    let all_int := forallb (fun ty => term_eqb ty (Symbol "Int")) types in
+    let all_bool := forallb (fun ty => term_eqb ty (Symbol "Bool")) types in
+    if String.eqb name "to_real" then
+      match types with [Symbol "Int"] => Some (Symbol "Real") | _ => None end
+    else if String.eqb name "to_int" then
+      match types with [Symbol "Real"] => Some (Symbol "Int") | _ => None end
+    else if String.eqb name "@purify" then
+      match types with [ty] => Some ty | _ => None end
+    else if String.eqb name "+" || String.eqb name "*" then
+      match types with _::_::_ => if all_real then Some (Symbol "Real")
+        else if all_int then Some (Symbol "Int") else None | _ => None end
+    else if String.eqb name "-" then
+      match types with [_] | [_;_] => if all_real then Some (Symbol "Real")
+        else if all_int then Some (Symbol "Int") else None | _ => None end
+    else if String.eqb name "/" then
+      match types with [Symbol "Real";Symbol "Real"] => Some (Symbol "Real") | _ => None end
+    else if existsb (String.eqb name) ["<";"<=";">";">="] then
+      match types with [Symbol "Real";Symbol "Real"] | [Symbol "Int";Symbol "Int"] =>
+        Some (Symbol "Bool") | _ => None end
+    else if String.eqb name "=" then
+      match types with [a;b] => if term_eqb a b then Some (Symbol "Bool") else None | _ => None end
+    else if String.eqb name "not" then
+      match types with [Symbol "Bool"] => Some (Symbol "Bool") | _ => None end
+    else if String.eqb name "and" || String.eqb name "or" then
+      match types with _::_ => if all_bool then Some (Symbol "Bool") else None | _ => None end
+    else if String.eqb name "=>" || String.eqb name "xor" then
+      match types with _::_::_ => if all_bool then Some (Symbol "Bool") else None | _ => None end
+    else if String.eqb name "ite" then
+      match types with [Symbol "Bool";a;b] =>
+        if term_eqb a b then Some a else None | _ => None end
+    else None.
+  Definition syntax_application_type (name : string) (actual : list term) : option term :=
+    match function_named name (function_names names) with
+    | Some (expected,result) =>
+      match traverse encode_sort expected,encode_sort result with
+      | Some types,Some ret =>
+        match consume_term_types types actual with
+        | Some [] => Some ret
+        | Some remaining => Some (app "->" (remaining ++ [ret]))
+        | None => None end
+      | _,_ => None end
+    | None => syntax_builtin_type name actual
+    end.
+
   (* CPC proof arguments can contain heterogeneous lists and rational
      coefficients. These are signature syntax, not new Atom/Form sorts or
      interpretations. The existing object query remains authoritative for
@@ -647,6 +634,10 @@ Section Tables.
             if forallb (fun a =>
               match syntax_typeof k a with Some _ => true | None => false end) args
             then Some (Symbol "@List") else None
+          | Symbol name, xs =>
+            match traverse (syntax_typeof k) xs with
+            | Some types => syntax_application_type name types
+            | None => None end
           | _, _ => None
           end
         end
@@ -663,6 +654,81 @@ Section Tables.
   Definition tables_wf : bool :=
     names_wf && Form.check_form t_form && Atom.check_atom t_atom &&
     Atom.wt t_i t_func t_atom.
+
+  (* Only rational intermediates with closed positive denominators are
+     represented by existing integer terms. Raw source syntax is never changed
+     for generated derivation. Every lowered implication still needs its local
+     SMTCoq semantic certificate. *)
+  Definition normalize_source fuel t :=
+    EunoiaIntegerEmbedding.normalize lower_arithmetic (syntax_typeof fuel) fuel t.
+  Lemma normalize_source_ordinary : forall fuel t,
+    EunoiaIntegerEmbedding.requires_embedding t = false ->
+    normalize_source fuel t = lower_arithmetic fuel t.
+  Proof. intros; unfold normalize_source; now apply EunoiaIntegerEmbedding.normalize_ordinary. Qed.
+
+  Definition binds (fuel : nat) (c : C.t) (t : term) : bool :=
+    EunoiaChecker.clause_wf (PArray.length t_form) c &&
+    match encode_clause fuel c, normalize_source fuel t with
+    | Some u, Some v => term_eqb u v
+    | _, _ => false
+    end.
+
+  Definition cached_binds entries fuel c t :=
+    EunoiaChecker.clause_wf (PArray.length t_form) c &&
+    match cached_clause entries fuel c, normalize_source fuel t with
+    | Some u, Some v => term_eqb u v | _, _ => false end.
+  Lemma cached_binds_refinement : forall fuel keys c t,
+    cached_binds (encoding_entries fuel keys) fuel c t = binds fuel c t.
+  Proof.
+    intros; unfold cached_binds, binds; rewrite cached_clause_refinement; reflexivity.
+  Qed.
+
+  Lemma binds_spec : forall fuel c t, binds fuel c t = true <->
+    EunoiaChecker.clause_wf (PArray.length t_form) c = true /\
+    exists u, encode_clause fuel c = Some u /\ normalize_source fuel t = Some u.
+  Proof.
+    intros fuel c t; unfold binds; rewrite andb_true_iff.
+    destruct (encode_clause fuel c) as [u | ] eqn:Hu;
+      destruct (normalize_source fuel t) as [v | ] eqn:Hv.
+    - rewrite term_eqb_spec; split.
+      + intros [H ->]; split; [exact H| eauto].
+      + intros [H [w [H1 H2]]]; inversion H1; inversion H2; subst; auto.
+    - split; [intros [_ H]; discriminate| intros [_ [w [_ H]]]; discriminate].
+    - split; [intros [_ H]; discriminate| intros [_ [w [H _]]]; discriminate].
+    - split; [intros [_ H]; discriminate| intros [_ [w [H _]]]; discriminate].
+  Qed.
+
+  Fixpoint bind_terms (fuel : nat) (cs : list C.t) (ts : list term) : bool :=
+    match cs, ts with
+    | [], [] => true
+    | c :: cs, t :: ts => binds fuel c t && bind_terms fuel cs ts
+    | _, _ => false
+    end.
+
+  Fixpoint cached_bind_terms entries fuel cs ts :=
+    match cs,ts with
+    | [],[] => true
+    | c::cs,t::ts => cached_binds entries fuel c t && cached_bind_terms entries fuel cs ts
+    | _,_ => false end.
+  Lemma cached_bind_terms_refinement : forall fuel keys cs ts,
+    cached_bind_terms (encoding_entries fuel keys) fuel cs ts = bind_terms fuel cs ts.
+  Proof.
+    intros fuel keys cs; induction cs as [ | c cs IH]; intros [ | t ts]; simpl;
+      try reflexivity. rewrite cached_binds_refinement, IH; reflexivity.
+  Qed.
+
+  Lemma bind_terms_spec : forall fuel cs ts, bind_terms fuel cs ts = true <->
+    Forall2 (fun c t =>
+      EunoiaChecker.clause_wf (PArray.length t_form) c = true /\
+      (exists u, encode_clause fuel c = Some u /\ normalize_source fuel t = Some u)) cs ts.
+  Proof.
+    intros fuel cs; induction cs as [ | c cs IH]; destruct ts as [ | t ts]; simpl.
+    - split; constructor.
+    - split; [discriminate | intro H; inversion H].
+    - split; [discriminate | intro H; inversion H].
+    - rewrite andb_true_iff, binds_spec, IH.
+      split; [intros [H1 H2]; constructor; assumption | intro H; inversion H; auto].
+  Qed.
 
   Record rule_payload := MakePayload {
     rule_name : string;
@@ -1003,8 +1069,11 @@ Module Examples.
   Proof. vm_compute; reflexivity. Qed.
   Example query_malformed_rational : query (Symbol "1/0") = None.
   Proof. vm_compute; reflexivity. Qed.
+  Example query_real_intermediate_type :
+    query (app "+" [Symbol "1/1"; Symbol "2/1"]) = Some (Symbol "Real").
+  Proof. vm_compute; reflexivity. Qed.
   Example query_real_object_unsupported :
-    query (app "+" [Symbol "1/1"; Symbol "2/1"]) = None.
+    object_typeof sorts funcs names 40 (app "+" [Symbol "1/1"; Symbol "2/1"]) = None.
   Proof. vm_compute; reflexivity. Qed.
   Example metadata_name_collision :
     names_wf sorts funcs (Naming [(0, "@List")] []) = false.

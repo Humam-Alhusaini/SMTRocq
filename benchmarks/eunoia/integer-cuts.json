@@ -1,0 +1,126 @@
+[
+  {
+    "id": "parity",
+    "theory": "LIA",
+    "expected": "proved",
+    "source": "unit-tests/eunoia_integer_casts.v: eunoia_integer_parity",
+    "statement": "forall x : Z, 2*x <> 1"
+  },
+  {
+    "id": "negative_parity",
+    "theory": "LIA",
+    "expected": "proved",
+    "source": "unit-tests/eunoia_integer_casts.v: eunoia_integer_negative_parity",
+    "statement": "forall x : Z, 2*x <> -1"
+  },
+  {
+    "id": "two_variable_parity",
+    "theory": "LIA",
+    "expected": "proved",
+    "source": "unit-tests/eunoia_integer_casts.v: eunoia_integer_two_variable_parity",
+    "statement": "forall x y : Z, 2*x+4*y <> 1"
+  },
+  {
+    "id": "coefficient_upper",
+    "theory": "LIA",
+    "expected": "proved",
+    "source": "unit-tests/eunoia_integer_casts.v: eunoia_integer_coefficient_upper",
+    "statement": "forall x : Z, 2*x <= 3 -> x <= 1"
+  },
+  {
+    "id": "coefficient_lower",
+    "theory": "LIA",
+    "expected": "proved",
+    "source": "unit-tests/eunoia_integer_casts.v: eunoia_integer_coefficient_lower",
+    "statement": "forall x : Z, 2*x >= 3 -> x >= 2"
+  },
+  {
+    "id": "negative_upper",
+    "theory": "LIA",
+    "expected": "proved",
+    "source": "unit-tests/eunoia_integer_casts.v: eunoia_integer_negative_upper",
+    "statement": "forall x : Z, -2*x <= 3 -> x >= -1"
+  },
+  {
+    "id": "negative_lower",
+    "theory": "LIA",
+    "expected": "proved",
+    "source": "unit-tests/eunoia_integer_casts.v: eunoia_integer_negative_lower",
+    "statement": "forall x : Z, -2*x >= 3 -> x <= -2"
+  },
+  {
+    "id": "coefficient_three",
+    "theory": "LIA",
+    "expected": "proved",
+    "source": "unit-tests/eunoia_integer_casts.v: eunoia_integer_coefficient_three",
+    "statement": "forall x : Z, 3*x <= 7 -> x <= 2"
+  },
+  {
+    "id": "coefficient_three_lower",
+    "theory": "LIA",
+    "expected": "proved",
+    "source": "unit-tests/eunoia_integer_casts.v: eunoia_integer_coefficient_three_lower",
+    "statement": "forall x : Z, 3*x >= 7 -> x >= 3"
+  },
+  {
+    "id": "scoped_coefficient",
+    "theory": "LIA",
+    "expected": "proved",
+    "source": "unit-tests/eunoia_integer_casts.v: eunoia_integer_scoped_coefficient",
+    "statement": "forall x y z : Z, 2*x <= 7 /\\ (y <= 7 \\/ z <= 9) -> x+y <= 10 \\/ x+z <= 12"
+  },
+  {
+    "id": "boolean_scope",
+    "theory": "LIA",
+    "expected": "proved",
+    "source": "unit-tests/eunoia_integer_casts.v: eunoia_integer_boolean_scope",
+    "statement": "forall x y z : Z, implb ((2*x <=? 7) && ((y <=? 7) || (z <=? 9))) ((x+y <=? 10) || (x+z <=? 12)) = true"
+  },
+  {
+    "id": "uf_cut",
+    "theory": "LIA",
+    "expected": "proved",
+    "source": "unit-tests/eunoia_integer_casts.v: eunoia_integer_uf_cut",
+    "statement": "forall (f : Z -> Z) (x : Z), 2*x <= 3 -> x >= 1 -> f x = f 1"
+  },
+  {
+    "id": "false_upper",
+    "theory": "LIA",
+    "expected": "rejected",
+    "source": "unit-tests/eunoia_integer_casts.v: false controls",
+    "statement": "forall x : Z, 2*x <= 3 -> x <= 0",
+    "counterexample": "x=1"
+  },
+  {
+    "id": "false_negative",
+    "theory": "LIA",
+    "expected": "rejected",
+    "source": "unit-tests/eunoia_integer_casts.v: false controls",
+    "statement": "forall x : Z, -2*x <= 3 -> x >= 0",
+    "counterexample": "x=-1"
+  },
+  {
+    "id": "false_even",
+    "theory": "LIA",
+    "expected": "rejected",
+    "source": "unit-tests/eunoia_integer_casts.v: false controls",
+    "statement": "forall x : Z, 2*x <> 2",
+    "counterexample": "x=1"
+  },
+  {
+    "id": "false_two_variable",
+    "theory": "LIA",
+    "expected": "rejected",
+    "source": "unit-tests/eunoia_integer_casts.v: false controls",
+    "statement": "forall x y : Z, 2*x+4*y <> 2",
+    "counterexample": "x=1,y=0"
+  },
+  {
+    "id": "false_scoped",
+    "theory": "LIA",
+    "expected": "rejected",
+    "source": "unit-tests/eunoia_integer_casts.v: false controls",
+    "statement": "forall x y : Z, 2*x <= 7 -> y <= 7 -> x+y <= 9",
+    "counterexample": "x=3,y=7"
+  }
+]
