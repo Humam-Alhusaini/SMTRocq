@@ -13,6 +13,10 @@ baseline assumption audits. Larger valid benchmark goals exceed the current
 30-second compiler limit. This is an experimental backend, with explicitly
 bounded coverage and no competitive performance claim.
 
+The [current development checkpoint](backend-checkpoint-2026-11-04.md) records
+new coverage, independent proof checks and the matched benchmark, including
+remaining failures and performance gaps.
+
 ## Build and use
 
 Activate an OCaml/Rocq toolchain (Rocq 9.2 or newer, Dune 3.21 or newer,
