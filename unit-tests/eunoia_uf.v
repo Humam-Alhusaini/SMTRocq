@@ -144,3 +144,21 @@ Print Assumptions eunoia_uf_multiple_sorts.
 Print Assumptions eunoia_uf_mixed_arguments.
 Print Assumptions eunoia_uf_boolean_transitivity.
 Print Assumptions eunoia_uf_quantified_carrier.
+
+(* Integer-sorted UF must not invoke arithmetic search for Boolean rewriting. *)
+From Stdlib Require Import ZArith.
+Section IntegerSortedUF.
+Local Open Scope Z_scope.
+Lemma eunoia_uf_integer_boolean_chain : forall (a b c d e f : Z),
+  (a =? b) && (b =? c) && (c =? d) && (c =? e) && (e =? f) && negb (a =? f) = false.
+Proof. cvc5_eunoia. Qed.
+Print Assumptions eunoia_uf_integer_boolean_chain.
+Example eunoia_uf_integer_missing_link : True.
+Proof.
+  Fail assert (forall (a b c d e f : Z),
+    (a =? b) && (b =? c) && (c =? d) && (c =? e) && negb (a =? f) = false)
+    by cvc5_eunoia.
+  exact I.
+Qed.
+Print Assumptions eunoia_uf_integer_missing_link.
+End IntegerSortedUF.

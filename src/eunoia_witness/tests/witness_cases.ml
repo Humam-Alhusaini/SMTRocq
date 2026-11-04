@@ -17,11 +17,13 @@ let run ~check =
   let form forms a = Form.get forms (Fatom a) in
   let bool atoms forms i = form forms (symbol atoms i [||] SmtBtype.Tbool []) in
   let binary forms op a b = Form.get forms (Fapp (op,[|a;b|])) in
-  let positive ?limits name atoms forms premises conclusion =
+  let positive ?limits ?(pure_uf=false) name atoms forms premises conclusion =
     let premises = List.map sorted premises and conclusion = sorted conclusion in
     match Search.produce ?limits ~atoms ~forms ~premises ~conclusion () with
     | Error e -> failwith (name ^ ": " ^ Search.string_of_failure e)
     | Ok w ->
+      if pure_uf then assert (List.for_all (fun cmd -> match cmd.Certificate.action with
+        | Certificate.LiaMicromega _ -> false | _ -> true) w.Certificate.program);
       let expected_roots = List.map (List.map Form.to_lit) premises @
         List.map (fun f -> [Form.to_lit (Form.neg f)]) conclusion in
       assert (List.map snd w.Certificate.root_claims = expected_roots);
@@ -99,6 +101,16 @@ let run ~check =
   (match Search.produce ~atoms ~forms ~premises:[[b;a;a]] ~conclusion:[] () with
    | Error (Search.Invalid_input _) -> incr count
    | _ -> failwith "noncanonical input was not rejected");
+  (* This exact kind of CPC Boolean congruence previously spent tens of
+     seconds in Micromega despite having a short EUF/resolution certificate. *)
+  let atoms,forms = fresh () in
+  let zs = Array.init 6 (fun i -> symbol atoms i [||] SmtBtype.TZ []) in
+  let eq i j = form forms (Atom.get atoms (Abop (BO_eq SmtBtype.TZ,zs.(i),zs.(j)))) in
+  let left = [|eq 0 1;eq 1 2;eq 2 3;eq 2 4;eq 4 5;Form.neg (eq 0 5)|]
+  and right = [|eq 0 1;eq 2 1;eq 3 2;eq 2 4;eq 4 5;Form.neg (eq 0 5)|] in
+  positive ~pure_uf:true "integer-sorted-uf-nary-congruence" atoms forms
+    (Array.to_list (Array.map2 (fun a b -> [binary forms Fiff a b]) left right))
+    [binary forms Fiff (Form.get forms (Fapp (Fand,left))) (Form.get forms (Fapp (Fand,right)))];
   let atoms,forms = fresh () in
   let ty = SmtBtype.Tindex (SmtBtype.dummy_indexed_type 0) in
   let x = symbol atoms 0 [||] ty [] and y = symbol atoms 1 [||] ty []

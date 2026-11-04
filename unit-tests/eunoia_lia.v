@@ -75,3 +75,8 @@ Proof.
   exact I.
 Qed.
 Print Assumptions eunoia_lia_false_controls.
+
+(* Interpreted integer literals must keep arithmetic search enabled. *)
+Lemma eunoia_integer_literal_conflict : forall x : Z, x = 0 -> x = 1 -> False.
+Proof. cvc5_eunoia. Qed.
+Print Assumptions eunoia_integer_literal_conflict.

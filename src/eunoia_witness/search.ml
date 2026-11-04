@@ -392,12 +392,21 @@ let produce_search ?(limits=default_limits) ~atoms ~forms ~premises ~conclusion 
           Form.get forms (Fapp (op,Array.map lia_candidate xs))
         | _ -> original in
       if Form.is_pos f then expanded else Form.neg expanded in
+    (* Integer-sorted UF variables are not arithmetic expressions. Equalities
+       between uninterpreted applications need only EUF and Boolean reasoning;
+       sending their Boolean expansion to Micromega can be exponentially slow.
+       Any interpreted atom (including an integer literal) keeps LIA enabled.
+       This only selects untrusted search; the gate still checks every command. *)
+    let needs_lia = Hashtbl.fold (fun _ a needed -> needed ||
+      match Atom.atom a with
+      | Aapp _ | Abop (BO_eq _,_,_) -> false
+      | _ -> true) terms false in
     let try_lia c =
       (* Certificates depend on the exact traversal/variable numbering of
          their clause. Canonicalize BEFORE producing evidence, not in add. *)
       let c = List.sort_uniq (fun a b -> Int.compare (lit a) (lit b)) c in
       lia_count := 0;
-      if List.for_all lia_form c then
+      if needs_lia && List.for_all lia_form c then
         match Lia.build_lia_certif (List.map lia_candidate c) with
         | None -> ()
         | Some proof -> let c = List.map lit c in
@@ -424,7 +433,7 @@ let produce_search ?(limits=default_limits) ~atoms ~forms ~premises ~conclusion 
          connect each auxiliary disjunction back to its exact root clause. *)
       let arithmetic_inputs = List.concat premises @ conclusion in
       lia_count := 0;
-      let arithmetic_clause = if List.for_all lia_form arithmetic_inputs then begin
+      let arithmetic_clause = if needs_lia && List.for_all lia_form arithmetic_inputs then begin
         let pforms = List.map (function [f] -> f | c ->
           let f = Form.get forms (Fapp (For,Array.of_list c)) in
           remember f; f) premises in
