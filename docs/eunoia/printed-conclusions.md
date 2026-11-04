@@ -34,3 +34,22 @@ For a matched comparison, freeze the implementation and artifacts, set
 `benchmarks/eunoia/run.py`. The harness records both switches. Helper mining
 runs only when the producer needs a derivation callback; printed steps do not
 populate the optional helper cache. Compare these optimizations separately.
+
+## Frozen diagnostic
+
+Implementation `46c954b` passed the repository regression tests, install build,
+226-target assumption audit and recursive kernel checking. Printed-conclusion
+mode additionally passed all nine actual integration/public fixtures, including
+the source-invalid but semantically valid unused-step mutations.
+
+A seven-case workload ran in reference/helpers/conclusions/conclusions/helpers/
+reference order, with identical source/artifact fingerprints and a 30-second
+whole-compiler timeout. Each mode checked 10/10 positive attempts and rejected
+all four scheduled false controls. Tactic totals over two rounds were 34.916 s
+for reference evaluation, 32.479 s with printed conclusions and 45.363 s with
+helper sharing. This is a modest focused improvement, not an overall
+competitiveness result. The source printed-conclusion option remains explicit
+pending a broader comparison.
+
+[Exact rows and artifact hashes](producer-comparison-2026-11-04.json) preserve
+these results independently of later changes.
