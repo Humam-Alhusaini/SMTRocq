@@ -653,9 +653,12 @@ Section Tables.
       end
     end.
 
-  Definition typeof (fuel : nat) : term -> option term :=
-    let ready := names_wf in
-    fun t => if ready then syntax_typeof fuel t else None.
+  Definition typeof_with_ready (ready : bool) (fuel : nat) (t : term) :=
+    if ready then syntax_typeof fuel t else None.
+  Definition typeof (fuel : nat) := typeof_with_ready names_wf fuel.
+  Lemma typeof_with_ready_refinement : forall fuel t,
+    typeof_with_ready names_wf fuel t = typeof fuel t.
+  Proof. reflexivity. Qed.
 
   Definition tables_wf : bool :=
     names_wf && Form.check_form t_form && Atom.check_atom t_atom &&
@@ -696,23 +699,31 @@ Section Tables.
     else None
     end.
 
-  Definition cached_eval_with entries
+  Definition prepared_eval_with entries (ready names_ready : bool)
       (derive : nat -> (term -> option term) -> string -> list term -> list term -> option term)
       (fuel : nat) (p : rule_payload) (cs : list C.t) : option C.t :=
     match source_assumption p with
     | Some _ => None
     | None =>
-      if tables_wf && cached_bind_terms entries fuel cs (premise_terms p) then
-        match derive fuel (typeof fuel) (rule_name p) (arguments p) (premise_terms p) with
+      if ready && cached_bind_terms entries fuel cs (premise_terms p) then
+        match derive fuel (typeof_with_ready names_ready fuel) (rule_name p) (arguments p) (premise_terms p) with
         | Some t =>
           if term_eqb t (result_term p) && cached_binds entries fuel (result_clause p) t
           then Some (result_clause p) else None
         | None => None end
       else None end.
+  Definition cached_eval_with entries derive fuel :=
+    prepared_eval_with entries tables_wf names_wf derive fuel.
+  Lemma prepared_eval_with_refinement : forall entries derive fuel p cs,
+    prepared_eval_with entries tables_wf names_wf derive fuel p cs =
+    cached_eval_with entries derive fuel p cs.
+  Proof. reflexivity. Qed.
+
   Lemma cached_eval_with_refinement : forall derive fuel keys p cs,
     cached_eval_with (encoding_entries fuel keys) derive fuel p cs = eval_with derive fuel p cs.
   Proof.
-    intros; unfold cached_eval_with, eval_with.
+    intros; unfold cached_eval_with, prepared_eval_with, eval_with.
+    fold (typeof fuel).
     destruct (source_assumption p); [reflexivity | ].
     rewrite cached_bind_terms_refinement.
     destruct (tables_wf && bind_terms fuel cs (premise_terms p)); [ | reflexivity].
@@ -770,10 +781,12 @@ Section Tables.
       (fuel : nat) (capacity : int) (roots : list C.t) (root_terms : list term)
       (claims : list (clause_id * C.t))
       (trace : list (@EunoiaChecker.step rule_payload witness)) (goal : clause_id) : bool :=
+    let ready := tables_wf in
+    let names_ready := names_wf in
     let entries := encoding_entries fuel
       (List.concat roots ++ flat_map EunoiaChecker.conclusion trace)%list in
-    tables_wf && bind_terms fuel roots root_terms &&
-    EunoiaChecker.checker (cached_eval_with entries CpcGenerated.derive fuel) gate (PArray.length t_form) capacity
+    ready && bind_terms fuel roots root_terms &&
+    EunoiaChecker.checker (prepared_eval_with entries ready names_ready CpcGenerated.derive fuel) gate (PArray.length t_form) capacity
       roots claims trace goal.
 
   Theorem checker_correct : forall witness gate fuel capacity roots root_terms claims

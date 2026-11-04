@@ -81,14 +81,16 @@ Section Tables.
   Qed.
 
   Definition checker_with extra fuel entries capacity roots root_terms claims (t : trace) goal :=
+    let ready := tables_wf in
+    let names_ready := EunoiaAdapter.names_wf t_i t_func names in
     let encodings := EunoiaAdapter.encoding_entries t_i t_func t_atom t_form names fuel
       (List.concat roots ++ EunoiaScope.literals t)%list in
-    tables_wf && bind_terms fuel roots root_terms && cache_valid entries &&
+    ready && bind_terms fuel roots root_terms && cache_valid entries &&
     EunoiaScope.checker
-      (EunoiaAdapter.cached_eval_with t_i t_func t_atom t_form names encodings
+      (EunoiaAdapter.prepared_eval_with t_i t_func t_atom t_form names encodings ready names_ready
         (CpcGenerated.derive_with extra) fuel)
-      (@EunoiaScopedAdapter.cached_scope_eval_with t_i t_func t_atom t_form names
-        encodings extra fuel)
+      (@EunoiaScopedAdapter.prepared_scope_eval_with t_i t_func t_atom t_form names
+        encodings ready names_ready extra fuel)
       (gate entries) (PArray.length t_form)
       capacity roots claims t goal.
   Definition checker := checker_with CpcGenerated.default_primitive.
