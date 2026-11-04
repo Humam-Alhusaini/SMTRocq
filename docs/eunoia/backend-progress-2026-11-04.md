@@ -22,7 +22,7 @@ variant exercise actual hypothesis bindings.
 
 [Proved Rocq division facts](division.md) extend the backend with signed and
 zero constant division/modulo, constant shifts and nested quotients. There are
-32 positive division regressions and eleven public false controls. These use actual
+33 positive division regressions and thirteen public false controls. These use actual
 standard-library proofs as bound roots in the existing UF/LIA semantics.
 Native arithmetic candidates now preserve the verified builder's association,
 branch numbering and Boolean connective shapes, without interning extra
@@ -30,6 +30,34 @@ proof-only Boolean expansions. A bounded Boolean resolution prefix avoids
 unnecessary arithmetic search; its zero-budget regression exercises the actual
 arithmetic certificate path. All 98 native witness cases and mutations run
 against the production gate in routine tests.
+
+## Boolean truth wrappers and measured ground-value improvement
+
+The public preprocessor can wrap an integer equality as `(7 =? x) <-> true`.
+Two proved Boolean truth lemmas now expose the actual proved equality before
+known-value instantiation, including reversed equalities. False polarity and
+arbitrary connectives are not treated as proved integer equalities. The change
+passed 202 assumption targets, both checker modes with independent kernel
+replay, full repository tests and the install build. Evidence:
+`eunoia-mode-replay-gzbuu0o6` and `eunoia-proof-audit-8draktq6`.
+
+At the preceding `8c95f22` checkpoint, two frozen repeats retained 54/54 division
+successes and 16/16 false-control rejections, plus 10/10 known-value successes
+and six rejected controls. All integrity checks passed. Division tactic totals
+were 117.198 s over two repeats (58.599 s per repeat), versus 101.657 s for the
+single preceding `8a5c14b` repeat. The three known-numerator cases fell from
+15.576/13.329/13.757 s to two-repeat medians around 0.53/0.55/0.51 s.
+The Boolean-wrapped reverse case still took 16.1–16.8 s at that checkpoint;
+its subsequent wrapper fix is separately validated and requires fresh timing.
+[Exact results](verified-known-values-benchmarks-2026-11-04.json) preserve the
+unchanged manifests and scheduled denominators.
+
+A separate standard native-computation experiment was rejected: matched
+VM/native/native/VM rounds checked 10/10 VM positives and 8/10 native positives;
+the native path timed out twice on the known-numerator case and increased
+common-case latency. All four integrity checks passed. The production backend
+keeps VM reduction. [Raw comparison](native-comparison-2026-11-04.json) retains
+all timeouts rather than comparing unequal solved totals.
 
 ## Proved ground-value extension
 

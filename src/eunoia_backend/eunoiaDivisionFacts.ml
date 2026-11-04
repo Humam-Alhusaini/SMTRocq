@@ -4,6 +4,21 @@ module C = EunoiaRocq
 (* Only proved facts about actual Rocq functions; these are not new SMT-LIB
    operators. Every emitted fact remains a proof argument to the checked tactic. *)
 let collect env ~equalities terms =
+  (* Preprocessing may represent a proved Boolean fact as [b <-> true].
+     Unwrap only proved truth, never false polarity or arbitrary connectives. *)
+  let rec unwrap depth (proof,value) =
+    if depth=0 then proof,value else
+    let head,args = R.decompose_app_list value in
+    match args with
+    | [a;b] when R.eq_constr head (Lazy.force CoqTerms.ceqb) ->
+      let truth = Lazy.force CoqTerms.ctrue in
+      let apply name value = unwrap (depth-1)
+        (C.call ("SMTCoq.checker.eunoia.EunoiaDivision.EunoiaDivision." ^ name) [value;proof],value) in
+      if R.eq_constr b truth then apply "boolean_eq_true" a
+      else if R.eq_constr a truth then apply "boolean_true_eq" b
+      else proof,value
+    | _ -> proof,value in
+  let equalities = List.map (unwrap 8) equalities in
   let div = C.global "Stdlib.ZArith.BinInt.Z.div"
   and modulo = C.global "Stdlib.ZArith.BinInt.Z.modulo" in
   let z0 = Lazy.force CoqTerms.cZ0 and zpos = Lazy.force CoqTerms.cZpos

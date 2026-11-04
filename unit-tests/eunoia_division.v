@@ -137,3 +137,15 @@ Proof.
  exact I.
 Qed.
 Print Assumptions known_value_false_controls.
+
+Lemma known_value_boolean_truth : forall x : Z,
+  Bool.eqb true (7 =? x) = true -> (x/3 =? 2) = true.
+Proof. cvc5_eunoia. Qed.
+Print Assumptions known_value_boolean_truth.
+Example known_value_boolean_false_controls : True.
+Proof.
+ Fail assert (forall x : Z, Bool.eqb true (7 =? x) = true -> (x/3 =? 3) = true) by cvc5_eunoia.
+ Fail assert (forall x : Z, Bool.eqb (7 =? x) false = true -> (x/3 =? 2) = true) by cvc5_eunoia.
+ exact I.
+Qed.
+Print Assumptions known_value_boolean_false_controls.

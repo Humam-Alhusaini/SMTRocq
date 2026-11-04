@@ -58,6 +58,12 @@ Proof. intros; apply Z.eqb_eq; apply Z.mod_add; lia. Qed.
 Print Assumptions negative_modulo_shift.
 (* Ground evaluation under an actual proved equality. The producer may choose
    the numeral, but both the equality and the calculation are proof arguments. *)
+Lemma boolean_eq_true : forall b, Bool.eqb b true = true -> b = true.
+Proof. intros []; simpl; congruence. Qed.
+Lemma boolean_true_eq : forall b, Bool.eqb true b = true -> b = true.
+Proof. intros []; simpl; congruence. Qed.
+Print Assumptions boolean_eq_true.
+Print Assumptions boolean_true_eq.
 Lemma eqb_swap : forall x y, (x =? y) = true -> (y =? x) = true.
 Proof. intros x y; rewrite Z.eqb_sym; trivial. Qed.
 Lemma quotient_value : forall x y d v,

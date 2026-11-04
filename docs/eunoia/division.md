@@ -13,7 +13,9 @@ This distinction matters when comparing with solvers' totalized division.
 
 When an actual supplied Boolean equality proves that a numerator has a ground
 value, the collector also provides the resulting quotient/remainder value.
-It passes both the equality proof and a checked ground calculation to a proved
+Proved Boolean truth wrappers such as `b <-> true` are eliminated with
+actual Boolean proof lemmas; false polarity is preserved. It passes both the
+equality proof and a checked ground calculation to a proved
 lemma; reversed equalities use a proved symmetry lemma. This covers compound
 UF numerators such as `f x = 7` as well as variables. Closed numerators use a
 reflexivity proof. No value is accepted from native computation alone.
