@@ -1,6 +1,6 @@
 From Stdlib Require Import Bool String List.
 From SMTCoq.checker.eunoia Require Import EunoiaAdapter EunoiaLocal EunoiaTactic EunoiaScopedAdapter.
-From SMTCoq.checker.eunoia Require Import EunoiaMemo.
+From SMTCoq.checker.eunoia Require Import EunoiaMemo EunoiaHelperCache CpcMemoCollector.
 Declare ML Module "rocq-smtcoq.eunoia_backend_test".
 
 Lemma replay_reflexive (p:bool) : p = p.

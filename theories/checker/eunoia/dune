@@ -24,6 +24,8 @@
   EunoiaScopedAdapterTests.vo
   EunoiaContextTests.vo
   EunoiaMemoTests.vo
+  EoCheckedMemoTests.vo
+  EunoiaHelperCacheTests.vo
   EunoiaIntegerEmbeddingTests.vo
   EoArithmeticTests.vo
   EoRuntime.vo

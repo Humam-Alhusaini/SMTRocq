@@ -37,6 +37,14 @@ def main():
     for i in range(0, len(mappings), 3):
         audit += ["--loadpath", mappings[i + 1], mappings[i + 2]]
     for module, names in {
+        "EunoiaHelperCache": ["checker_refinement", "checker_correct",
+                              "checker_b_refinement", "checker_b_correct",
+                              "checker_eq_refinement", "checker_eq_correct"],
+        "EoCheckedMemo": ["term_eqb_spec", "terms_eqb_spec", "cache_lookup_sound",
+                          "evaluate_cached_refinement", "call_cached_refinement",
+                          "entry_check_sound", "validate_entries_sound", "checked_evaluate_correct"],
+        "EoRuleMemo": ["reference_factorization", "with_prepared_rule_ext",
+                       "execute_using_ext", "run_rule_cached_refinement", "run_surface_cached_refinement"],
         "EunoiaMemo": ["gate_correct", "checker_correct", "checker_b_correct", "checker_eq_correct"],
         "EunoiaScopedAdapter": ["checker_correct", "checker_b_correct", "checker_eq_correct",
                                 "scope_assumption_binding", "scope_eval_with_binding",
@@ -65,6 +73,7 @@ def main():
         for name in names:
             audit += ["--theorem", prefix + "." + module + "." + name]
     for module, names in {
+        "SMTCoq.checker.eunoia.CpcMemo": ["validate_context_sound", "derive_context_cached_refinement", "derive_checked_correct"],
         "SMTCoq.checker.eunoia.EoRuntime": ["nil_apply_refinement", "nil_list_apply_refinement",
                                          "resolve_nil_lazy_mode_refinement"],
         "SMTCoq.eunoia_runtime_profile.QueryRefinement": ["native_with_nils_refinement",
@@ -93,6 +102,9 @@ def main():
                   "SMTCoq.eunoia_runtime_profile.QueryRefinement",
                   "SMTCoq.eunoia_runtime_profile.SurfaceOutRefinement",
                   "SMTCoq.checker.eunoia.EunoiaMemoTests",
+                  "SMTCoq.checker.eunoia.EoCheckedMemoTests",
+                  "SMTCoq.checker.eunoia.EunoiaHelperCache",
+                  "SMTCoq.checker.eunoia.EunoiaHelperCacheTests",
                   "SMTCoq.checker.eunoia.EunoiaScopedAdapter",
                   "SMTCoq.checker.eunoia.EunoiaIntegerEmbeddingTests",
                   integration,

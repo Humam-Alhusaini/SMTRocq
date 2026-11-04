@@ -173,6 +173,7 @@ let prepare ?(fuel=10000) ~witness env t roots parsed =
   let root_terms = List.map (fun r -> encode [r]) roots in
   let query = C.call (adapter "typeof")
     [List.nth table_args 0;List.nth table_args 1;ns;fuel] in
+  let derive_helpers,finish_helpers = EunoiaHelperCache.create env fuel query in
   let derive_uncached rule args premises =
     C.compute_term_option env (C.call "SMTCoq.checker.eunoia.CpcGenerated.derive"
       [fuel;query;C.string rule;term_list args;term_list premises]) in
@@ -191,7 +192,8 @@ let prepare ?(fuel=10000) ~witness env t roots parsed =
       if Hashtbl.length candidates < 4096 then Hashtbl.add candidates key result;
       result in
   let derive rule args premises =
-    memo (rule,None,args,premises) (fun () -> phase "derive" (fun () -> derive_uncached rule args premises)) in
+    phase "derive" (fun () -> derive_helpers rule args premises (fun () ->
+      memo (rule,None,args,premises) (fun () -> derive_uncached rule args premises))) in
   let derive_assuming rule assumption args premises =
     memo (rule,Some assumption,args,premises)
       (fun () -> phase "derive_assuming" (fun () -> derive_assuming_uncached rule assumption args premises)) in
@@ -211,6 +213,10 @@ let prepare ?(fuel=10000) ~witness env t roots parsed =
   let proof = phase "elaborate" (fun () ->
     E.elaborate ~signature_names:(C.signature_names env) ~is_metadata_literal
       ~declarations:(declarations t) ~roots:root_terms ~derive ~derive_assuming parsed) in
+  let helpers = phase "select_helpers" (fun () -> finish_helpers term) in
+  let share_helpers = helpers <> [] in
+  if Sys.getenv_opt "EUNOIA_CACHE_PROFILE" = Some "1" then
+    Printf.eprintf "EUNOIA_HELPER_CACHE entries=%d enabled=%b\n%!" (List.length helpers) share_helpers;
   SmtMaps.clear ();
   List.iter (fun (i,ty) -> SmtMaps.add_btype (name_sort i) (SmtBtype.Tindex ty))
     (SmtBtype.to_list t.sorts);
@@ -296,7 +302,7 @@ let prepare ?(fuel=10000) ~witness env t roots parsed =
     let reference_trace = if has_scopes then nested proof.trace else
       C.list (C.call (core "step") [rule_ty;witness_ty]) (List.map ordinary proof.steps) in
     let sharing_hits = List.length proof.steps - List.length !certificates - !inline_certificates in
-    let memoize = collect_cache &&
+    let memoize = share_helpers || collect_cache &&
       (Sys.getenv_opt "EUNOIA_FORCE_CHECKED_CACHE" = Some "1" ||
        (sharing_hits >= 4 && sharing_hits * 4 >= List.length proof.steps)) in
     (* Keep the original representation for nonrepeating proofs. If sharing
@@ -412,12 +418,16 @@ let prepare ?(fuel=10000) ~witness env t roots parsed =
         (if memoize then !inline_certificates else List.length proof.steps)
         (if collect_cache then sharing_hits else 0);
     {table_args=tables;
-     common_args=tables @ [ns;fuel] @ memo_args @ [mkint proof.capacity];
+     common_args=tables @ [ns;fuel] @
+       (if share_helpers then [C.list (C.global (EunoiaHelperCache.api "cache_entry")) helpers] else []) @
+       memo_args @ [mkint proof.capacity];
      roots_arg=clauses root_clauses;
      tail_args=[term_list root_terms;
        claims (List.map2 (fun (i,_) c -> i,c) proof.roots root_clauses);
        trace;mkint proof.conflict];diagnose;
-     checker_api=(if memoize then memo_api else if has_scopes then scoped else tactic_api)})
+     checker_api=(if share_helpers then
+       (fun n -> "SMTCoq.checker.eunoia.EunoiaHelperCache.EunoiaHelperCache." ^ n)
+       else if memoize then memo_api else if has_scopes then scoped else tactic_api)})
 
 let refutation env sigma p =
   let args = p.common_args @ [p.roots_arg] @ p.tail_args in

@@ -19,3 +19,6 @@ val checked_true :
 val signature_names : Environ.env -> string list
 (** Compute admitted metadata names/aliases from the loaded CpcGenerated data.
     Proof text cannot extend this set or select native primitive hooks. *)
+
+val decode_string : RocqInterface.constr -> string
+val decode_list : (RocqInterface.constr -> 'a) -> RocqInterface.constr -> 'a list

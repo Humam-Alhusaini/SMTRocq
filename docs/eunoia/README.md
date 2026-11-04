@@ -149,6 +149,10 @@ that the complete applied checker returns `true`. The tactic reuses that checked
 proof through Rocq's abstraction API, then installs the complete correctness
 application with `Tactics.exact_check`. All private proof creation is part of
 tactic time. Failed and undone attempts must restore the original proof state.
+The optional [generated-helper cache](helper-cache.md) additionally proves
+reference-evaluator refinement and validates all helper hints before reuse.
+It is experimental and disabled by default pending full tactic measurements.
+
 See [the certificate-reuse report](checked-certificate-reuse.md) for the API,
 rollback controls and saved-body audits. `Qed` and independent `rocq check`
 validate the saved term. Parser success, an `unsat` answer,

@@ -39,6 +39,9 @@ and modulo, including negative/zero divisors and false controls. See
 receive Eunoia's automatically proved facts. `known-values.json` adds five
 positive equality-guided evaluations and three false controls; it does not
 change the division checkpoint's 35-case manifest.
+`helper-cache.json` is a separate seven-case matched diagnostic for the
+experimental `EUNOIA_HELPER_CACHE=0|1` paths; it copies existing UF, arithmetic,
+division and scalability cases without changing their statements or timeout.
 The original 20-case manifest is retained
 unchanged, so historical solved counts remain comparable.
 `EUNOIA_CVC5_PROFILE` is recorded in metadata when comparing fixed solver profiles.

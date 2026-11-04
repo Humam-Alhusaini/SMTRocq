@@ -14,6 +14,8 @@ ROOT = Path(__file__).resolve().parents[2]
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", type=Path)
+    parser.add_argument("--modes", nargs="+", choices=("Reference", "Shared", "Helpers"),
+                        default=("Reference", "Shared", "Helpers"))
     args = parser.parse_args()
     out = args.output.resolve() if args.output else Path(tempfile.mkdtemp(prefix="eunoia-mode-replay-"))
     if out == ROOT or ROOT in out.parents:
@@ -29,7 +31,11 @@ def main():
     summary = dict(passed=False, commands=[], sources={})
     modules = []
     try:
-        for mode, disabled, forced in (("Reference", "1", "0"), ("Shared", "0", "1")):
+        for mode, disabled, forced, helpers in (("Reference", "1", "0", "0"),
+                                               ("Shared", "0", "1", "0"),
+                                               ("Helpers", "0", "1", "1")):
+            if mode not in args.modes:
+                continue
             fixtures = [(name, ROOT / "src/eunoia_backend/tests/integration" / (name + ".v"))
                         for name in ("Proof", "Lia")]
             fixtures.append(("IntegerCasts", ROOT / "unit-tests/eunoia_integer_casts.v"))
@@ -40,7 +46,7 @@ def main():
                 target.write_bytes(source.read_bytes())
                 summary["sources"][name] = hashlib.sha256(target.read_bytes()).hexdigest()
                 command = [wrapper, "env", "EUNOIA_DISABLE_CHECKED_CACHE=" + disabled,
-                           "EUNOIA_FORCE_CHECKED_CACHE=" + forced,
+                           "EUNOIA_FORCE_CHECKED_CACHE=" + forced, "EUNOIA_HELPER_CACHE=" + helpers,
                            "dune", "exec", "--", "rocq", "compile", "-q", *compiler_flags, str(target)]
                 result, _ = bench.record_command(command, ROOT, 300, out / name)
                 summary["commands"].append(result)
@@ -58,7 +64,7 @@ def main():
         raise
     finally:
         (out / "summary.json").write_text(json.dumps(summary, indent=2) + "\n")
-    print(f"Both checker modes passed: {out}")
+    print(f"Checker modes {', '.join(args.modes)} passed: {out}")
 
 
 if __name__ == "__main__":
