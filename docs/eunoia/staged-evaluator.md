@@ -32,3 +32,21 @@ The integrated implementation passed the full repository regression build,
 install build, 254-target assumption audit, and recursive kernel checking.
 The generated-source regression replays all 32 captured CPC traces through
 this evaluator and checks the resulting proof modules independently.
+
+## Matched tactic result
+
+Frozen implementation `f1ef28e` passed all nine fresh public/integration fixture
+groups and their independent kernel check. The unchanged seven-case diagnostic
+then ran reference/specialized/specialized/reference, with printed conclusions
+enabled in both paths, all other experimental optimizations disabled, identical
+source/artifact fingerprints and a 30-second whole-compiler timeout.
+
+Each path checked 10/10 positive attempts and rejected all four false controls.
+Tactic totals were **33.420 s reference versus 39.226 s specialized**; `Qed`
+totals were 0.470 s and 0.331 s. The specialized tactic was slower on every
+positive case in this sample. It remains disabled by default. The earlier
+helper-loop speedup does not establish a full-tactic improvement.
+
+[Complete rows and artifact hashes](staged-comparison-2026-11-04.json) retain
+the negative result. Further work must address actual full-path costs rather
+than promoting this implementation on component timings.

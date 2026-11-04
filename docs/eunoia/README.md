@@ -252,4 +252,4 @@ signed/zero cases and false controls without changing the original workload.
 
 The experimental [signature-specialized evaluator](staged-evaluator.md)
 preserves complete reference computations while specializing generated helper
-bodies. It is opt-in pending full-tactic comparison.
+bodies. It remains opt-in because the matched full-tactic comparison was slower.
