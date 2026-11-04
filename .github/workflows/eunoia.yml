@@ -5,7 +5,7 @@ permissions:
 jobs:
   eunoia:
     runs-on: ubuntu-latest
-    timeout-minutes: 40
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
       - name: Build pinned Rocq and Trakt environment

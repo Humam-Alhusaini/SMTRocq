@@ -173,12 +173,15 @@ let prepare ?(fuel=10000) ~witness env t roots parsed =
   let root_terms = List.map (fun r -> encode [r]) roots in
   let query = C.call (adapter "typeof")
     [List.nth table_args 0;List.nth table_args 1;ns;fuel] in
+  let use_program_index = Sys.getenv_opt "EUNOIA_PROGRAM_INDEX" = Some "1" in
   let derive_helpers,finish_helpers = EunoiaHelperCache.create env fuel query in
   let derive_uncached rule args premises =
-    C.compute_term_option env (C.call "SMTCoq.checker.eunoia.CpcGenerated.derive"
+    C.compute_term_option env (C.call (if use_program_index then "SMTCoq.checker.eunoia.CpcIndexed.derive_indexed"
+      else "SMTCoq.checker.eunoia.CpcGenerated.derive")
       [fuel;query;C.string rule;term_list args;term_list premises]) in
   let derive_assuming_uncached rule assumption args premises =
-    C.compute_term_option env (C.call "SMTCoq.checker.eunoia.CpcGenerated.derive_assuming"
+    C.compute_term_option env (C.call (if use_program_index then "SMTCoq.checker.eunoia.CpcIndexed.derive_assuming_indexed"
+      else "SMTCoq.checker.eunoia.CpcGenerated.derive_assuming")
       [fuel;query;C.string rule;term assumption;term_list args;term_list premises]) in
   (* The query/tables/fuel are fixed during elaboration. Cache producer-side
      syntax candidates, never acceptance. The complete applied checker reruns
@@ -303,7 +306,7 @@ let prepare ?(fuel=10000) ~witness env t roots parsed =
     let reference_trace = if has_scopes then nested proof.trace else
       C.list (C.call (core "step") [rule_ty;witness_ty]) (List.map ordinary proof.steps) in
     let sharing_hits = List.length proof.steps - List.length !certificates - !inline_certificates in
-    let memoize = share_helpers || collect_cache &&
+    let memoize = share_helpers || use_program_index || collect_cache &&
       (Sys.getenv_opt "EUNOIA_FORCE_CHECKED_CACHE" = Some "1" ||
        (sharing_hits >= 4 && sharing_hits * 4 >= List.length proof.steps)) in
     (* Keep the original representation for nonrepeating proofs. If sharing
@@ -428,6 +431,8 @@ let prepare ?(fuel=10000) ~witness env t roots parsed =
        trace;mkint proof.conflict];diagnose;
      checker_api=(if share_helpers then
        (fun n -> "SMTCoq.checker.eunoia.EunoiaHelperCache.EunoiaHelperCache." ^ n)
+       else if use_program_index then
+         (fun n -> "SMTCoq.checker.eunoia.EunoiaProgramIndex.EunoiaProgramIndex." ^ n)
        else if memoize then memo_api else if has_scopes then scoped else tactic_api)})
 
 let refutation env sigma p =

@@ -149,6 +149,9 @@ that the complete applied checker returns `true`. The tactic reuses that checked
 proof through Rocq's abstraction API, then installs the complete correctness
 application with `Tactics.exact_check`. All private proof creation is part of
 tactic time. Failed and undone attempts must restore the original proof state.
+The optional [verified program index](program-index.md) replaces linear
+signature-helper lookup while proving exact reference-interpreter equivalence.
+
 The optional [printed-conclusion producer](printed-conclusions.md) avoids
 duplicate candidate evaluation while final generated source checking remains
 mandatory.

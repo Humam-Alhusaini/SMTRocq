@@ -26,6 +26,8 @@
   EunoiaMemoTests.vo
   EoCheckedMemoTests.vo
   EunoiaHelperCacheTests.vo
+  EoNameIndexTests.vo
+  EunoiaProgramIndexTests.vo
   EunoiaIntegerEmbeddingTests.vo
   EoArithmeticTests.vo
   EoRuntime.vo
