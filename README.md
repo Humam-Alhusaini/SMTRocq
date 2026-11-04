@@ -35,7 +35,8 @@ Lemma cvc5_bounds (x : Z) : x <= 0 -> x >= 1 -> False.
 Proof. cvc5_eunoia. Qed.
 ```
 
-The current fragment covers tested UF and integer arithmetic goals; unsupported
+The current fragment covers tested UF and integer arithmetic goals, including
+[proved facts for Rocq division/modulo by constants](docs/eunoia/division.md); unsupported
 source rules and exhausted certificate search reject. Broader coverage and
 performance work are in progress. See the [backend guide](docs/eunoia/README.md),
 [implementation status](docs/eunoia/implementation-plan.md),

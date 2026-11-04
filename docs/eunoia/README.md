@@ -234,3 +234,7 @@ entries, inline certificates and sharing hits). Counts describe producer data; s
 criteria. `python3 -B scripts/eunoia/check_proofs.py` audits the correctness
 boundary and all exported public Eunoia theorem suites against the inherited
 52-name baseline, then recursively checks the saved proofs independently.
+
+The backend also supports [proved facts for Rocq integer division and modulo](division.md)
+through its existing UF/LIA semantics. The separate benchmark manifest retains
+signed/zero cases and false controls without changing the original workload.

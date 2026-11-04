@@ -19,3 +19,14 @@
 
 (rocq.pp
  (modules g_witness_probe))
+
+(rocq.theory
+ (name SMTCoq.eunoia_witness_tests)
+ (package rocq-smtcoq)
+ (modules NativeGate)
+ (theories Stdlib SMTCoq.checker.eunoia SMTCoq.structures)
+ (plugins rocq-smtcoq.eunoia_witness_gate_probe))
+
+(alias
+ (name runtest)
+ (deps NativeGate.vo))

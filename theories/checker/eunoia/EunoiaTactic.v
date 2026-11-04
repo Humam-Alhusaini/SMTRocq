@@ -8,7 +8,7 @@ From Stdlib Require Import List Bool Uint63.
 From SMTCoq.utils Require Import PArray CompDec.
 From SMTCoq.checker.fol Require Import State Terms.
 From SMTCoq.checker.eunoia Require Import
-  EoSyntax EunoiaChecker EunoiaAdapter EunoiaLocal.
+  EoSyntax EunoiaChecker EunoiaAdapter EunoiaLocal EunoiaDivision.
 
 Import ListNotations.
 Local Open Scope uint63_scope.

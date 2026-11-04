@@ -79,3 +79,26 @@ Proof. vm_compute; reflexivity. Qed.
 Example trichotomy_missing_premise_rejected :
   CpcGenerated.derive 1000 query "arith_trichotomy" [] [app ">=" [n;Symbol "1"]] = None.
 Proof. vm_compute; reflexivity. Qed.
+
+Example generated_positive_scale :
+ CpcGenerated.derive 1000 query "arith_mult_pos" [Symbol "3";app "<=" [n;Symbol "1"]] [] =
+ Some (app "=>" [app "and" [app ">" [Symbol "3";Symbol "0"];app "<=" [n;Symbol "1"]];
+  app "<=" [app "*" [Symbol "3";n];app "*" [Symbol "3";Symbol "1"]]]).
+Proof. vm_compute; reflexivity. Qed.
+Example positive_scale_wrong_sort :
+ CpcGenerated.derive 1000 query "arith_mult_pos" [Symbol "true";app "<=" [n;Symbol "1"]] [] = None.
+Proof. vm_compute; reflexivity. Qed.
+Example positive_scale_wrong_arity :
+ CpcGenerated.derive 1000 query "arith_mult_pos" [Symbol "3"] [] = None.
+Proof. vm_compute; reflexivity. Qed.
+
+Example generated_lower_tightening :
+ CpcGenerated.derive 1000 query "int_tight_lb" [] [app ">" [n;Symbol "-2"]] =
+ Some (app ">=" [n;Symbol "-1"]).
+Proof. vm_compute; reflexivity. Qed.
+Example lower_tightening_wrong_relation :
+ CpcGenerated.derive 1000 query "int_tight_lb" [] [app ">=" [n;Symbol "-2"]] = None.
+Proof. vm_compute; reflexivity. Qed.
+Example lower_tightening_missing_premise :
+ CpcGenerated.derive 1000 query "int_tight_lb" [] [] = None.
+Proof. vm_compute; reflexivity. Qed.

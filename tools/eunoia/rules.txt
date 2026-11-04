@@ -10,6 +10,7 @@ arith-int-eq-conflict
 arith-int-geq-tighten
 arith-leq-norm
 arith_mult_neg
+arith_mult_pos
 arith_poly_norm
 arith_poly_norm_rel
 arith_sum_ub
@@ -53,6 +54,7 @@ factoring
 false_elim
 false_intro
 implies_elim
+int_tight_lb
 int_tight_ub
 ite_elim1
 ite_elim2

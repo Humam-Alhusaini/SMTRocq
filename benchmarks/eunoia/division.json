@@ -1,0 +1,282 @@
+[
+  {
+    "id": "positive_remainder",
+    "theory": "LIA",
+    "expected": "proved",
+    "source": "unit-tests/eunoia_division.v: positive_remainder",
+    "statement": "forall x : Z, (0 <=? x mod 3) && (x mod 3 <? 3) = true",
+    "extension": "Rocq-division"
+  },
+  {
+    "id": "positive_reconstruction",
+    "theory": "LIA",
+    "expected": "proved",
+    "source": "unit-tests/eunoia_division.v: positive_reconstruction",
+    "statement": "forall x : Z, (x =? 3*(x/3)+x mod 3) = true",
+    "extension": "Rocq-division"
+  },
+  {
+    "id": "positive_quotient_bound",
+    "theory": "LIA",
+    "expected": "proved",
+    "source": "unit-tests/eunoia_division.v: positive_quotient_bound",
+    "statement": "forall x : Z, (3*(x/3) <=? x) = true",
+    "extension": "Rocq-division"
+  },
+  {
+    "id": "negative_remainder",
+    "theory": "LIA",
+    "expected": "proved",
+    "source": "unit-tests/eunoia_division.v: negative_remainder",
+    "statement": "forall x : Z, (-3 <? x mod (-3)) && (x mod (-3) <=? 0) = true",
+    "extension": "Rocq-division"
+  },
+  {
+    "id": "negative_quotient_bound",
+    "theory": "LIA",
+    "expected": "proved",
+    "source": "unit-tests/eunoia_division.v: negative_quotient_bound",
+    "statement": "forall x : Z, (x <=? (-3)*(x/(-3))) = true",
+    "extension": "Rocq-division"
+  },
+  {
+    "id": "zero_divisor",
+    "theory": "LIA",
+    "expected": "proved",
+    "source": "unit-tests/eunoia_division.v: zero_divisor",
+    "statement": "forall x : Z, (x/0 =? 0) && (x mod 0 =? x) = true",
+    "extension": "Rocq-division"
+  },
+  {
+    "id": "ground_divisor_expression",
+    "theory": "LIA",
+    "expected": "proved",
+    "source": "unit-tests/eunoia_division.v: ground_divisor_expression",
+    "statement": "forall x : Z, (x mod (1+2) <? 3) = true",
+    "extension": "Rocq-division"
+  },
+  {
+    "id": "nested_division",
+    "theory": "LIA",
+    "expected": "proved",
+    "source": "unit-tests/eunoia_division.v: nested_division",
+    "statement": "forall x : Z, (0 <=? (x/3) mod 5) && ((x/3) mod 5 <? 5) = true",
+    "extension": "Rocq-division"
+  },
+  {
+    "id": "division_uf",
+    "theory": "LIA",
+    "expected": "proved",
+    "source": "unit-tests/eunoia_division.v: division_uf",
+    "statement": "forall (f : Z -> Z) (x : Z), (f (3*(x/3)+x mod 3) =? f x) = true",
+    "extension": "Rocq-division"
+  },
+  {
+    "id": "quotient_from_hypothesis",
+    "theory": "LIA",
+    "expected": "proved",
+    "source": "unit-tests/eunoia_division.v: quotient_from_hypothesis",
+    "statement": "forall x : Z, x = 7 -> x/3 = 2",
+    "extension": "Rocq-division"
+  },
+  {
+    "id": "negative_numerator",
+    "theory": "LIA",
+    "expected": "proved",
+    "source": "unit-tests/eunoia_division.v: negative_numerator",
+    "statement": "forall x : Z, x = -7 -> x/3 = -3",
+    "extension": "Rocq-division"
+  },
+  {
+    "id": "negative_divisor_from_hypothesis",
+    "theory": "LIA",
+    "expected": "proved",
+    "source": "unit-tests/eunoia_division.v: negative_divisor_from_hypothesis",
+    "statement": "forall x : Z, x = 7 -> x/(-3) = -3",
+    "extension": "Rocq-division"
+  },
+  {
+    "id": "division_only_in_hypotheses",
+    "theory": "LIA",
+    "expected": "proved",
+    "source": "unit-tests/eunoia_division.v: division_only_in_hypotheses",
+    "statement": "forall x : Z, x < 0 -> x/3 >= 0 -> False",
+    "extension": "Rocq-division"
+  },
+  {
+    "id": "two_divisors",
+    "theory": "LIA",
+    "expected": "proved",
+    "source": "unit-tests/eunoia_division.v: two_divisors",
+    "statement": "forall x : Z,   (0 <=? x mod 3) && (x mod 3 <? 3) && (0 <=? x mod 5) && (x mod 5 <? 5) = true",
+    "extension": "Rocq-division"
+  },
+  {
+    "id": "modulo_periodicity",
+    "theory": "LIA",
+    "expected": "proved",
+    "source": "unit-tests/eunoia_division.v: modulo_periodicity",
+    "statement": "forall x : Z, (x+3) mod 3 = x mod 3",
+    "extension": "Rocq-division"
+  },
+  {
+    "id": "modulo_congruence",
+    "theory": "LIA",
+    "expected": "proved",
+    "source": "unit-tests/eunoia_division.v: modulo_congruence",
+    "statement": "forall x y : Z, x = y -> x mod 3 = y mod 3",
+    "extension": "Rocq-division"
+  },
+  {
+    "id": "nonnegative_quotient_bound",
+    "theory": "LIA",
+    "expected": "proved",
+    "source": "unit-tests/eunoia_division.v: nonnegative_quotient_bound",
+    "statement": "forall x : Z, 0 <= x -> x/3 <= x",
+    "extension": "Rocq-division"
+  },
+  {
+    "id": "quotient_monotonicity",
+    "theory": "LIA",
+    "expected": "proved",
+    "source": "unit-tests/eunoia_division.v: quotient_monotonicity",
+    "statement": "forall x y : Z, x <= y -> x/3 <= y/3",
+    "extension": "Rocq-division"
+  },
+  {
+    "id": "nested_quotient",
+    "theory": "LIA",
+    "expected": "proved",
+    "source": "unit-tests/eunoia_division.v: nested_quotient",
+    "statement": "forall x : Z, (x/3)/5 = x/15",
+    "extension": "Rocq-division"
+  },
+  {
+    "id": "division_abstract_argument",
+    "theory": "LIA",
+    "expected": "proved",
+    "source": "unit-tests/eunoia_division.v: division_abstract_argument",
+    "statement": "forall (A : Type) (HA : CompDec A) (f : A -> Z) (a : A),   (0 <=? (f a) mod 3) && ((f a) mod 3 <? 3) = true",
+    "extension": "Rocq-division"
+  },
+  {
+    "id": "negative_modulo_shift",
+    "theory": "LIA",
+    "expected": "proved",
+    "source": "unit-tests/eunoia_division.v: negative_modulo_shift",
+    "statement": "forall x : Z, (x+6) mod (-3) = x mod (-3)",
+    "extension": "Rocq-division"
+  },
+  {
+    "id": "positive_division_shift",
+    "theory": "LIA",
+    "expected": "proved",
+    "source": "unit-tests/eunoia_division.v: positive_division_shift",
+    "statement": "forall x : Z, (x+6)/3 = x/3+2",
+    "extension": "Rocq-division"
+  },
+  {
+    "id": "negative_division_shift",
+    "theory": "LIA",
+    "expected": "proved",
+    "source": "unit-tests/eunoia_division.v: negative_division_shift",
+    "statement": "forall x : Z, (x+6)/(-3) = x/(-3)-2",
+    "extension": "Rocq-division"
+  },
+  {
+    "id": "subtraction_modulo_shift",
+    "theory": "LIA",
+    "expected": "proved",
+    "source": "unit-tests/eunoia_division.v: subtraction_modulo_shift",
+    "statement": "forall x : Z, (x-6) mod 3 = x mod 3",
+    "extension": "Rocq-division"
+  },
+  {
+    "id": "negative_nested_quotient",
+    "theory": "LIA",
+    "expected": "proved",
+    "source": "unit-tests/eunoia_division.v: negative_nested_quotient",
+    "statement": "forall x : Z, (x/(-3))/5 = x/(-15)",
+    "extension": "Rocq-division"
+  },
+  {
+    "id": "large_divisor",
+    "theory": "LIA",
+    "expected": "proved",
+    "source": "unit-tests/eunoia_division.v: large_divisor",
+    "statement": "forall x : Z,   (0 <=? x mod 123456789012345678901234567890) &&   (x mod 123456789012345678901234567890 <? 123456789012345678901234567890) = true",
+    "extension": "Rocq-division"
+  },
+  {
+    "id": "both_shift_operations",
+    "theory": "LIA",
+    "expected": "proved",
+    "source": "unit-tests/eunoia_division.v: both_shift_operations",
+    "statement": "forall x : Z,   ((x+6) mod 3 =? x mod 3) && ((x+6)/3 =? x/3+2) = true",
+    "extension": "Rocq-division"
+  },
+  {
+    "id": "wrong_remainder_sign",
+    "theory": "LIA",
+    "expected": "rejected",
+    "source": "unit-tests/eunoia_division.v: false controls",
+    "statement": "forall x : Z, (x mod 3 <? 0) = true",
+    "extension": "Rocq-division"
+  },
+  {
+    "id": "quotient_identity",
+    "theory": "LIA",
+    "expected": "rejected",
+    "source": "unit-tests/eunoia_division.v: false controls",
+    "statement": "forall x : Z, (x / 3 =? x) = true",
+    "extension": "Rocq-division"
+  },
+  {
+    "id": "negative_remainder_strict",
+    "theory": "LIA",
+    "expected": "rejected",
+    "source": "unit-tests/eunoia_division.v: false controls",
+    "statement": "forall x : Z, (x mod (-3) <=? -1) = true",
+    "extension": "Rocq-division"
+  },
+  {
+    "id": "zero_modulo",
+    "theory": "LIA",
+    "expected": "rejected",
+    "source": "unit-tests/eunoia_division.v: false controls",
+    "statement": "forall x : Z, x mod 0 = 0",
+    "extension": "Rocq-division"
+  },
+  {
+    "id": "wrong_period",
+    "theory": "LIA",
+    "expected": "rejected",
+    "source": "unit-tests/eunoia_division.v: false controls",
+    "statement": "forall x : Z, (x+1) mod 3 = x mod 3",
+    "extension": "Rocq-division"
+  },
+  {
+    "id": "truncating_negative_division",
+    "theory": "LIA",
+    "expected": "rejected",
+    "source": "unit-tests/eunoia_division.v: false controls",
+    "statement": "forall x : Z, x = -7 -> x/3 = -2",
+    "extension": "Rocq-division"
+  },
+  {
+    "id": "wrong_negative_shift",
+    "theory": "LIA",
+    "expected": "rejected",
+    "source": "unit-tests/eunoia_division.v: false_algebra_controls",
+    "statement": "forall x : Z, (x+6)/(-3) = x/(-3)+2",
+    "extension": "Rocq-division"
+  },
+  {
+    "id": "wrong_negative_outer_quotient",
+    "theory": "LIA",
+    "expected": "rejected",
+    "source": "unit-tests/eunoia_division.v: false_algebra_controls",
+    "statement": "forall x : Z, (x/3)/(-5) = x/(-15)",
+    "extension": "Rocq-division"
+  }
+]

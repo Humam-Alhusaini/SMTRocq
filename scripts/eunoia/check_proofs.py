@@ -29,7 +29,9 @@ def main():
     mappings = bench.rocq_loadpath(ROOT) + [
         "-Q", str(ROOT / "_build/default/unit-tests"), "SMTCoq.tests",
         "-Q", str(ROOT / "_build/default/tools/eunoia-runtime-profile"),
-        "SMTCoq.eunoia_runtime_profile"]
+        "SMTCoq.eunoia_runtime_profile",
+        "-Q", str(ROOT / "_build/default/src/eunoia_backend/tests/integration"),
+        "SMTCoq.eunoia_backend_tests"]
     audit = [sys.executable, "-B", str(ROOT / "tools/audit-eunoia-assumptions.py"),
              "--env", wrapper, "--build-loadpaths", "--output-dir", str(output / "assumptions")]
     for i in range(0, len(mappings), 3):
@@ -50,6 +52,11 @@ def main():
                                    "fraction_eq_cross", "fraction_le_cross", "fraction_lt_cross",
                                    "fraction_eq_same", "fraction_le_same", "fraction_lt_same",
                                    "floor_integer", "fraction_add", "fraction_mul", "fraction_neg"],
+        "EunoiaDivision": ["positive_laws", "negative_laws", "zero_laws",
+          "shift_laws", "positive_shift_laws", "negative_shift_laws",
+          "positive_division_shift", "positive_modulo_shift",
+          "negative_division_shift", "negative_modulo_shift",
+          "nested_positive_law", "nested_positive_positive", "nested_negative_positive"],
         "EunoiaTactic": ["root_values_correct", "checker_correct", "checker_b_correct", "checker_eq_correct"],
     }.items():
         prefix = "SMTCoq.checker.eunoia." + module
@@ -66,13 +73,18 @@ def main():
         audit += ["--import", module]
         for name in names:
             audit += ["--theorem", module + "." + name]
-    public_modules = ("eunoia_tactics", "eunoia_uf", "eunoia_uf_bool", "eunoia_lia", "eunoia_purification", "eunoia_integer_casts")
+    public_modules = ("eunoia_tactics", "eunoia_uf", "eunoia_uf_bool", "eunoia_lia", "eunoia_purification", "eunoia_integer_casts", "eunoia_division")
     for module in public_modules:
         public = "SMTCoq.tests." + module
         audit += ["--import", public]
         for name in re.findall(r"^\s*(?:Lemma|Theorem|Example)\s+(\w+)",
                                (ROOT / "unit-tests" / (module + ".v")).read_text(), re.M):
             audit += ["--theorem", public + "." + name]
+    integration = "SMTCoq.eunoia_backend_tests.Lia"
+    audit += ["--import", integration]
+    for name in re.findall(r"^\s*(?:Lemma|Theorem|Example)\s+(\w+)",
+            (ROOT / "src/eunoia_backend/tests/integration/Lia.v").read_text(), re.M):
+        audit += ["--theorem", integration + "." + name]
     commands = []
     summary = dict(passed=False, commands=commands)
     try:
@@ -82,6 +94,7 @@ def main():
                   "SMTCoq.checker.eunoia.EunoiaMemoTests",
                   "SMTCoq.checker.eunoia.EunoiaScopedAdapter",
                   "SMTCoq.checker.eunoia.EunoiaIntegerEmbeddingTests",
+                  integration,
                   *["SMTCoq.tests." + module for module in public_modules]]
         for name, command in (("assumptions", audit), ("kernel", kernel)):
             result, _ = bench.record_command(command, ROOT, 900, output / name)

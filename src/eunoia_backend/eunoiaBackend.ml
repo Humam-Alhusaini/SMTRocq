@@ -453,14 +453,15 @@ let typecheck_helper_goal ty =
       R.tclTHEN (Proofview.Unsafe.tclEVARS sigma)
         (Proofview.Unsafe.tclSETENV globals)))
 
-let with_normalized_proof ~conversion_phase ~acceptance_phase ty proof use =
+let with_normalized_proof ?(normalize=true) ~conversion_phase ~acceptance_phase ty proof use =
   R.tclTHEN (typecheck_helper_goal ty) (Proofview.Goal.enter (fun _ ->
     let started = phase_start () in
     (* Standard VM goal reduction records the conversion in the proof term.
        Exact checks the resulting proof; Abstract synchronously kernel-checks
        the body against its original type before exposing the private lemma. *)
-    let certificate = R.tclTHEN Tactics.normalise_vm_in_concl
-      (Tactics.exact_check (EConstr.of_constr proof)) in
+    let exact = Tactics.exact_check (EConstr.of_constr proof) in
+    let certificate = if normalize then R.tclTHEN Tactics.normalise_vm_in_concl exact
+      else exact in
     Abstract.cache_term_by_tactic_then ~opaque:true ~name_op:None
       ~goal_type:(Some (EConstr.of_constr ty))
       (phase_tactic conversion_phase certificate)
@@ -492,29 +493,35 @@ let tactic_using produce ?fuel ?(preprocess=Tactics.intros) ~witness ?(lemmas=[]
         | [ty;a;b] when R.eq_constr h (Lazy.force CoqTerms.ceq) && R.eq_constr ty (Lazy.force CoqTerms.cbool) -> a,b
         | [a] when R.eq_constr h (Lazy.force CoqTerms.cis_true) -> a,(Lazy.force CoqTerms.ctrue)
         | _ -> R.raise_error "Eunoia: preprocess the goal to Boolean equality/is_true" in
+      let lemma_value p =
+        let ty = R.retyping_get_type_of env sigma p in
+        let head,args = R.decompose_app_list ty in
+        match args with
+        | [v] when R.eq_constr head (Lazy.force CoqTerms.cis_true) -> v
+        | [ty;v;b] when R.eq_constr head (Lazy.force CoqTerms.ceq) &&
+            R.eq_constr ty (Lazy.force CoqTerms.cbool) && R.eq_constr b (Lazy.force CoqTerms.ctrue) -> v
+        | _ -> R.raise_error "Eunoia: lemma must prove a quantifier-free Boolean fact" in
+      let supplied = List.map (fun p -> p,lemma_value p) lemmas in
+      let arithmetic = phase "division_facts" (fun () ->
+        EunoiaDivisionFacts.collect env (a::b::List.map snd supplied)) in
+      let supplied = supplied @ List.map (fun p -> p,lemma_value p) arithmetic in
+      let has_lemmas = supplied <> [] in
       let t = create_tables () in
       let logic = SmtMisc.SL.of_list [SmtMisc.LUF;SmtMisc.LLia] in
       let reify = Form.of_coq (Atom.of_coq t.sorts t.functions t.atoms logic env sigma) t.forms in
       let fa = reify a and fb = reify b in
       let boolean_result = R.eq_constr b (Lazy.force CoqTerms.ctrue) ||
         R.eq_constr b (Lazy.force CoqTerms.cfalse) in
-      let ng = if boolean_result && lemmas=[] then
+      let ng = if boolean_result && not has_lemmas then
         if R.eq_constr b (Lazy.force CoqTerms.ctrue) then Form.neg fa else fa
         else Form.neg (Form.get t.forms (SmtForm.Fapp(SmtForm.Fiff,[|fa;fb|]))) in
-      let ls = List.map (fun p ->
-        let ty = R.retyping_get_type_of env sigma p in
-        let head,args = R.decompose_app_list ty in
-        match args with
-        | [v] when R.eq_constr head (Lazy.force CoqTerms.cis_true) -> reify v,p,v
-        | [ty;v;b] when R.eq_constr head (Lazy.force CoqTerms.ceq) &&
-            R.eq_constr ty (Lazy.force CoqTerms.cbool) && R.eq_constr b (Lazy.force CoqTerms.ctrue) -> reify v,p,v
-        | _ -> R.raise_error "Eunoia: lemma must prove a quantifier-free Boolean fact") lemmas in
+      let ls = List.map (fun (p,v) -> reify v,p,v) supplied in
       if SmtBtype.get_cuts t.sorts <> [] then
         R.raise_error "Eunoia: supply CompDec instances through existing preprocessing";
       let roots = ng :: List.map (fun (f,_,_) -> f) ls in
       let parsed = phase "solver_and_parse" (fun () -> produce env t roots) in
       let prepared = phase "prepare" (fun () -> prepare ?fuel ~witness env t roots parsed) in
-      if lemmas=[] then begin
+      if not has_lemmas then begin
         let name,args = if boolean_result then
           "checker_b",[Form.to_coq fa;b]
         else "checker_eq",[Form.to_coq fa;Form.to_coq fb;Form.to_coq ng] in
@@ -552,7 +559,10 @@ let tactic_using produce ?fuel ?(preprocess=Tactics.intros) ~witness ?(lemmas=[]
       let binding_proof = C.call "Corelib.Init.Logic.eq_refl" [values_ty;actual_values] in
       (* A kernel-checked equality binds the complete ordered root vector to
          the actual Boolean goal/hypotheses. No root is dropped or changed. *)
-      with_normalized_proof ~conversion_phase:"root_conversion" ~acceptance_phase:"checked_root"
+      (* Lazy kernel conversion avoids fully normalizing symbolic arithmetic
+         while binding the model. Both paths use exact_check and Abstract's
+         synchronous kernel check against the complete equality type. *)
+      with_normalized_proof ~normalize:(arithmetic = []) ~conversion_phase:"root_conversion" ~acceptance_phase:"checked_root"
         binding_type binding_proof (fun binding ->
       let facts =
         let truth = R.mkLambda(R.mkName "b",bool_ty,

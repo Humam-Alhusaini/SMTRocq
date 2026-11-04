@@ -69,14 +69,18 @@ let bad_unused () =
     "(step b :rule refl :args (op_0))(step unused :rule refl :args (op_0))" ^
     "(step c false :rule contra :premises (b a))")) ~witness:produce ()
 let bad_gate () = B.tactic_from_cpc (parse text) ~witness:corrupt_witness ()
-let production_witness ~atoms ~forms ~premises ~conclusion =
-  match Eunoia_witness.Search.produce ~atoms ~forms ~premises ~conclusion () with
+let production_witness_with limits ~atoms ~forms ~premises ~conclusion =
+  match Eunoia_witness.Search.produce ~limits ~atoms ~forms ~premises ~conclusion () with
   | Error error -> Error (Eunoia_witness.Search.string_of_failure error)
   | Ok candidate -> Ok (Eunoia_witness.Certificate.to_coq
       ~local:(fun name -> C.global
         ("SMTCoq.checker.eunoia.EunoiaLocal.EunoiaLocal." ^ name))
       ~step:(fun name -> C.global
         ("SMTCoq.checker.MainChecker.Checker_Ext." ^ name)) candidate)
+let production_witness = production_witness_with Eunoia_witness.Search.default_limits
+let lia_branch_order () =
+  let limits = {Eunoia_witness.Search.default_limits with max_boolean_pairs=0} in
+  B.tactic ~witness:(production_witness_with limits) ~lemmas:[RocqInterface.mkVar (RocqInterface.mkId "hp")] ()
 (* A real generated arithmetic derivation followed by the production local gate.
    Mutations alter source evidence or Micromega evidence, never acceptance. *)
 let lia_prefix = "(declare-const op_0 Int)" ^
@@ -97,6 +101,23 @@ let lia_scale_prefix = "(declare-const op_0 Int)" ^
   "(assume a (not (=> (and (< -2 0) (>= op_0 0)) (<= (* -2 op_0) (* -2 0)))))"
 let lia_scale_step = "(step b :rule arith_mult_neg :args (-2 (>= op_0 0)))"
 let lia_scale () = lia_replay (lia_scale_prefix ^ lia_scale_step ^ lia_final)
+let lia_positive_prefix = "(declare-const op_0 Int)" ^
+  "(assume a (not (=> (and (> 3 0) (<= op_0 1)) (<= (* 3 op_0) (* 3 1)))))"
+let lia_positive_step = "(step b :rule arith_mult_pos :args (3 (<= op_0 1)))"
+let lia_positive () = lia_replay (lia_positive_prefix ^ lia_positive_step ^ lia_final)
+let lia_positive_bad_unused () = lia_replay (lia_positive_prefix ^ lia_positive_step ^ lia_final ^
+  "(step unused (=> (and (> 4 0) (<= op_0 1)) (<= (* 4 op_0) (* 4 1))) :rule arith_mult_pos :args (3 (<= op_0 1)))")
+let lia_lower_prefix = "(declare-const op_0 Int)" ^
+  "(assume root (not (=> (> op_0 -2) (>= op_0 -1))))" ^
+  "(step a :rule not_implies_elim1 :premises (root))"
+let lia_lower_tail = "(step n :rule not_implies_elim2 :premises (root))" ^
+  "(step c false :rule contra :premises (b n))"
+let lia_lower () = lia_replay (lia_lower_prefix ^
+  "(step b :rule int_tight_lb :premises (a))" ^ lia_lower_tail)
+let lia_lower_bad_premise () = lia_replay (lia_lower_prefix ^
+  "(step b :rule int_tight_lb :premises (root))" ^ lia_lower_tail)
+let lia_lower_bad_result () = lia_replay (lia_lower_prefix ^
+  "(step b (>= op_0 0) :rule int_tight_lb :premises (a))" ^ lia_lower_tail)
 let lia_scoped () = lia_replay (
   "(declare-const op_0 Int)" ^
   "(assume root (not (=> (>= op_0 0) (<= (* -2 op_0) (* -2 0)))))" ^
@@ -252,6 +273,12 @@ TACTIC EXTEND Backend_replay
 | [ "backend_lia_scale_replay" ] -> { lia_scale () }
 | [ "backend_lia_missing_certificate" ] -> { lia_mutated_witness false }
 | [ "backend_lia_bad_unused" ] -> { lia_mutated_witness true }
+| [ "backend_lia_branch_order" ] -> { lia_branch_order () }
+| [ "backend_lia_positive" ] -> { lia_positive () }
+| [ "backend_lia_positive_bad_unused" ] -> { lia_positive_bad_unused () }
+| [ "backend_lia_lower" ] -> { lia_lower () }
+| [ "backend_lia_lower_bad_premise" ] -> { lia_lower_bad_premise () }
+| [ "backend_lia_lower_bad_result" ] -> { lia_lower_bad_result () }
 | [ "backend_live" ] -> { B.tactic ~witness:production_witness () }
 | [ "backend_no_private_effects" ] -> { no_private_effects () }
 END

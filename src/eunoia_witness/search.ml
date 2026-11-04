@@ -10,12 +10,13 @@ open Certificate
 type limits = {
   max_clauses : int;
   max_resolution_pairs : int;
+  max_boolean_pairs : int;
   max_theory_rounds : int;
   max_terms : int;
   max_formulas : int;
   max_lia_literals : int;
 }
-let default_limits = { max_clauses = 4096; max_resolution_pairs = 100000;
+let default_limits = { max_clauses = 4096; max_resolution_pairs = 100000; max_boolean_pairs = 256;
   max_theory_rounds = 32; max_terms = 128; max_formulas = 256; max_lia_literals = 64 }
 type failure = Invalid_input of string | Resource_limit of string | Unsupported
 let string_of_failure = function
@@ -104,7 +105,7 @@ let produce_search ?(limits=default_limits) ~atoms ~forms ~premises ~conclusion 
   try
     if limits.max_clauses <= 0 || limits.max_resolution_pairs < 0 ||
        limits.max_theory_rounds < 0 || limits.max_terms < 0 || limits.max_formulas < 0 ||
-       limits.max_lia_literals < 0
+       limits.max_lia_literals < 0 || limits.max_boolean_pairs < 0
     then raise (Fail (Invalid_input "negative/zero search limits"));
     let initial_forms = Form.pform_tbl forms in
     let initial_atoms = Atom.to_array atoms None (fun a -> Some a) in
@@ -226,8 +227,10 @@ let produce_search ?(limits=default_limits) ~atoms ~forms ~premises ~conclusion 
         register id c;
         if c = [] then raise (Conflict id)
       end in
-    let resolve_pending ?(units_only=false) () =
-      while not (Queue.is_empty units && (units_only || Queue.is_empty pending)) do
+    let resolve_pending ?(units_only=false) ?(pair_budget=max_int) () =
+      let starting_pairs = !pair_count in
+      while not (Queue.is_empty units && (units_only || Queue.is_empty pending)) &&
+        !pair_count - starting_pairs < pair_budget do
         let id = Queue.take (if Queue.is_empty units then pending else units) in
         let c = Hashtbl.find clauses id in
         if c = [] then raise (Conflict id);
@@ -366,32 +369,11 @@ let produce_search ?(limits=default_limits) ~atoms ~forms ~premises ~conclusion 
       | Fatom a -> (match Atom.atom a with
         | Abop ((BO_Zlt | BO_Zle | BO_Zge | BO_Zgt | BO_eq SmtBtype.TZ),_,_) -> true
         | _ -> false)
-      | Fapp ((Ftrue | Ffalse | Fand | For | Fiff | Fxor | Fite | Fnot2 _),xs) ->
+      | Fapp ((Ftrue | Ffalse | Fand | For | Fimp | Fiff | Fxor | Fite | Fnot2 _),xs) ->
         Array.for_all lia_form xs
       | _ -> false in
-    (* The existing kernel LIA builder supports these connectives, but the
-       legacy OCaml candidate builder does not. Expand only its input, using
-       precisely LIA.build_hform's Boolean expressions. The emitted command
-       still contains the ORIGINAL clause, checked by the existing gate. *)
-    let rec lia_candidate f =
-      let binary op a b = Form.get forms (Fapp (op,[|a;b|])) in
-      let original = pos f in
-      let expanded = match Form.pform original with
-        | Fapp (Fiff,xs) ->
-          let a = lia_candidate xs.(0) and b = lia_candidate xs.(1) in
-          binary Fand (binary For a (Form.neg b)) (binary For (Form.neg a) b)
-        | Fapp (Fxor,xs) ->
-          let a = lia_candidate xs.(0) and b = lia_candidate xs.(1) in
-          binary Fand (binary For a b) (binary For (Form.neg a) (Form.neg b))
-        | Fapp (Fite,xs) ->
-          let a = lia_candidate xs.(0) and b = lia_candidate xs.(1)
-          and c = lia_candidate xs.(2) in
-          binary For (binary Fand a b) (binary Fand (Form.neg a) c)
-        | Fapp (Fnot2 _,xs) -> lia_candidate xs.(0)
-        | Fapp ((Fand | For as op),xs) ->
-          Form.get forms (Fapp (op,Array.map lia_candidate xs))
-        | _ -> original in
-      if Form.is_pos f then expanded else Form.neg expanded in
+    (* Native arithmetic candidates mirror LIA.build_hform directly. Do not
+       intern Boolean expansions which are only needed by certificate search. *)
     (* Integer-sorted UF variables are not arithmetic expressions. Equalities
        between uninterpreted applications need only EUF and Boolean reasoning;
        sending their Boolean expansion to Micromega can be exponentially slow.
@@ -407,7 +389,7 @@ let produce_search ?(limits=default_limits) ~atoms ~forms ~premises ~conclusion 
       let c = List.sort_uniq (fun a b -> Int.compare (lit a) (lit b)) c in
       lia_count := 0;
       if needs_lia && List.for_all lia_form c then
-        match Lia.build_lia_certif (List.map lia_candidate c) with
+        match Lia.build_lia_certif (c) with
         | None -> ()
         | Some proof -> let c = List.map lit c in
           add (fun p -> LiaMicromega (p,c,proof)) c in
@@ -451,6 +433,12 @@ let produce_search ?(limits=default_limits) ~atoms ~forms ~premises ~conclusion 
            implication before saturating unrelated nonunit Boolean clauses.
            Whole disjunctive premises remain intact in arithmetic_clause. *)
         profile "resolve_before_lia" (fun () -> resolve_pending ~units_only:true ());
+        (* Propositional congruence over arithmetic terms can close using the
+           already checked EUF clauses. Finish a small amount of this work
+           before invoking arithmetic. Stop only between queue items, leaving
+           all remaining work available to the ordinary saturation pass. *)
+        if !next < limits.max_clauses - 512 then
+          profile "resolve_boolean" (fun () -> resolve_pending ~pair_budget:limits.max_boolean_pairs ());
         if n = 0 then profile "lia_exact" (fun () ->
           Stdlib.Option.iter try_lia arithmetic_clause);
         profile "lia_units" (fun () ->

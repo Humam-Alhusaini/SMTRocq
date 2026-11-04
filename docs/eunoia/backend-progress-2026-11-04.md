@@ -6,8 +6,9 @@ performance comparison is claimed.
 
 ## Signature and live coverage
 
-The pinned 35-file CPC closure selects 85 rules and 57 helpers, including all
-50 Boolean declarations and the generated arithmetic trichotomy rule. Unsupported
+The pinned 35-file CPC closure selects 87 rules and 59 helpers, including all
+50 Boolean declarations, positive/negative arithmetic scaling, integer lower/upper
+tightening and the generated arithmetic trichotomy rule. Unsupported
 rules fail closed. [Restricted rational intermediates](integer-embedding.md)
 now support live integer parity and rounded coefficient bounds without adding
 object-level Real semantics. Raw CPC terms, conditions and scoped assumptions
@@ -19,9 +20,20 @@ proofs, plus the purification/constant/multi-goal regressions and false/corrupte
 controls. The eight-variable inequality cycle and its satisfiable non-strict
 variant exercise actual hypothesis bindings.
 
+[Proved Rocq division facts](division.md) extend the backend with signed and
+zero constant division/modulo, constant shifts and nested quotients. There are
+27 positive division regressions and eight false controls. These use actual
+standard-library proofs as bound roots in the existing UF/LIA semantics.
+Native arithmetic candidates now preserve the verified builder's association,
+branch numbering and Boolean connective shapes, without interning extra
+proof-only Boolean expansions. A bounded Boolean resolution prefix avoids
+unnecessary arithmetic search; its zero-budget regression exercises the actual
+arithmetic certificate path. All 98 native witness cases and mutations run
+against the production gate in routine tests.
+
 ## Verified checkpoint at d5af018
 
-The frozen implementation passed all 133 named assumption-audit targets,
+The frozen 85-rule/57-helper implementation passed all 133 named assumption-audit targets,
 independent kernel checks, both native emitter modes, generated/corrupted proof
 replays and full repository runtest. All benchmark source/artifact integrity
 checks passed. The compiler timeout remained 30 seconds.

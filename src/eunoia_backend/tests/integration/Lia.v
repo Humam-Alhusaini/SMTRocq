@@ -35,3 +35,30 @@ Lemma backend_lia_scoped_replay (x : Z) :
   implb (x >=? 0) (-2*x <=? -2*0) = true.
 Proof. backend_lia_scoped. Qed.
 Print Assumptions backend_lia_scoped_replay.
+
+Lemma backend_lia_positive_scaling (x : Z) :
+  implb ((3 >? 0) && (x <=? 1)) (3*x <=? 3*1) = true.
+Proof. backend_lia_positive. Qed.
+Print Assumptions backend_lia_positive_scaling.
+Example backend_lia_positive_unused_mutation (x : Z) :
+  implb ((3 >? 0) && (x <=? 1)) (3*x <=? 3*1) = true.
+Proof. Fail backend_lia_positive_bad_unused. backend_lia_positive. Qed.
+Print Assumptions backend_lia_positive_unused_mutation.
+Lemma backend_lia_lower_tightening (x : Z) :
+  implb (x >? -2) (x >=? -1) = true.
+Proof. backend_lia_lower. Qed.
+Print Assumptions backend_lia_lower_tightening.
+Example backend_lia_lower_mutations (x : Z) :
+  implb (x >? -2) (x >=? -1) = true.
+Proof.
+ Fail backend_lia_lower_bad_premise.
+ Fail backend_lia_lower_bad_result.
+ backend_lia_lower.
+Qed.
+Print Assumptions backend_lia_lower_mutations.
+(* Disable the Boolean search prefix to exercise Micromega's branch order.
+   This previously produced a certificate rejected by the verified checker. *)
+Lemma backend_lia_branch_order_regression (x : Z) (hp : (x =? 7) = true) :
+  (x/3 =? 2) = true.
+Proof. backend_lia_branch_order. Qed.
+Print Assumptions backend_lia_branch_order_regression.

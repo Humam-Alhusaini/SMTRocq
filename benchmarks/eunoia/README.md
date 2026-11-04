@@ -33,6 +33,10 @@ Compare backends on the same selected manifest.
 goals and five explicit false controls. `scalability.json` adds 21 positive diagnostics: Boolean/propositional equality
 chains, nested congruences, coefficient cuts/parity, mixed UF cuts and inequality
 cycles. Its outcomes remain separate from the original regression workload.
+`division.json` separately exercises proved facts about Rocq integer division
+and modulo, including negative/zero divisors and false controls. See
+[the semantic scope](../../docs/eunoia/division.md); baseline tactics do not
+receive Eunoia's automatically proved facts.
 The original 20-case manifest is retained
 unchanged, so historical solved counts remain comparable.
 `EUNOIA_CVC5_PROFILE` is recorded in metadata when comparing fixed solver profiles.

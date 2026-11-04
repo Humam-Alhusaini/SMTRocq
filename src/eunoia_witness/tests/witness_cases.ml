@@ -224,6 +224,11 @@ let run ~check =
   positive "lia-integer-gap-xor" atoms forms [] [Form.neg xor_gap];
   let ite_gap = Form.get forms (Fapp (Fite,[|x0;lt x one;Form.neg (lt x one)|])) in
   positive "lia-integer-gap-ite" atoms forms [] [ite_gap];
+  let arithmetic_only = {Search.default_limits with max_boolean_pairs=0} in
+  let not4 = Form.get forms (Fapp (Fnot2 2,[|lt x one|])) in
+  positive ~limits:arithmetic_only "lia-repeated-double-negation" atoms forms [[not4]] [x0];
+  positive ~limits:arithmetic_only "lia-implication-branch-numbering" atoms forms []
+    [binary forms Fimp (lt x one) x0];
   let normalized = le (Atom.mk_plus atoms x one) two in
   positive "lia-normalization-iff" atoms forms [] [binary forms Fiff normalized x1];
   let y = symbol atoms 1 [||] SmtBtype.TZ [] in

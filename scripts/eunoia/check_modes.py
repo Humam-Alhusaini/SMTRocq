@@ -33,6 +33,7 @@ def main():
             fixtures = [(name, ROOT / "src/eunoia_backend/tests/integration" / (name + ".v"))
                         for name in ("Proof", "Lia")]
             fixtures.append(("IntegerCasts", ROOT / "unit-tests/eunoia_integer_casts.v"))
+            fixtures.append(("Division", ROOT / "unit-tests/eunoia_division.v"))
             for fixture, source in fixtures:
                 name = fixture + mode
                 target = out / (name + ".v")

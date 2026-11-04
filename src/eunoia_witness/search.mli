@@ -7,6 +7,7 @@ open Common.SmtAtom
 type limits = {
   max_clauses : int;
   max_resolution_pairs : int;
+  max_boolean_pairs : int; (** Early Boolean resolution prefix; zero disables it. *)
   max_theory_rounds : int;
   max_terms : int;
   max_formulas : int;
