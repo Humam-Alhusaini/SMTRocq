@@ -1,0 +1,12 @@
+# syntax=docker/dockerfile:1
+FROM ghcr.io/rocq-trakt/rocq@sha256:21d9edc7a97aabe15577ae442854c2a03cc81097ff7b5fa899d8d6fe62d05c68
+# The base contains Rocq/Elpi, but not the Trakt theory required by SMTCoq.
+# An optional CA mount supports managed development environments without
+# recording a session certificate in an image layer.
+RUN --mount=type=secret,id=proxy_ca,mode=0444 \
+    if [ -f /run/secrets/proxy_ca ]; then \
+      export SSL_CERT_FILE=/run/secrets/proxy_ca \
+             GIT_SSL_CAINFO=/run/secrets/proxy_ca; \
+    fi; \
+    opam pin add -n -y rocq-trakt git+https://github.com/rocq-trakt/trakt.git#65a99129401c743baa54821a7a3b975e72b65e37 && \
+    opam install -y -j 2 rocq-trakt

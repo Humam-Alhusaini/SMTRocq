@@ -25,3 +25,4 @@ jobs:
               opam pin add -n -y -k path $PACKAGE $WORKDIR
               opam install --confirm-level=yes -j 2 $PACKAGE --deps-only
             endGroup
+            python3 -B "$WORKDIR/scripts/eunoia/install_toolchain.py"
