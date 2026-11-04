@@ -3,6 +3,17 @@ From SMTCoq.checker.eunoia Require Import EunoiaAdapter EunoiaLocal EunoiaTactic
 From SMTCoq.checker.eunoia Require Import EunoiaMemo EunoiaHelperCache CpcMemoCollector.
 Declare ML Module "rocq-smtcoq.eunoia_backend_test".
 
+(* These unused steps claim semantically valid reflexive equalities after a
+   conflict. Even with printed-conclusion hints, generated source checking
+   must reject an unsupported rule or a different (also valid) conclusion. *)
+Example declared_hint_mutations (p:bool) : p = p.
+Proof.
+ Fail backend_bad_declared_rule.
+ Fail backend_bad_declared_result.
+ backend_replay.
+Qed.
+Print Assumptions declared_hint_mutations.
+
 Lemma replay_reflexive (p:bool) : p = p.
 Proof. backend_replay. Qed.
 Print Assumptions replay_reflexive.

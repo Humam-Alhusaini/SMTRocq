@@ -211,7 +211,8 @@ let prepare ?(fuel=10000) ~witness env t roots parsed =
           (C.call "SMTCoq.checker.eunoia.EoArithmetic.EoArithmetic.normalize" [term (E.Symbol s)])) in
         Hashtbl.add metadata_literals s b; b in
   let proof = phase "elaborate" (fun () ->
-    E.elaborate ~signature_names:(C.signature_names env) ~is_metadata_literal
+    E.elaborate ~use_declared:(Sys.getenv_opt "EUNOIA_DECLARED_CONCLUSIONS" = Some "1")
+      ~signature_names:(C.signature_names env) ~is_metadata_literal
       ~declarations:(declarations t) ~roots:root_terms ~derive ~derive_assuming parsed) in
   let helpers = phase "select_helpers" (fun () -> finish_helpers term) in
   let share_helpers = helpers <> [] in

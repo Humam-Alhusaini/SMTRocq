@@ -13,22 +13,37 @@ Proof.
 Qed.
 Fixpoint terms_eqb (xs ys:list term) := match xs,ys with
  | [],[] => true
- | x::xs,y::ys => term_eqb x y && terms_eqb xs ys
+ | x::xs,y::ys => if term_eqb x y then terms_eqb xs ys else false
  | _,_ => false end.
 Lemma terms_eqb_spec : forall xs ys, terms_eqb xs ys = true <-> xs=ys.
 Proof.
  induction xs as [|x xs IH]; destruct ys as [|y ys]; simpl;
  try (split; [discriminate|congruence]); [tauto|].
+ change ((term_eqb x y && terms_eqb xs ys)=true <-> x::xs=y::ys).
  rewrite andb_true_iff, term_eqb_spec, IH.
  split; [intros [-> ->]; reflexivity|intro H; inversion H; auto].
 Qed.
 Record cache_entry := Entry { entry_depth:nat; entry_name:string;
  entry_args:list term; entry_value:term }.
+(* Explicit branches keep VM evaluation from comparing a large argument
+   vector when the small depth/name keys already disagree. *)
+Definition key_eqb depth name args e :=
+ if Nat.eqb depth (entry_depth e) then
+   if String.eqb name (entry_name e) then terms_eqb args (entry_args e)
+   else false
+ else false.
+Lemma key_eqb_equivalence : forall depth name args e,
+ key_eqb depth name args e =
+ (Nat.eqb depth (entry_depth e) && String.eqb name (entry_name e) && terms_eqb args (entry_args e)).
+Proof.
+ intros; unfold key_eqb.
+ destruct (Nat.eqb depth (entry_depth e)), (String.eqb name (entry_name e)),
+   (terms_eqb args (entry_args e)); reflexivity.
+Qed.
 Fixpoint cache_lookup depth name args (cache:list cache_entry) :=
  match cache with
  | [] => None
- | e::cache => if Nat.eqb depth (entry_depth e) && String.eqb name (entry_name e) &&
-                    terms_eqb args (entry_args e)
+ | e::cache => if key_eqb depth name args e
               then Some (entry_value e) else cache_lookup depth name args cache
  end.
 Lemma cache_lookup_sound : forall cache depth name args value,
@@ -36,7 +51,10 @@ Lemma cache_lookup_sound : forall cache depth name args value,
  exists e, In e cache /\ entry_depth e=depth /\ entry_name e=name /\
            entry_args e=args /\ entry_value e=value.
 Proof.
- induction cache as [|e cache IH]; intros depth name args value H; simpl in H; [discriminate|].
+ induction cache as [|e cache IH]; intros depth name args value H; [discriminate|].
+ change ((if key_eqb depth name args e then Some (entry_value e)
+   else cache_lookup depth name args cache)=Some value) in H.
+ rewrite key_eqb_equivalence in H.
  destruct (Nat.eqb depth (entry_depth e) && String.eqb name (entry_name e) &&
               terms_eqb args (entry_args e)) eqn:He.
  - rewrite !andb_true_iff, Nat.eqb_eq, String.eqb_eq, terms_eqb_spec in He.

@@ -71,6 +71,7 @@ let run ?(limits=default_limits) input =
     let argv = Array.concat [[|binary; "--lang=smt2"; "--dump-proofs"; "--proof-format=cpc";
       "--proof-granularity=dsl-rewrite"; "--no-proof-allow-trust";
       "--proof-check=eager"; "--check-proofs-complete"|]; profile;
+      (if Sys.getenv_opt "EUNOIA_DECLARED_CONCLUSIONS" = Some "1" then [|"--proof-print-conclusion"|] else [||]);
       [|"--tlimit=" ^ string_of_int limits.solver_milliseconds;
         "--rlimit=" ^ string_of_int limits.resources; src|]] in
     let started = Unix.gettimeofday () in

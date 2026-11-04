@@ -56,6 +56,12 @@ let prefix = "(declare-const op_0 Bool)(assume a (not (= op_0 op_0)))"
 let suffix = "(step b :rule refl :args (op_0))(step c false :rule contra :premises (b a))"
 let text = prefix ^ suffix
 let replay () = B.tactic_from_cpc (parse text) ~witness ()
+let bad_declared_rule () = B.tactic_from_cpc
+  (parse (text ^ "(step unused (= op_0 op_0) :rule trust)" ^
+    "(step final false :rule contra :premises (b a))")) ~witness ()
+let bad_declared_result () = B.tactic_from_cpc
+  (parse (text ^ "(step unused (= op_0 op_0) :rule refl :args ((not op_0)))" ^
+    "(step final false :rule contra :premises (b a))")) ~witness ()
 let corrupted () = B.tactic_from_cpc (parse (text ^ "(step unused :rule trust)")) ~witness ()
 let corrupt_witness ~atoms:_ ~forms:_ ~premises:_ ~conclusion:_ =
   Ok (witness_term 1 [] [] 0)
@@ -249,6 +255,8 @@ TACTIC EXTEND Backend_replay
 | [ "backend_encoding" ] -> { check_marshalling () }
 | [ "backend_replay" ] -> { replay () }
 | [ "backend_corrupted" ] -> { corrupted () }
+| [ "backend_bad_declared_rule" ] -> { bad_declared_rule () }
+| [ "backend_bad_declared_result" ] -> { bad_declared_result () }
 | [ "backend_bad_unused" ] -> { bad_unused () }
 | [ "backend_bad_gate" ] -> { bad_gate () }
 | [ "backend_with_lemma" ] -> { with_lemma () }

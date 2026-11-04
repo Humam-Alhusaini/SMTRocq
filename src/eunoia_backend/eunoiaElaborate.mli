@@ -28,7 +28,7 @@ type proof = {
 }
 exception Error of string
 val elaborate :
-  ?max_expansion:int -> ?signature_names:string list ->
+  ?use_declared:bool -> ?max_expansion:int -> ?signature_names:string list ->
   ?is_metadata_literal:(string -> bool) ->
   ?derive_assuming:(string -> term -> term list -> term list -> term option) -> declarations:declaration list -> roots:term list ->
   derive:(string -> term list -> term list -> term option) ->
@@ -42,7 +42,11 @@ val elaborate :
     from CpcGenerated in production. Directives reject. Scoped calls use the
     actual pushed formula and exactly one endpoint. Closed local bindings
     expire, also for caller-constructed parser ASTs. No rule table is built
-    here; derivation failure or a differing claimed conclusion rejects. *)
+    here. With [use_declared=false] (the default), derivation failure or a
+    differing claimed conclusion rejects. With [use_declared=true], printed
+    conclusions supply untrusted candidate syntax and missing conclusions
+    still use the callbacks. The caller must independently rerun all source
+    derivations and semantic certification over the complete trace. *)
 (** Decimal/rational metadata spellings additionally need the explicit
     [is_metadata_literal] callback. Production supplies EoArithmetic.normalize;
     accepting metadata does not authorize reifying a Real object expression.

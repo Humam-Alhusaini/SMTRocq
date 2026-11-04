@@ -149,6 +149,10 @@ that the complete applied checker returns `true`. The tactic reuses that checked
 proof through Rocq's abstraction API, then installs the complete correctness
 application with `Tactics.exact_check`. All private proof creation is part of
 tactic time. Failed and undone attempts must restore the original proof state.
+The optional [printed-conclusion producer](printed-conclusions.md) avoids
+duplicate candidate evaluation while final generated source checking remains
+mandatory.
+
 The optional [generated-helper cache](helper-cache.md) additionally proves
 reference-evaluator refinement and validates all helper hints before reuse.
 It is experimental and disabled by default pending full tactic measurements.

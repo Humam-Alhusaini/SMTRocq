@@ -31,7 +31,7 @@ let numeral s =
   digits first
 
 type value = Value of term | Macro of P.definition
-let elaborate ?(max_expansion=1000000) ?(signature_names=[])
+let elaborate ?(use_declared=false) ?(max_expansion=1000000) ?(signature_names=[])
     ?(is_metadata_literal=(fun _ -> false))
     ?(derive_assuming=(fun _ _ _ _ -> None))
     ~declarations ~roots ~derive (parsed:P.proof) =
@@ -116,20 +116,25 @@ let elaborate ?(max_expansion=1000000) ?(signature_names=[])
     let ps = List.map (fun (p:P.premise) -> match Hashtbl.find_opt proofs p.target with
       | Some v -> v | None -> fail "CPC premise %s unavailable" p.name.text) s.premises in
     let premise_terms = List.map snd ps in
-    let generated = match assuming with
+    if assuming <> None && List.length ps <> 1 then
+      fail "CPC discharge %s needs exactly one endpoint" s.name.text;
+    let claimed = lazy (Option.map read s.conclusion) in
+    let compute () = match assuming with
       | None -> derive s.rule.text arguments premise_terms
-      | Some a ->
-        if List.length ps <> 1 then fail "CPC discharge %s needs exactly one endpoint" s.name.text;
-        derive_assuming s.rule.text a arguments premise_terms in
+      | Some a -> derive_assuming s.rule.text a arguments premise_terms in
+    (* Candidate syntax only: the final applied checker always recomputes the
+       generated source rule, exact binding and semantic certificate. *)
+    let generated = if use_declared then match Lazy.force claimed with
+      | Some t -> Some t | None -> compute () else compute () in
     let result = match generated with
       | Some t -> t
       | None -> fail "Generated CPC derivation rejected %s (%s); arguments: %a; premises: %a"
           s.name.text s.rule.text
           (Format.pp_print_list ~pp_sep:Format.pp_print_space pp_term) arguments
           (Format.pp_print_list ~pp_sep:Format.pp_print_space pp_term) premise_terms in
-    (match s.conclusion with
-    | Some t when read t <> result -> fail "CPC claimed result differs at %s: source %a; generated %a"
-        s.name.text pp_term (read t) pp_term result
+    (match Lazy.force claimed with
+    | Some t when t <> result -> fail "CPC claimed result differs at %s: source %a; generated %a"
+        s.name.text pp_term t pp_term result
     | _ -> ());
     let st = {id=alloc (); name=s.name.text; rule=s.rule.text; arguments;
       premises=List.map fst ps; premise_terms; result} in

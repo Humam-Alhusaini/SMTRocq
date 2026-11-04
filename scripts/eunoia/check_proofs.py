@@ -40,7 +40,7 @@ def main():
         "EunoiaHelperCache": ["checker_refinement", "checker_correct",
                               "checker_b_refinement", "checker_b_correct",
                               "checker_eq_refinement", "checker_eq_correct"],
-        "EoCheckedMemo": ["term_eqb_spec", "terms_eqb_spec", "cache_lookup_sound",
+        "EoCheckedMemo": ["term_eqb_spec", "terms_eqb_spec", "key_eqb_equivalence", "cache_lookup_sound",
                           "evaluate_cached_refinement", "call_cached_refinement",
                           "entry_check_sound", "validate_entries_sound", "checked_evaluate_correct"],
         "EoRuleMemo": ["reference_factorization", "with_prepared_rule_ext",
@@ -95,6 +95,8 @@ def main():
     for name in re.findall(r"^\s*(?:Lemma|Theorem|Example)\s+(\w+)",
             (ROOT / "src/eunoia_backend/tests/integration/Lia.v").read_text(), re.M):
         audit += ["--theorem", integration + "." + name]
+    audit += ["--import", "SMTCoq.eunoia_backend_tests.Proof",
+              "--theorem", "SMTCoq.eunoia_backend_tests.Proof.declared_hint_mutations"]
     commands = []
     summary = dict(passed=False, commands=commands)
     try:
@@ -107,7 +109,7 @@ def main():
                   "SMTCoq.checker.eunoia.EunoiaHelperCacheTests",
                   "SMTCoq.checker.eunoia.EunoiaScopedAdapter",
                   "SMTCoq.checker.eunoia.EunoiaIntegerEmbeddingTests",
-                  integration,
+                  integration, "SMTCoq.eunoia_backend_tests.Proof",
                   *["SMTCoq.tests." + module for module in public_modules]]
         for name, command in (("assumptions", audit), ("kernel", kernel)):
             result, _ = bench.record_command(command, ROOT, 900, output / name)

@@ -14,8 +14,11 @@ ROOT = Path(__file__).resolve().parents[2]
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", type=Path)
-    parser.add_argument("--modes", nargs="+", choices=("Reference", "Shared", "Helpers"),
-                        default=("Reference", "Shared", "Helpers"))
+    parser.add_argument("--modes", nargs="+", choices=("Reference", "Shared", "Helpers", "Conclusions"),
+                        default=("Reference", "Shared", "Helpers", "Conclusions"))
+    parser.add_argument("--fixtures", nargs="+",
+                        choices=("Proof", "Lia", "IntegerCasts", "Division",
+                                 "Uf", "UfBool", "Purification", "PublicLia", "PublicTactics"))
     args = parser.parse_args()
     out = args.output.resolve() if args.output else Path(tempfile.mkdtemp(prefix="eunoia-mode-replay-"))
     if out == ROOT or ROOT in out.parents:
@@ -31,15 +34,25 @@ def main():
     summary = dict(passed=False, commands=[], sources={})
     modules = []
     try:
-        for mode, disabled, forced, helpers in (("Reference", "1", "0", "0"),
-                                               ("Shared", "0", "1", "0"),
-                                               ("Helpers", "0", "1", "1")):
+        for mode, disabled, forced, helpers, conclusions in (
+                ("Reference", "1", "0", "0", "0"), ("Shared", "0", "1", "0", "0"),
+                ("Helpers", "0", "1", "1", "0"), ("Conclusions", "0", "1", "0", "1")):
             if mode not in args.modes:
                 continue
             fixtures = [(name, ROOT / "src/eunoia_backend/tests/integration" / (name + ".v"))
                         for name in ("Proof", "Lia")]
             fixtures.append(("IntegerCasts", ROOT / "unit-tests/eunoia_integer_casts.v"))
             fixtures.append(("Division", ROOT / "unit-tests/eunoia_division.v"))
+            if mode == "Conclusions":
+                fixtures += [(name, ROOT / "unit-tests" / (source + ".v")) for name, source in
+                             (("Uf", "eunoia_uf"), ("UfBool", "eunoia_uf_bool"),
+                              ("Purification", "eunoia_purification"), ("PublicLia", "eunoia_lia"),
+                              ("PublicTactics", "eunoia_tactics"))]
+            if args.fixtures:
+                available = {name for name, _ in fixtures}
+                if not set(args.fixtures) <= available:
+                    parser.error("a selected fixture is unavailable in mode " + mode)
+                fixtures = [(name, source) for name, source in fixtures if name in args.fixtures]
             for fixture, source in fixtures:
                 name = fixture + mode
                 target = out / (name + ".v")
@@ -47,6 +60,7 @@ def main():
                 summary["sources"][name] = hashlib.sha256(target.read_bytes()).hexdigest()
                 command = [wrapper, "env", "EUNOIA_DISABLE_CHECKED_CACHE=" + disabled,
                            "EUNOIA_FORCE_CHECKED_CACHE=" + forced, "EUNOIA_HELPER_CACHE=" + helpers,
+                           "EUNOIA_DECLARED_CONCLUSIONS=" + conclusions,
                            "dune", "exec", "--", "rocq", "compile", "-q", *compiler_flags, str(target)]
                 result, _ = bench.record_command(command, ROOT, 300, out / name)
                 summary["commands"].append(result)

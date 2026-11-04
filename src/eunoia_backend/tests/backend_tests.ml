@@ -136,3 +136,26 @@ let () =
      failwith "wall limit not enforced" with EunoiaSolver.Error _ -> ());
   assert (before=temporaries ());
   Printf.printf "private cvc5: unsat parsed; sat, malformed input, oversized output and wall timeout rejected; temporary files cleaned\n%!"
+
+(* Printed conclusions are candidate data only. Check that the producer avoids
+   its duplicate derivation pass, while absent conclusions retain the fallback.
+   Real kernel-level rejection of false source claims is in Proof.v. *)
+let () =
+  let calls = ref 0 in
+  let counted name args premises = incr calls; derive name args premises in
+  let candidate text = elaborate ~use_declared:true ~declarations:decl ~roots:[p;np]
+    ~derive:counted (parse (prefix ^ text)) in
+  ignore (candidate "(step c false :rule contra :premises (a b))");
+  assert (!calls=0);
+  ignore (candidate "(step c :rule contra :premises (a b))");
+  assert (!calls=1);
+  let previous = Sys.getenv_opt "EUNOIA_DECLARED_CONCLUSIONS" in
+  Fun.protect ~finally:(fun () -> Unix.putenv "EUNOIA_DECLARED_CONCLUSIONS"
+    (Stdlib.Option.value ~default:"" previous)) (fun () ->
+    Unix.putenv "EUNOIA_DECLARED_CONCLUSIONS" "1";
+    let raw = EunoiaSolver.run
+      "(set-logic QF_UFLIA)(declare-fun f (Int) Int)(declare-const x Int)(declare-const y Int)(assert (= x y))(assert (not (= (f x) (f y))))(check-sat)" in
+    let steps = List.filter_map (fun c -> match c.P.command with
+      | P.Step s | P.Step_pop (_,s) -> Some s | _ -> None) raw.commands in
+    assert (List.length steps>1 && List.for_all (fun s -> s.P.conclusion<>None) steps));
+  Printf.printf "printed conclusions: all solver steps annotated; candidate shortcut and fallback checked\n%!"
