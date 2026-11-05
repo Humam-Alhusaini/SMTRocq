@@ -38,11 +38,8 @@ def main():
              "--env", wrapper, "--build-loadpaths", "--output-dir", str(output / "assumptions")]
     for i in range(0, len(mappings), 3):
         audit += ["--loadpath", mappings[i + 1], mappings[i + 2]]
-    specialized = json.loads((ROOT / "tools/eunoia/cpc-specialized-manifest.json").read_text())
     prefix = "SMTCoq.checker.eunoia.CpcSpecialized"
-    audit += ["--import", prefix]
-    for implementation in specialized["implementations"].values():
-        audit += ["--theorem", prefix + ".CpcSpecialized." + implementation + "_run_correct"]
+    audit += ["--import", prefix, "--theorem", prefix + ".CpcSpecialized.rules_correct"]
     for module, names in {
         "EunoiaProgramIndexFlat": ["flat_step_ext", "flat_run_ext", "flat_checker_ext", "checker_refinement", "checker_correct", "checker_b_refinement", "checker_b_correct", "checker_eq_refinement", "checker_eq_correct"],
         "EunoiaProgramIndexScoped": ["checker_refinement", "checker_correct", "checker_b_refinement", "checker_b_correct", "checker_eq_refinement", "checker_eq_correct"],

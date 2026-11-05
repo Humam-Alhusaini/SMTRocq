@@ -40,6 +40,11 @@ replay modes are `Specialized`, `SpecializedShared`, and `SpecializedReference`.
 Generic source proofs are closed; complete checker proofs retain the documented
 SMTCoq primitive-integer/proof-irrelevance baseline.
 
+The proof-only `rules_correct` theorem conjoins all 87 generated correspondence
+proofs. The assumption auditor checks this aggregate so it traverses their
+shared compiler dependencies once. Individual correspondence proofs and their
+kernel checking remain in place; no executable registry contains all rules.
+
 Focused public-tactic profiles are exploratory: the fully compiled-helper
 variant took 0.410/3.730/2.741 seconds on congruence/disjunctive bounds/inconsistent
 bounds; the retained-helper variant took 0.394/3.647/2.499 seconds. Both passed

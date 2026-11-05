@@ -38,6 +38,7 @@ Proof. intros;unfold program_dispatch;destruct(existsb _ _);[reflexivity|apply C
 for i,n in enumerate(names):
  parts.append(f'Definition static_{i} {parameters} := Eval cbv beta iota zeta delta [program_dispatch existsb CpcDirectEntry.dispatch String.eqb Ascii.eqb Bool.eqb andb orb] in fun fuel args=>program_dispatch nilof extra typeof fuel {quoted(n)} args.\n')
 runs=[]
+run_claims=[]
 for n in sorted(c.rules):
  ident='r_'+n.encode().hex()
  r=c.rules[n]
@@ -65,13 +66,19 @@ for n in sorted(c.rules):
  rewrites=', '.join(f'{ident}_expr_{j}_correct'for j in range(len(expressions)))
  parts.append(f'Proof. intros;unfold {ident}_execute,EoRuleMemo.execute_using;cbn [{ident}_rule rule_requires rule_conclusion forallb];rewrite {rewrites};reflexivity. Qed.\n')
  parts.append(f'Definition {ident}_run {parameters} fuel assumption args premises:=EoSpecialized.prepare_one (fun _ env=>{ident}_execute nilof extra typeof fuel env) cpc_polymorphic_operators nilof typeof cpc_operators {ident}_rule assumption args premises.\n')
- parts.append(f'Lemma {ident}_run_correct:forall nilof extra typeof fuel assumption args premises,{ident}_run nilof extra typeof fuel assumption args premises=run_rule_assuming_with_nils_polymorphic cpc_polymorphic_operators nilof extra cpc_operators fuel typeof cpc_programs cpc_rules {quoted(n)} assumption args premises.\n')
+ claim=f'forall nilof extra typeof fuel assumption args premises,{ident}_run nilof extra typeof fuel assumption args premises=run_rule_assuming_with_nils_polymorphic cpc_polymorphic_operators nilof extra cpc_operators fuel typeof cpc_programs cpc_rules {quoted(n)} assumption args premises'
+ run_claims.append('('+claim+')')
+ parts.append(f'Lemma {ident}_run_correct:{claim}.\n')
  parts.append(f'Proof. intros;unfold {ident}_run;rewrite EoRuleMemo.reference_factorization;erewrite EoSpecialized.prepare_one_correct by reflexivity;apply EoSpecialized.prepare_one_ext;intros;apply {ident}_execute_correct. Qed.\n')
  runs.append((n,ident))
 for n,ident in runs:
  # Explicit uniform parameters retain constant call signatures even when a
  # rule does not use the primitive hook, nil resolver or type query.
  parts.append(f'Definition {ident}:EoSpecialized.implementation:=EoSpecialized.Implementation {quoted(n)} (fun nilof extra fuel typeof assumption args premises=>@{ident}_run nilof extra typeof fuel assumption args premises) (fun nilof extra fuel typeof assumption args premises=>@{ident}_run_correct nilof extra typeof fuel assumption args premises).\n')
+proof='I'
+for _,ident in reversed(runs):proof=f'(conj {ident}_run_correct {proof})'
+parts.append('(* Proof-only aggregate: audit shared dependencies once. It is never an executable registry. *)\n')
+parts.append('Theorem rules_correct :\n'+' /\\\n'.join(run_claims+['True'])+'.\nProof. exact '+proof+'. Qed.\n')
 parts.append('End CpcSpecialized.\n')
 text=''.join(parts)
 args.output.write_text(text)
