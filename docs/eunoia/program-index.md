@@ -60,3 +60,24 @@ Fresh `IndexedAdaptive` and `IndexedReference` replay modes exercise adaptive
 and forced nonshared emission; the existing `Indexed` mode forces sharing.
 Program indexing remains opt-in (`EUNOIA_PROGRAM_INDEX=1`) pending a matched
 comparison with the same sharing policy on both paths.
+
+## Matched adaptive result
+
+Frozen commit `93431c0` compared reference/indexed/indexed/reference with the
+same checker sources/artifacts, optimized proof acceptance, printed conclusions,
+adaptive sharing and unchanged 30-second compiler timeouts. Separate UF and
+LIA probes confirmed identical sharing decisions and counts before timing.
+Each path/backend proved all 36 positives and rejected all four false controls.
+
+The indexed path remained slower: **38.319 s versus 37.232 s** of CVC5/Eunoia
+tactic time (2.9% more). `Qed` was 1.956/2.112 s, giving 40.275/39.344 s combined.
+The veriT control was 2.903/3.006 s. Indexing therefore remains disabled by
+default. Removing the representation difference did not establish a gain.
+
+The full build/regression, **306-target** assumption audit and recursive kernel
+check passed. Six fresh shared/adaptive/nonshared integration groups and five
+additional public adaptive groups passed independent kernel checking. The
+initial adaptive replay exposed a missing direct import in the integration
+fixture; adding the two adapter imports fixed it before these fresh checks.
+[Exact rows and hashes](program-index-adaptive-comparison-2026-11-05.json)
+retain the matched result.
