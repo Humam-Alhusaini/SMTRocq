@@ -52,7 +52,7 @@ build, expanded 285-target assumption audit, and recursive kernel checking.
 Native replay validation covers normal adaptive selection plus forced shared
 and forced reference selection before matched tactic timing.
 
-## Matched tactic result
+## Earlier matched tactic result (58 helpers)
 
 At frozen implementation `67cc9a3`, all 17 native fixture groups passed: nine
 normal direct groups plus four each with forced sharing and forced reference
@@ -69,3 +69,21 @@ The direct path remains disabled by default. Its modest complete-rule component
 gain did not transfer to this tactic workload.
 [Complete rows and artifact hashes](direct-comparison-2026-11-04.json) retain
 the negative result independently of later optimizations.
+
+## Complete helper compilation result (59 helpers)
+
+At `fb1068d`, the modular case proofs and the complete install build passed.
+The standard twenty-case workload then ran reference/direct/direct/reference
+with both checked proof-construction optimizations enabled, normal adaptive
+sharing, identical source/artifact fingerprints, and a thirty-second compiler
+timeout. Each path/backend solved all 36 positive attempts and rejected all four
+false controls.
+
+CVC5 tactic totals were **32.185 s reference versus 37.352 s direct** (16.1%
+slower); `Qed` totals were 1.094 s and 1.244 s. The veriT control totals were
+3.409 s and 3.105 s. Compiling the remaining helper therefore does not justify
+enabling the direct path. The split proofs remove the earlier proof-conversion
+memory failure and provide a checked compilation building block; they are not
+evidence of a tactic speedup. The experimental path remains off by default.
+[Every timing row and artifact hash](direct-all-comparison-2026-11-05.json) is
+retained.
