@@ -70,11 +70,12 @@ Fixpoint lower_arithmetic (fuel : nat) (t : term) : option term :=
 
 Lemma term_eqb_spec : forall a b, term_eqb a b = true <-> a = b.
 Proof.
-  induction a as [s|f IHf a IHa]; destruct b; simpl;
+  induction a as [s|f IHf a IHa]; destruct b as [t|g b]; simpl;
     try (split; [discriminate | congruence]).
   - rewrite String.eqb_eq.
     split; [intro H; subst; reflexivity | intro H; inversion H; auto].
-  - rewrite andb_true_iff, IHf, IHa.
+  - change (term_eqb f g && term_eqb a b = true <-> Apply f a = Apply g b).
+    rewrite andb_true_iff, IHf, IHa.
     split; [intros [-> ->]; reflexivity | intro H; inversion H; auto].
 Qed.
 

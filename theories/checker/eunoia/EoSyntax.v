@@ -13,7 +13,6 @@ Fixpoint term_eqb (x y : term) : bool :=
   | _, _ => false
   end.
 
-
 (* Preserve the original equality definition while allowing the VM to skip the
    argument comparison after an unequal function. This is definitional equality,
    so no extensionality or other axiom is needed. *)
