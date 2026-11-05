@@ -20,3 +20,22 @@ regressions retain all 32 captured CPC traces and corruption controls.
 An isolated development diagnostic improved repeated complete-rule computation,
 but no tactic-level speedup is claimed until old/new frozen revisions have been
 compared on the same goals, hardware, solver settings and compiler timeout.
+
+## Paired tactic result
+
+Frozen revisions `67cc9a3` (association lists) and `ccce9a4` (indexed aliases)
+ran the unchanged standard workload in old/new/new/old order, with both veriT
+and CVC5/Eunoia, printed conclusions enabled and all other experimental paths
+disabled. Each version/backend proved all 36 positive attempts and rejected all
+four false controls over two rounds. Compiler timeout stayed at 30 seconds.
+
+CVC5/Eunoia tactic totals decreased from **59.492 s to 56.726 s** (about 4.6%).
+The veriT control was nearly unchanged, **3.145 s versus 3.130 s**. `Qed` totals
+were 2.033/1.889 s for CVC5/Eunoia and 1.624/1.345 s for veriT. These are small
+samples; the backend remains about 18 times slower than veriT on this workload.
+
+Source/artifact fingerprints differ intentionally between the two revisions
+and were verified stable within each revision; workload hashes matched across
+all four runs. [Rows and artifact hashes](alias-index-comparison-2026-11-05.json)
+retain the evidence. Broader arithmetic regression results are recorded
+separately.
