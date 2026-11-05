@@ -355,7 +355,7 @@ def main():
         "argv": sys.argv, "python": sys.version, "platform": platform.platform(),
         "cpu_count": os.cpu_count(), "loadavg_start": load_average(),
         "profiling_environment": {name: os.environ.get(name) for name in
-                                  ("EUNOIA_DIRECT_PROGRAMS", "EUNOIA_STAGED_PROGRAMS", "EUNOIA_PROGRAM_INDEX", "EUNOIA_DECLARED_CONCLUSIONS", "EUNOIA_HELPER_CACHE", "EUNOIA_PROFILE_PHASES", "EUNOIA_CVC5_PROFILE", "EUNOIA_DISABLE_CHECKED_CACHE",
+                                  ("EUNOIA_SINGLE_KERNEL_ACCEPTANCE", "EUNOIA_DIRECT_PROGRAMS", "EUNOIA_STAGED_PROGRAMS", "EUNOIA_PROGRAM_INDEX", "EUNOIA_DECLARED_CONCLUSIONS", "EUNOIA_HELPER_CACHE", "EUNOIA_PROFILE_PHASES", "EUNOIA_CVC5_PROFILE", "EUNOIA_DISABLE_CHECKED_CACHE",
                                    "EUNOIA_FORCE_CHECKED_CACHE",
                                    "EUNOIA_CACHE_PROFILE",
                                    "EUNOIA_DISABLE_TERM_CACHE", "EUNOIA_DISABLE_DERIVE_CACHE",

@@ -132,7 +132,8 @@ def main():
         return 1
     metadata = {"argv": os.sys.argv, "root": str(ROOT), "cases": CASES,
                 "loadavg_start": os.getloadavg(), "source_sha256": {}, "artifact_sha256": {},
-                "profile_components": os.environ.get("ROCQ_PROFILE_COMPONENTS", "default")}
+                "profile_components": os.environ.get("ROCQ_PROFILE_COMPONENTS", "default"),
+                "single_kernel_acceptance": os.environ.get("EUNOIA_SINGLE_KERNEL_ACCEPTANCE", "0")}
     for command in (["git", "rev-parse", "HEAD"], ["git", "branch", "--show-current"],
                     ["git", "status", "--short"], [WRAPPER, "rocq", "c", "--version"]):
         result = subprocess.run(command, cwd=ROOT, capture_output=True, text=True, check=True)

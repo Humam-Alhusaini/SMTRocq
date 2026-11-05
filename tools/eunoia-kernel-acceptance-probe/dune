@@ -1,0 +1,13 @@
+(library
+ (name kernel_acceptance_probe)
+ (public_name rocq-smtcoq.kernel_acceptance_probe)
+ (libraries common rocq-runtime.plugins.ltac)
+ (flags :standard -rectypes))
+(rocq.pp (modules g_kernel_acceptance))
+(rocq.theory
+ (name SMTCoq.eunoia_kernel_acceptance_probe)
+ (package rocq-smtcoq)
+ (modules Controls)
+ (theories Stdlib)
+ (plugins rocq-smtcoq.kernel_acceptance_probe))
+(alias (name runtest) (deps Controls.vo))

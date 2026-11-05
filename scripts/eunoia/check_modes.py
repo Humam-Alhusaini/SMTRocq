@@ -31,7 +31,8 @@ def main():
     wrapper = os.environ.get("EUNOIA_ENV", str(ROOT / "scripts/eunoia/env"))
     flags = bench.rocq_loadpath(ROOT) + ["-Q", str(out), "EunoiaModeReplay"]
     compiler_flags = flags + ["-I", str(ROOT / "_build/install/default/lib")]
-    summary = dict(passed=False, commands=[], sources={})
+    summary = dict(passed=False, commands=[], sources={},
+                   single_kernel_acceptance=os.environ.get("EUNOIA_SINGLE_KERNEL_ACCEPTANCE", "0"))
     modules = []
     try:
         for mode, disabled, forced, helpers, conclusions, indexed, direct in (

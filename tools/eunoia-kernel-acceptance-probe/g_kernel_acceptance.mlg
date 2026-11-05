@@ -1,0 +1,29 @@
+DECLARE PLUGIN "rocq-smtcoq.kernel_acceptance_probe"
+{
+open Ltac_plugin
+open Stdarg
+open Common
+let callback_ran = ref false
+let probe accept =
+  callback_ran := false;
+  let value = Lazy.force (if accept then CoqTerms.ctrue else CoqTerms.cfalse) in
+  let ty = SmtMisc.mklApp CoqTerms.ceq
+    [|Lazy.force CoqTerms.cbool;value;Lazy.force CoqTerms.ctrue|] in
+  (* A claimed reflection proof is submitted ONLY inside Abstract. Its opaque
+     private declaration must synchronously kernel-check the complete original
+     type before the callback can run. The false probe detects deferral. *)
+  Abstract.cache_term_by_tactic_then ~opaque:true ~name_op:None
+    ~goal_type:(Some(EConstr.of_constr ty))
+    (Tactics.vm_cast_no_check(EConstr.of_constr(CoqTerms.eq_refl_true())))
+    (fun _ _ ->
+      callback_ran := true;
+      Tactics.exact_check(EConstr.of_constr(CoqTerms.eq_refl_true())))
+let check_callback () =
+  if !callback_ran then failwith "Invalid helper reached the continuation"
+  else Proofview.tclUNIT ()
+}
+TACTIC EXTEND Kernel_acceptance_probe
+| [ "kernel_acceptance_true" ] -> { probe true }
+| [ "kernel_acceptance_false" ] -> { probe false }
+| [ "kernel_acceptance_callback_not_run" ] -> { check_callback () }
+END

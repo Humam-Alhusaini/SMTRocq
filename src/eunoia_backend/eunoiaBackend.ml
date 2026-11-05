@@ -457,8 +457,7 @@ let build_refutation_from_cpc ?sigma ?fuel ~witness env t roots parsed =
   sigma := checked_sigma;
   proof
 
-(* Private proof helpers are local to this invocation. Standard VM reduction
-   and exact_check construct their bodies; Abstract synchronously kernel-checks
+(* Private proof helpers are local to this invocation. Abstract synchronously kernel-checks
    each body against its complete original type before [use]. No Boolean
    success is cached and no helper is declared without its checked body. *)
 let typecheck_helper_goal ty =
@@ -480,11 +479,16 @@ let typecheck_helper_goal ty =
 let with_normalized_proof ?(normalize=true) ~conversion_phase ~acceptance_phase ty proof use =
   R.tclTHEN (typecheck_helper_goal ty) (Proofview.Goal.enter (fun _ ->
     let started = phase_start () in
-    (* Standard VM goal reduction records the conversion in the proof term.
-       Exact checks the resulting proof; Abstract synchronously kernel-checks
-       the body against its original type before exposing the private lemma. *)
+    (* Abstract's private declaration synchronously kernel-checks the complete
+       original type before exposing the lemma. The experimental path records
+       a VM cast directly: conversion happens in that mandatory kernel check,
+       rather than also evaluating the same goal while constructing its body.
+       Never move this construction outside the checked Abstract boundary. *)
     let exact = Tactics.exact_check (EConstr.of_constr proof) in
-    let certificate = if normalize then R.tclTHEN Tactics.normalise_vm_in_concl exact
+    let certificate = if normalize &&
+      Sys.getenv_opt "EUNOIA_SINGLE_KERNEL_ACCEPTANCE" = Some "1" then
+        Tactics.vm_cast_no_check (EConstr.of_constr proof)
+      else if normalize then R.tclTHEN Tactics.normalise_vm_in_concl exact
       else exact in
     Abstract.cache_term_by_tactic_then ~opaque:true ~name_op:None
       ~goal_type:(Some (EConstr.of_constr ty))

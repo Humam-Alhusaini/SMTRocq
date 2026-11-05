@@ -30,6 +30,8 @@ def main():
         "-Q", str(ROOT / "_build/default/unit-tests"), "SMTCoq.tests",
         "-Q", str(ROOT / "_build/default/tools/eunoia-runtime-profile"),
         "SMTCoq.eunoia_runtime_profile",
+        "-Q", str(ROOT / "_build/default/tools/eunoia-kernel-acceptance-probe"),
+        "SMTCoq.eunoia_kernel_acceptance_probe",
         "-Q", str(ROOT / "_build/default/src/eunoia_backend/tests/integration"),
         "SMTCoq.eunoia_backend_tests"]
     audit = [sys.executable, "-B", str(ROOT / "tools/audit-eunoia-assumptions.py"),
@@ -120,6 +122,10 @@ def main():
     audit += ["--import", "SMTCoq.checker.eunoia.CpcGenerated",
               "--theorem", "SMTCoq.checker.eunoia.CpcGenerated.cpc_canonicalize_correct",
               "--theorem", "SMTCoq.checker.eunoia.CpcGenerated.cpc_surface_correct"]
+    acceptance = "SMTCoq.eunoia_kernel_acceptance_probe.Controls"
+    audit += ["--import", acceptance,
+              "--theorem", acceptance + ".accepted",
+              "--theorem", acceptance + ".rejected_before_callback"]
     commands = []
     summary = dict(passed=False, commands=commands)
     try:
@@ -139,7 +145,7 @@ def main():
                   "SMTCoq.checker.eunoia.EunoiaHelperCacheTests",
                   "SMTCoq.checker.eunoia.EunoiaScopedAdapter",
                   "SMTCoq.checker.eunoia.EunoiaIntegerEmbeddingTests",
-                  integration, "SMTCoq.eunoia_backend_tests.Proof",
+                  integration, "SMTCoq.eunoia_backend_tests.Proof", acceptance,
                   *["SMTCoq.tests." + module for module in public_modules]]
         for name, command in (("assumptions", audit), ("kernel", kernel)):
             result, _ = bench.record_command(command, ROOT, 900, output / name)
