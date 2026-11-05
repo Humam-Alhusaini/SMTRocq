@@ -9,7 +9,8 @@ Proof.
  induction a as [s|f IHf a IHa]; destruct b as [t|g b]; simpl;
  try (split; [discriminate|congruence]).
  - rewrite String.eqb_eq. split; [intro H; subst; reflexivity|intro H; inversion H; reflexivity].
- - rewrite andb_true_iff, IHf, IHa. split; [intros [-> ->]; reflexivity|intro H; inversion H; auto].
+ - change (term_eqb f g && term_eqb a b = true <-> Apply f a = Apply g b).
+   rewrite andb_true_iff, IHf, IHa. split; [intros [-> ->]; reflexivity|intro H; inversion H; auto].
 Qed.
 Fixpoint terms_eqb (xs ys:list term) := match xs,ys with
  | [],[] => true
