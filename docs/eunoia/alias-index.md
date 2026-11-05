@@ -39,3 +39,13 @@ and were verified stable within each revision; workload hashes matched across
 all four runs. [Rows and artifact hashes](alias-index-comparison-2026-11-05.json)
 retain the evidence. Broader arithmetic regression results are recorded
 separately.
+
+The indexed default subsequently passed all 65 extension positives: 12 integer
+cuts, 21 scalability cases, 27 constant-division cases and five known-value
+cases. All 16 associated false controls rejected, with intact workload/artifact
+integrity checks and unchanged 30-second compiler timeouts. Including the two
+standard rounds, the optimized path checked 101 positive attempts and rejected
+20 false controls. Division supplies additional proved facts and is not an
+equal-support comparison with veriT.
+[Extension rows and hashes](alias-index-extensions-2026-11-05.json) retain these
+regression results separately from the paired standard-workload comparison.
