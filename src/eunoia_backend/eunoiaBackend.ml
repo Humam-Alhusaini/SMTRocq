@@ -31,6 +31,10 @@ let scoped n = "SMTCoq.checker.eunoia.EunoiaScopedAdapter.EunoiaScopedAdapter." 
 let memo_api n = "SMTCoq.checker.eunoia.EunoiaMemo.EunoiaMemo." ^ n
 let scope n = "SMTCoq.checker.eunoia.EunoiaScope.EunoiaScope." ^ n
 let tactic_api n = "SMTCoq.checker.eunoia.EunoiaTactic.EunoiaTactic." ^ n
+let specialized_rule name =
+  let encoded = Buffer.create (2 * String.length name) in
+  String.iter (fun c -> Printf.bprintf encoded "%02x" (Char.code c)) name;
+  C.global ("SMTCoq.checker.eunoia.CpcSpecialized.CpcSpecialized.r_" ^ Buffer.contents encoded)
 let fuel_term n =
   if n = 10000 then C.global (tactic_api "default_fuel") else CoqTerms.mkNat n
 let std n = "Stdlib." ^ n
@@ -175,6 +179,7 @@ let prepare ?(fuel=10000) ~witness env t roots parsed =
   let query = C.call (adapter "typeof")
     [List.nth table_args 0;List.nth table_args 1;ns;fuel] in
   let use_direct = Sys.getenv_opt "EUNOIA_DIRECT_PROGRAMS" = Some "1" in
+  let use_specialized = Sys.getenv_opt "EUNOIA_SPECIALIZED_RULES" = Some "1" in
   let use_staged = Sys.getenv_opt "EUNOIA_STAGED_PROGRAMS" = Some "1" in
   let use_program_index = Sys.getenv_opt "EUNOIA_PROGRAM_INDEX" = Some "1" in
   let derive_helpers,finish_helpers = EunoiaHelperCache.create env fuel query in
@@ -419,13 +424,22 @@ let prepare ?(fuel=10000) ~witness env t roots parsed =
       [C.list (C.global (memo_api "cache_entry"))
         (List.rev_map (fun (cs,c,w) -> C.call (memo_api "CacheEntry") [clauses cs;clause c;w])
           !certificates)] else [] in
+    let specialized_args = if use_specialized && not share_helpers then
+      (* Names only select proved implementations. The checker compares each
+         key with the actual source rule and falls back to reference evaluation
+         when no implementation is present. No source step is removed. *)
+      let used = List.sort_uniq String.compare
+        (List.map (fun (st,_,_,_,_,_,_) -> st.E.rule) !checked_steps) in
+      [C.list (C.global "SMTCoq.checker.eunoia.EoSpecialized.EoSpecialized.implementation")
+         (List.map specialized_rule used)]
+      else [] in
     if Sys.getenv_opt "EUNOIA_CACHE_PROFILE" = Some "1" then
       Printf.eprintf "EUNOIA_CACHE event=prepared enabled=%b source_steps=%d shared_entries=%d inline=%d sharing_hits=%d\n%!"
         memoize (List.length proof.steps) (if memoize then List.length !certificates else 0)
         (if memoize then !inline_certificates else List.length proof.steps)
         (if collect_cache then sharing_hits else 0);
     {table_args=tables;
-     common_args=tables @ [ns;fuel] @
+     common_args=tables @ [ns] @ specialized_args @ [fuel] @
        (if share_helpers then [C.list (C.global (EunoiaHelperCache.api "cache_entry")) helpers] else []) @
        memo_args @ [mkint proof.capacity];
      roots_arg=clauses root_clauses;
@@ -435,6 +449,10 @@ let prepare ?(fuel=10000) ~witness env t roots parsed =
      trace_type=C.global ((if memoize then memo_api else if has_scopes then scoped else tactic_api) "trace");
      checker_api=(if share_helpers then
        (fun n -> "SMTCoq.checker.eunoia.EunoiaHelperCache.EunoiaHelperCache." ^ n)
+       else if use_specialized then
+         (fun n -> (if memoize then "SMTCoq.checker.eunoia.EunoiaSpecialized.EunoiaSpecialized."
+                    else if has_scopes then "SMTCoq.checker.eunoia.EunoiaSpecializedScoped.EunoiaSpecializedScoped."
+                    else "SMTCoq.checker.eunoia.EunoiaSpecializedFlat.EunoiaSpecializedFlat.") ^ n)
        else if use_direct then
          (fun n -> (if memoize then "SMTCoq.checker.eunoia.EunoiaDirect.EunoiaDirect."
                     else if has_scopes then "SMTCoq.checker.eunoia.EunoiaDirectScoped.EunoiaDirectScoped."

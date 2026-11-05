@@ -14,8 +14,8 @@ ROOT = Path(__file__).resolve().parents[2]
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", type=Path)
-    parser.add_argument("--modes", nargs="+", choices=("Reference", "Shared", "Helpers", "Conclusions", "Indexed", "Staged", "Direct", "DirectShared", "DirectReference", "IndexedAdaptive", "IndexedReference"),
-                        default=("Reference", "Shared", "Helpers", "Conclusions", "Indexed", "Staged", "Direct"))
+    parser.add_argument("--modes", nargs="+", choices=("Reference", "Shared", "Helpers", "Conclusions", "Indexed", "Staged", "Direct", "DirectShared", "DirectReference", "IndexedAdaptive", "IndexedReference", "Specialized", "SpecializedShared", "SpecializedReference"),
+                        default=("Reference", "Shared", "Helpers", "Conclusions", "Indexed", "Staged", "Direct", "Specialized"))
     parser.add_argument("--fixtures", nargs="+",
                         choices=("Proof", "Lia", "IntegerCasts", "Division",
                                  "Uf", "UfBool", "Purification", "PublicLia", "PublicTactics"))
@@ -47,14 +47,17 @@ def main():
                 ("DirectShared", "0", "1", "0", "1", "0", "1"),
                 ("DirectReference", "1", "0", "0", "1", "0", "1"),
                 ("IndexedAdaptive", "0", "0", "0", "1", "1", "0"),
-                ("IndexedReference", "1", "0", "0", "1", "1", "0")):
+                ("IndexedReference", "1", "0", "0", "1", "1", "0"),
+                ("Specialized", "0", "0", "0", "1", "0", "0"),
+                ("SpecializedShared", "0", "1", "0", "1", "0", "0"),
+                ("SpecializedReference", "1", "0", "0", "1", "0", "0")):
             if mode not in args.modes:
                 continue
             fixtures = [(name, ROOT / "src/eunoia_backend/tests/integration" / (name + ".v"))
                         for name in ("Proof", "Lia")]
             fixtures.append(("IntegerCasts", ROOT / "unit-tests/eunoia_integer_casts.v"))
             fixtures.append(("Division", ROOT / "unit-tests/eunoia_division.v"))
-            if mode in ("Conclusions", "Indexed", "Staged", "Direct", "IndexedAdaptive", "IndexedReference"):
+            if mode in ("Conclusions", "Indexed", "Staged", "Direct", "IndexedAdaptive", "IndexedReference", "Specialized"):
                 fixtures += [(name, ROOT / "unit-tests" / (source + ".v")) for name, source in
                              (("Uf", "eunoia_uf"), ("UfBool", "eunoia_uf_bool"),
                               ("Purification", "eunoia_purification"), ("PublicLia", "eunoia_lia"),
@@ -72,6 +75,7 @@ def main():
                 command = [wrapper, "env", "EUNOIA_DISABLE_CHECKED_CACHE=" + disabled,
                            "EUNOIA_FORCE_CHECKED_CACHE=" + forced, "EUNOIA_HELPER_CACHE=" + helpers,
                            "EUNOIA_DIRECT_PROGRAMS=" + direct,
+                           "EUNOIA_SPECIALIZED_RULES=" + ("1" if mode.startswith("Specialized") else "0"),
                            "EUNOIA_STAGED_PROGRAMS=" + ("1" if mode == "Staged" else "0"),
                            "EUNOIA_DECLARED_CONCLUSIONS=" + conclusions, "EUNOIA_PROGRAM_INDEX=" + indexed,
                            "dune", "exec", "--", "rocq", "compile", "-q", *compiler_flags, str(target)]

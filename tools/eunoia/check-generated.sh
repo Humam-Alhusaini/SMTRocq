@@ -81,9 +81,14 @@ python3 tools/eunoia/replay_helper_fixtures.py --output "$task_tmp/HelperFixture
 python3 tools/eunoia/replay_indexed_fixtures.py --output "$task_tmp/IndexedFixtureTests.v"
 python3 tools/eunoia/replay_staged_fixtures.py --output "$task_tmp/StagedFixtureTests.v"
 python3 tools/eunoia/replay_direct_fixtures.py --output "$task_tmp/DirectFixtureTests.v"
+python3 tools/eunoia/replay_specialized_fixtures.py --output "$task_tmp/SpecializedFixtureTests.v"
 python3 tools/eunoia/generate_direct.py --output "$task_tmp/CpcDirect.v" --manifest "$task_tmp/direct-manifest.json"
 cmp theories/checker/eunoia/CpcDirect.v "$task_tmp/CpcDirect.v"
 cmp tools/eunoia/cpc-direct-manifest.json "$task_tmp/direct-manifest.json"
+python3 tools/eunoia/generate_specialized.py --reference-program '$run_evaluate' \
+  --output "$task_tmp/CpcSpecialized.v" --manifest "$task_tmp/specialized-manifest.json"
+cmp theories/checker/eunoia/CpcSpecialized.v "$task_tmp/CpcSpecialized.v"
+cmp tools/eunoia/cpc-specialized-manifest.json "$task_tmp/specialized-manifest.json"
 cp theories/checker/eunoia/EoSyntax.v theories/checker/eunoia/EoRuntime.v \
   theories/checker/eunoia/EoArithmetic.v theories/checker/eunoia/EoOrder.v \
   theories/checker/eunoia/EoRename.v \
@@ -104,12 +109,13 @@ cp theories/checker/eunoia/EoSyntax.v theories/checker/eunoia/EoRuntime.v \
   theories/checker/eunoia/CpcStagedEval.v \
   theories/checker/eunoia/CpcStagedRules.v \
   theories/checker/eunoia/EoDirect.v \
+  theories/checker/eunoia/EoSpecialized.v \
   theories/checker/eunoia/CpcDirectEntry.v \
   theories/checker/eunoia/CpcDirectEval.v \
   theories/checker/eunoia/CpcDirectRules.v \
   "$task_tmp/"
 cd "$task_tmp"
-for task_module in EoSyntax EoRuntime EoArithmetic EoOrder EoNameIndex EoRename CpcGenerated EoCheckedMemo EoRuleMemo CpcMemo EoMemoCollector CpcMemoCollector EoIndexed CpcIndexed EoStaged EoFuelLayers EoCompiledPrograms CpcStaged CpcStagedEval CpcStagedRules EoDirect CpcDirect CpcDirectEntry CpcDirectEval CpcDirectRules TestGenerated MutatedGenerated MutatedCpcGenerated LiaMutatedGenerated TightenMutatedGenerated IntEqPremiseMutated IntEqResultMutated IntGeqPremiseMutated IntGeqResultMutated IntFloorMutated IntCastMutated IntPolyGuardMutated TraceReplay RuntimeTests FixtureTests TraceNegativeTests LiaTraceReplay LiaRuntimeTests LiaFixtureTests LiaTraceNegativeTests StrictShiftTests ReducedFixtureTests IntegerFixtureTests IntegerCastTests HelperMemoTests HelperFixtureTests IndexedFixtureTests StagedFixtureTests DirectFixtureTests; do
+for task_module in EoSyntax EoRuntime EoArithmetic EoOrder EoNameIndex EoRename CpcGenerated EoCheckedMemo EoRuleMemo CpcMemo EoMemoCollector CpcMemoCollector EoIndexed CpcIndexed EoStaged EoFuelLayers EoCompiledPrograms CpcStaged CpcStagedEval CpcStagedRules EoDirect CpcDirect CpcDirectEntry CpcDirectEval CpcDirectRules EoSpecialized CpcSpecialized TestGenerated MutatedGenerated MutatedCpcGenerated LiaMutatedGenerated TightenMutatedGenerated IntEqPremiseMutated IntEqResultMutated IntGeqPremiseMutated IntGeqResultMutated IntFloorMutated IntCastMutated IntPolyGuardMutated TraceReplay RuntimeTests FixtureTests TraceNegativeTests LiaTraceReplay LiaRuntimeTests LiaFixtureTests LiaTraceNegativeTests StrictShiftTests ReducedFixtureTests IntegerFixtureTests IntegerCastTests HelperMemoTests HelperFixtureTests IndexedFixtureTests StagedFixtureTests DirectFixtureTests SpecializedFixtureTests; do
   "$task_env" rocq compile -q -Q . SMTCoq.checker.eunoia "$task_module.v"
 done
 "$task_env" rocq check -silent -Q . SMTCoq.checker.eunoia \
@@ -122,6 +128,7 @@ done
   SMTCoq.checker.eunoia.IndexedFixtureTests \
   SMTCoq.checker.eunoia.StagedFixtureTests \
   SMTCoq.checker.eunoia.DirectFixtureTests \
+  SMTCoq.checker.eunoia.SpecializedFixtureTests \
   SMTCoq.checker.eunoia.ReducedFixtureTests \
   SMTCoq.checker.eunoia.IntegerFixtureTests SMTCoq.checker.eunoia.IntegerCastTests
 python3 "$task_root/tools/eunoia/tests/audit_integer_assumptions.py" "$task_tmp"

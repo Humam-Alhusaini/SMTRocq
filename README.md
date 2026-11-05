@@ -46,6 +46,8 @@ performance work are in progress. See the [backend guide](docs/eunoia/README.md)
 The current [proof-construction comparison](docs/eunoia/construction-bundle.md)
 measures about 45% less tactic time, while retaining all source and kernel
 checks; the CVC5/Eunoia backend still trails veriT on that suite.
+The [proof-specific compilation experiment](docs/eunoia/specialized-rules.md)
+generates individually checked rule implementations and remains off by default.
 
 ## Example
 Here is a very small example of the possibilities of SMTCoq: automatic proofs in group theory.

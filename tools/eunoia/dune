@@ -9,8 +9,12 @@
   replay_indexed_fixtures.py
   replay_staged_fixtures.py
   replay_direct_fixtures.py
+  replay_specialized_fixtures.py
   generate_direct.py
+  direct_codegen.py
+  generate_specialized.py
   cpc-direct-manifest.json
+  cpc-specialized-manifest.json
   check-generated.sh
   rules.txt
   cpc-manifest.json
@@ -42,6 +46,8 @@
   ../../theories/checker/eunoia/CpcDirect.v
   ../../theories/checker/eunoia/CpcDirectEntry.v
   ../../theories/checker/eunoia/CpcDirectEval.v
-  ../../theories/checker/eunoia/CpcDirectRules.v)
+  ../../theories/checker/eunoia/CpcDirectRules.v
+  ../../theories/checker/eunoia/EoSpecialized.v
+  ../../theories/checker/eunoia/CpcSpecialized.v)
  (action
   (run bash check-generated.sh)))
