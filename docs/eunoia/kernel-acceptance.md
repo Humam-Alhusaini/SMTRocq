@@ -25,3 +25,25 @@ This is an experimental proof-construction optimization, with no change to
 signature-generated rules, source replay, semantic checking, roots or permitted
 assumptions. It needs paired tactic and `Qed` measurements and the full native
 corruption suite before any decision to change the default.
+
+## Matched tactic result
+
+Frozen commit `8e1f30a` ran the standard workload in reference/new/new/reference
+order. Every round used the same source and proof/plugin artifacts, printed
+conclusions, adaptive certificate sharing and a 30-second compiler timeout.
+Only `EUNOIA_SINGLE_KERNEL_ACCEPTANCE` differed. Each mode/backend proved all
+36 positive attempts and rejected all four false controls over two rounds.
+
+CVC5/Eunoia tactic totals fell from **52.370 s to 35.516 s (32.2%)**. `Qed`
+totals increased from **1.704 s to 2.086 s**; combined tactic/`Qed` time still
+fell from **54.074 s to 37.602 s (30.5%)**. The veriT tactic control was
+**2.878 s versus 3.025 s** (`Qed`: 1.204/1.165 s). Control variation and small
+samples limit precision. The new path remains about 12 times slower than
+veriT on tactic time in this workload.
+
+[Exact rows and artifact hashes](kernel-acceptance-comparison-2026-11-05.json)
+retain the comparison. All 33 fresh native fixture groups passed independent
+kernel checking, covering the seven evaluator modes and additional public
+UF/LIA tactics. The full repository regression and expanded 290-target
+assumption audit also passed. Wider arithmetic regression is required before
+promoting the experimental path to the default.
