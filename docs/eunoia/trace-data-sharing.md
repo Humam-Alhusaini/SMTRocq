@@ -1,9 +1,9 @@
-# Checked transparent trace data experiment
+# Checked transparent trace data
 
-`EUNOIA_TRACE_CONSTANTS=1` declares the exact complete input trace as a private
+The default declares the exact complete input trace as a private
 transparent definition before proving checker acceptance. The checker and its
 correctness application then reference that definition instead of repeating
-the large inline term. The default remains unchanged.
+the large inline term. `EUNOIA_TRACE_CONSTANTS=0` restores inline trace data.
 
 Only typed input data is shared. Every source step, its order, scopes, roots,
 source computation and semantic certificate gate remains part of checking.
@@ -18,10 +18,9 @@ value to reduce transparently and reject illtyped data before the callback.
 Both controls are closed and passed independent kernel checking. Helper-type
 checking and checked universe-context synchronization remain in place.
 
-This opt-in experiment targets repeated typing of large trace terms. It needs
-full regression, corruption replays, assumption audits, and paired tactic/`Qed`
-measurements before any default promotion. Diagnostic timings are not a
-performance claim.
+This optimization targets repeated typing of large trace terms. The checks
+and matched measurements below support its default promotion. Diagnostic
+timings are separate from the frozen performance comparison.
 
 ## Matched tactic result
 
@@ -41,5 +40,11 @@ optimized backend remains about 10 times slower than veriT on tactic time.
 
 The full build/regression, **308-target** assumption audit, recursive kernel
 check and 19 fresh evaluator/public fixture groups passed. The two new data
-boundary controls are closed. Broader cuts, scalability, division and
-known-value regression must pass before default promotion.
+boundary controls are closed. The optimized path also passed all 65 extension positives and rejected all 16
+false controls: 12 cuts, 21 scalability cases, 27 constant-division cases and
+five known-value cases. Including the two standard rounds, that is 101 optimized
+positive attempts and 20 rejected false controls. Workload/artifact integrity
+checks passed and compiler timeouts stayed at 30 seconds. These coverage runs
+overlapped standalone validation and are not comparative performance claims.
+[Extension rows and hashes](trace-data-extensions-2026-11-05.json) retain them.
+The validated path is now enabled by default.

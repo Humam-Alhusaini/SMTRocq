@@ -33,7 +33,7 @@ def main():
     compiler_flags = flags + ["-I", str(ROOT / "_build/install/default/lib")]
     summary = dict(passed=False, commands=[], sources={},
                    single_kernel_acceptance=os.environ.get("EUNOIA_SINGLE_KERNEL_ACCEPTANCE", "1"),
-                   trace_constants=os.environ.get("EUNOIA_TRACE_CONSTANTS", "0"))
+                   trace_constants=os.environ.get("EUNOIA_TRACE_CONSTANTS", "1"))
     modules = []
     try:
         for mode, disabled, forced, helpers, conclusions, indexed, direct in (

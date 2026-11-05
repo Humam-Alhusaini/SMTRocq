@@ -484,7 +484,7 @@ let typecheck_helper_goal ty =
    the transparent definition before the callback; the complete source and
    semantic checkers still evaluate that data during checked acceptance. *)
 let with_prepared_trace p use =
-  if Sys.getenv_opt "EUNOIA_TRACE_CONSTANTS" <> Some "1" then use p else
+  if Sys.getenv_opt "EUNOIA_TRACE_CONSTANTS" = Some "0" then use p else
   match p.tail_args with
   | [root_terms;claims;trace;goal] ->
     R.tclTHEN (typecheck_helper_goal p.trace_type)
