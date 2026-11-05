@@ -21,6 +21,7 @@
   ../../theories/checker/eunoia/EoSyntax.v
   ../../theories/checker/eunoia/EoArithmetic.v
   ../../theories/checker/eunoia/EoOrder.v
+  ../../theories/checker/eunoia/EoRename.v
   ../../theories/checker/eunoia/EoRuntime.v
   ../../theories/checker/eunoia/CpcGenerated.v
   ../../theories/checker/eunoia/EoCheckedMemo.v

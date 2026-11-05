@@ -37,6 +37,7 @@ def main():
     for i in range(0, len(mappings), 3):
         audit += ["--loadpath", mappings[i + 1], mappings[i + 2]]
     for module, names in {
+        "EoRename": ["refinement"],
         "EoDirect": ["compile_refinement", "run_program_correct", "call_compiled_correct"],
         "CpcDirect": ["dispatch_correct"],
         "CpcDirectEntry": ["choose_correct", "dispatch_correct"],
@@ -116,6 +117,9 @@ def main():
         audit += ["--theorem", integration + "." + name]
     audit += ["--import", "SMTCoq.eunoia_backend_tests.Proof",
               "--theorem", "SMTCoq.eunoia_backend_tests.Proof.declared_hint_mutations"]
+    audit += ["--import", "SMTCoq.checker.eunoia.CpcGenerated",
+              "--theorem", "SMTCoq.checker.eunoia.CpcGenerated.cpc_canonicalize_correct",
+              "--theorem", "SMTCoq.checker.eunoia.CpcGenerated.cpc_surface_correct"]
     commands = []
     summary = dict(passed=False, commands=commands)
     try:

@@ -36,8 +36,8 @@ Definition prepare extra fuel typeof :=CpcStaged.code_table
  (context_nilof extra fuel typeof) extra (context_query extra fuel typeof).
 Definition derive_prepared (table:list (string * list(list pattern*EoCompiledPrograms.code))) (extra : primitive_hook) (fuel : nat) (typeof : term -> option term)
     (name : string) (assumption : option term) (args premises : list term) : option term :=
-  let canon := rename_symbols cpc_aliases in
-  let surface := rename_symbols cpc_surface_names in
+  let canon := cpc_canonicalize in
+  let surface := cpc_surface in
   let all_inputs := ((match assumption with Some a => [a] | None => [] end) ++ args ++ premises)%list in
   if forallb (surface_supported_with_arities cpc_unary_operators cpc_blocked_operators cpc_binary_operators) (map canon all_inputs) then
   let query := (fun t => option_map canon (typeof (surface t))) in

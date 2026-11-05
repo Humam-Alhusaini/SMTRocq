@@ -29,7 +29,7 @@ Definition prepare_surface (polymorphic : list string) (nilof : nil_query) (extr
   end.
 
 Definition collect_context extra fuel typeof name assumption args premises :=
- let canon:=rename_symbols cpc_aliases in
+ let canon:=cpc_canonicalize in
  let query:=surface_query typeof in
  let nilof:=context_nilof extra fuel typeof in
  match prepare_surface cpc_polymorphic_operators nilof extra fuel query cpc_operators cpc_programs cpc_rules
@@ -60,8 +60,8 @@ Definition execute_logged nilof extra fuel query r env :=
     firstn 256 (logs++entries)%list)
  else (None,firstn 256 entries).
 Definition derive_context_logged extra fuel typeof name assumption args premises :=
- let canon:=rename_symbols cpc_aliases in
- let surface:=rename_symbols cpc_surface_names in
+ let canon:=cpc_canonicalize in
+ let surface:=cpc_surface in
  let query:=surface_query typeof in
  let nilof:=context_nilof extra fuel typeof in
  let all_inputs:=((match assumption with Some a=>[a]|None=>[] end)++args++premises)%list in

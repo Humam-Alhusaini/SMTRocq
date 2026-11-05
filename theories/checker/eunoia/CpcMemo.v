@@ -4,7 +4,7 @@ From SMTCoq.checker.eunoia Require Import EoSyntax EoRuntime CpcGenerated.
 From SMTCoq.checker.eunoia Require Import EoCheckedMemo EoRuleMemo.
 Import ListNotations EoCheckedMemo.EoCheckedMemo.
 Local Open Scope string_scope.
-Definition surface_query typeof t := option_map (rename_symbols cpc_aliases) (typeof (rename_symbols cpc_surface_names t)).
+Definition surface_query typeof t := option_map (cpc_canonicalize) (typeof (cpc_surface t)).
 Definition context_nilof extra fuel typeof := resolve_nil extra cpc_operators fuel (surface_query typeof) cpc_programs cpc_nils.
 Definition context_query extra fuel typeof := EoRuleMemo.internal_query
  (context_nilof extra fuel typeof) (surface_query typeof) fuel cpc_operators.
@@ -17,8 +17,8 @@ Theorem validate_context_sound : forall extra fuel typeof entries cache,
 Proof. intros; eapply validate_entries_sound; exact H. Qed.
 Definition derive_context_cached (cache:list cache_entry) (extra : primitive_hook) (fuel : nat) (typeof : term -> option term)
     (name : string) (assumption : option term) (args premises : list term) : option term :=
-  let canon := rename_symbols cpc_aliases in
-  let surface := rename_symbols cpc_surface_names in
+  let canon := cpc_canonicalize in
+  let surface := cpc_surface in
   let all_inputs := ((match assumption with Some a => [a] | None => [] end) ++ args ++ premises)%list in
   if forallb (surface_supported_with_arities cpc_unary_operators cpc_blocked_operators cpc_binary_operators) (map canon all_inputs) then
   let query := (fun t => option_map canon (typeof (surface t))) in

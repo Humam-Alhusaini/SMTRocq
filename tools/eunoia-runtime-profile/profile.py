@@ -24,7 +24,7 @@ from replay_fixtures import decode, generate
 from compile import atom, parse, seq
 
 ENV = Path(os.environ.get("EUNOIA_ENV", str(next(p for p in Path(__file__).resolve().parents if (p / "dune-project").is_file()) / "scripts/eunoia/env")))
-MODULES = ("EoSyntax", "EoRuntime", "EoArithmetic", "EoOrder", "CpcGenerated",
+MODULES = ("EoSyntax", "EoRuntime", "EoArithmetic", "EoOrder", "EoNameIndex", "EoRename", "CpcGenerated",
            "TraceReplay", "LiaTraceReplay")
 
 

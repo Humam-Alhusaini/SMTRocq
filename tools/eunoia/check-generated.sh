@@ -86,6 +86,7 @@ cmp theories/checker/eunoia/CpcDirect.v "$task_tmp/CpcDirect.v"
 cmp tools/eunoia/cpc-direct-manifest.json "$task_tmp/direct-manifest.json"
 cp theories/checker/eunoia/EoSyntax.v theories/checker/eunoia/EoRuntime.v \
   theories/checker/eunoia/EoArithmetic.v theories/checker/eunoia/EoOrder.v \
+  theories/checker/eunoia/EoRename.v \
   tools/eunoia/tests/LiaTraceReplay.v tools/eunoia/tests/LiaRuntimeTests.v \
   tools/eunoia/tests/LiaTraceNegativeTests.v \
   tools/eunoia/tests/StrictShiftTests.v tools/eunoia/tests/IntegerCastTests.v \
@@ -108,7 +109,7 @@ cp theories/checker/eunoia/EoSyntax.v theories/checker/eunoia/EoRuntime.v \
   theories/checker/eunoia/CpcDirectRules.v \
   "$task_tmp/"
 cd "$task_tmp"
-for task_module in EoSyntax EoRuntime EoArithmetic EoOrder CpcGenerated EoCheckedMemo EoRuleMemo CpcMemo EoMemoCollector CpcMemoCollector EoNameIndex EoIndexed CpcIndexed EoStaged EoFuelLayers EoCompiledPrograms CpcStaged CpcStagedEval CpcStagedRules EoDirect CpcDirect CpcDirectEntry CpcDirectEval CpcDirectRules TestGenerated MutatedGenerated MutatedCpcGenerated LiaMutatedGenerated TightenMutatedGenerated IntEqPremiseMutated IntEqResultMutated IntGeqPremiseMutated IntGeqResultMutated IntFloorMutated IntCastMutated IntPolyGuardMutated TraceReplay RuntimeTests FixtureTests TraceNegativeTests LiaTraceReplay LiaRuntimeTests LiaFixtureTests LiaTraceNegativeTests StrictShiftTests ReducedFixtureTests IntegerFixtureTests IntegerCastTests HelperMemoTests HelperFixtureTests IndexedFixtureTests StagedFixtureTests DirectFixtureTests; do
+for task_module in EoSyntax EoRuntime EoArithmetic EoOrder EoNameIndex EoRename CpcGenerated EoCheckedMemo EoRuleMemo CpcMemo EoMemoCollector CpcMemoCollector EoIndexed CpcIndexed EoStaged EoFuelLayers EoCompiledPrograms CpcStaged CpcStagedEval CpcStagedRules EoDirect CpcDirect CpcDirectEntry CpcDirectEval CpcDirectRules TestGenerated MutatedGenerated MutatedCpcGenerated LiaMutatedGenerated TightenMutatedGenerated IntEqPremiseMutated IntEqResultMutated IntGeqPremiseMutated IntGeqResultMutated IntFloorMutated IntCastMutated IntPolyGuardMutated TraceReplay RuntimeTests FixtureTests TraceNegativeTests LiaTraceReplay LiaRuntimeTests LiaFixtureTests LiaTraceNegativeTests StrictShiftTests ReducedFixtureTests IntegerFixtureTests IntegerCastTests HelperMemoTests HelperFixtureTests IndexedFixtureTests StagedFixtureTests DirectFixtureTests; do
   "$task_env" rocq compile -q -Q . SMTCoq.checker.eunoia "$task_module.v"
 done
 "$task_env" rocq check -silent -Q . SMTCoq.checker.eunoia \
