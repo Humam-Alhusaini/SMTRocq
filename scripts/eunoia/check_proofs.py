@@ -122,6 +122,8 @@ def main():
     audit += ["--import", "SMTCoq.checker.eunoia.CpcGenerated",
               "--theorem", "SMTCoq.checker.eunoia.CpcGenerated.cpc_canonicalize_correct",
               "--theorem", "SMTCoq.checker.eunoia.CpcGenerated.cpc_surface_correct"]
+    audit += ["--import", "SMTCoq.checker.eunoia.EoSyntax",
+              "--theorem", "SMTCoq.checker.eunoia.EoSyntax.term_eqb_refinement"]
     acceptance = "SMTCoq.eunoia_kernel_acceptance_probe.Controls"
     audit += ["--import", acceptance,
               "--theorem", acceptance + ".accepted",

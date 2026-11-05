@@ -9,9 +9,23 @@ Inductive term : Type :=
 Fixpoint term_eqb (x y : term) : bool :=
   match x, y with
   | Symbol a, Symbol b => String.eqb a b
-  | Apply f a, Apply g b => term_eqb f g && term_eqb a b
+  | Apply f a, Apply g b => if term_eqb f g then term_eqb a b else false
   | _, _ => false
   end.
+
+
+(* Preserve the original equality definition while allowing the VM to skip the
+   argument comparison after an unequal function. This is definitional equality,
+   so no extensionality or other axiom is needed. *)
+Lemma term_eqb_refinement (x y : term) :
+  term_eqb x y =
+  (fix eager (left right : term) : bool :=
+    match left, right with
+    | Symbol a, Symbol b => String.eqb a b
+    | Apply f a, Apply g b => eager f g && eager a b
+    | _, _ => false
+    end) x y.
+Proof. reflexivity. Qed.
 
 Inductive pattern : Type :=
 | PVar : nat -> pattern
