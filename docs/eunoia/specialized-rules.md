@@ -51,3 +51,18 @@ bounds; the retained-helper variant took 0.394/3.647/2.499 seconds. Both passed
 source/semantic/false-goal controls. These profiles did not establish a speedup
 over the default checker. A matched full-workload comparison is required before
 changing the default.
+
+At `6ccf13b`, validation passed the full build/regression suite at the executable
+checkpoint `358d37d`, followed by rebuilt dependent test libraries and the
+336-declaration assumption audit with recursive kernel checking after the
+proof-only aggregate was appended. All previous generated declarations were
+verified byte-identical across that proof-only change. Six fresh UF/LIA replay
+groups covered adaptive, forced-shared and forced-reference representations;
+five public-tactic groups also passed their independent kernel checks. These
+replays include source mutations after conflict and false-goal controls.
+
+The standalone extraction has 125 proof/signature files matching `6ccf13b`, a
+157-declaration assumption audit covering the aggregate, and a source-profiler
+smoke test with eight timing phases plus independent kernel checking. Those
+smoke timings were collected during concurrent validation and establish tool
+operation, not a performance comparison.
