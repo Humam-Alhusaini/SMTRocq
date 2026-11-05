@@ -136,16 +136,10 @@
       "$mk_trans"
     ],
     [
-      "$run_evaluate"
-    ],
-    [
-      "$run_process_scope"
+      "$str_case_conv_rec"
     ],
     [
       "$seq_empty"
-    ],
-    [
-      "$str_case_conv_rec"
     ],
     [
       "$str_collect_merge"
@@ -173,6 +167,12 @@
     ],
     [
       "$str_to_int_eval_rec"
+    ],
+    [
+      "$run_evaluate"
+    ],
+    [
+      "$run_process_scope"
     ],
     [
       "$to_clause"
@@ -224,6 +224,7 @@
     "$poly_mul",
     "$poly_mul_mon",
     "$poly_neg",
+    "$run_evaluate",
     "$run_process_scope",
     "$seq_empty",
     "$str_case_conv_rec",
@@ -239,10 +240,12 @@
     "$to_clause"
   ],
   "format": 1,
-  "generated_sha256": "48e1884153829d68a7e4dbf317c70ffa2a1cb3de8138c856c2f7cab1fd73938a",
-  "max_compiled_cases": 32,
-  "reference_programs": [
+  "generated_sha256": "a8159bf9f72f417f85c60a4ce4a8a5b52b6ac5a234ae4f7abd79216bff7c4c40",
+  "max_compiled_cases": null,
+  "reference_programs": [],
+  "source_generated_sha256": "cdac09a8bf7415132dccabe9e18ac4dc06bd9661a34c0212cf6a69d9db86d780",
+  "split_cases_above": 32,
+  "split_programs": [
     "$run_evaluate"
-  ],
-  "source_generated_sha256": "cdac09a8bf7415132dccabe9e18ac4dc06bd9661a34c0212cf6a69d9db86d780"
+  ]
 }

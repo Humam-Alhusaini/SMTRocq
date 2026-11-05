@@ -8,9 +8,17 @@ mode takes precedence if enabled simultaneously.
 The generator reads the same pinned Eunoia signature and selected helper closure
 as `CpcGenerated`. It emits structurally recursive Gallina functions, resolves
 helper calls statically, and orders dependency components before their callers.
-Programs with more than 32 cases use the original reference interpreter. This
-resource policy currently compiles 58 helpers and retains the 78-case evaluator
-as a reference fallback; it changes implementation selection, not rule coverage.
+All 59 selected helpers are compiled, including the 78-case evaluator. Helpers
+with more than 32 cases use separately named case functions and separately
+checked correspondence lemmas. The outer helper proof composes these lemmas
+without normalizing every case body together. Recursive case functions receive
+only their own helper as a callback; the guard checker checks the resulting
+recursion on fuel. Executable case functions remain transparent.
+
+`generate_direct.py --max-cases N` retains the earlier reference-fallback policy
+for controlled comparisons. `--split-cases-above N` changes proof organization,
+not helper selection or source semantics. Both choices are recorded in the
+generated manifest. No rule or helper implementation is handwritten.
 
 Each compiled helper has a kernel-checked defining equation and correspondence
 to its original generated body. Strong induction on fuel proves exact dispatch
