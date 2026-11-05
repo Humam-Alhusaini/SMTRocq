@@ -1,0 +1,882 @@
+{
+  "compiler_timeout_seconds": 30,
+  "false_rejected": 16,
+  "implementation_commit": "49a7aa73e3502ab98e47f4b54241fff3bf918a18",
+  "positive_passed": 65,
+  "runs": [
+    {
+      "artifact_hashes": {
+        "cases.json": "8da39bf4eff5edbc600749ba6bb79430c861e51ec7b95d2e1ca60deabbac5494",
+        "integrity.json": "0f9732071aabc96662979198c067859ad0bf8058fe95745ce8da23df1428a44c",
+        "metadata.json": "dcf91876f2db0273a69542e1a2d1eee197c5a51f36a2578956466ba5a4f90f84",
+        "results.json": "4aaf57e60a986114ce898e8568a09547dd9de9fff1e831860b0e9cb61098fc48"
+      },
+      "false_rejected": 5,
+      "integrity_passed": true,
+      "name": "integer-cuts",
+      "output": "/tmp/eunoia-single-kernel-extensions-49a7aa7-integer-cuts",
+      "positive_passed": 12,
+      "rows": [
+        {
+          "backend": "cvc5_eunoia",
+          "case_id": "parity",
+          "expected": "proved",
+          "new_assumptions": [],
+          "qed_wall_s": 0.014,
+          "status": "solved",
+          "tactic_wall_s": 0.356,
+          "timeout": false
+        },
+        {
+          "backend": "cvc5_eunoia",
+          "case_id": "negative_parity",
+          "expected": "proved",
+          "new_assumptions": [],
+          "qed_wall_s": 0.013,
+          "status": "solved",
+          "tactic_wall_s": 0.356,
+          "timeout": false
+        },
+        {
+          "backend": "cvc5_eunoia",
+          "case_id": "two_variable_parity",
+          "expected": "proved",
+          "new_assumptions": [],
+          "qed_wall_s": 0.019,
+          "status": "solved",
+          "tactic_wall_s": 0.572,
+          "timeout": false
+        },
+        {
+          "backend": "cvc5_eunoia",
+          "case_id": "coefficient_upper",
+          "expected": "proved",
+          "new_assumptions": [],
+          "qed_wall_s": 0.027,
+          "status": "solved",
+          "tactic_wall_s": 0.895,
+          "timeout": false
+        },
+        {
+          "backend": "cvc5_eunoia",
+          "case_id": "coefficient_lower",
+          "expected": "proved",
+          "new_assumptions": [],
+          "qed_wall_s": 0.012,
+          "status": "solved",
+          "tactic_wall_s": 0.401,
+          "timeout": false
+        },
+        {
+          "backend": "cvc5_eunoia",
+          "case_id": "negative_upper",
+          "expected": "proved",
+          "new_assumptions": [],
+          "qed_wall_s": 0.01,
+          "status": "solved",
+          "tactic_wall_s": 0.474,
+          "timeout": false
+        },
+        {
+          "backend": "cvc5_eunoia",
+          "case_id": "negative_lower",
+          "expected": "proved",
+          "new_assumptions": [],
+          "qed_wall_s": 0.026,
+          "status": "solved",
+          "tactic_wall_s": 0.907,
+          "timeout": false
+        },
+        {
+          "backend": "cvc5_eunoia",
+          "case_id": "coefficient_three",
+          "expected": "proved",
+          "new_assumptions": [],
+          "qed_wall_s": 0.032,
+          "status": "solved",
+          "tactic_wall_s": 0.924,
+          "timeout": false
+        },
+        {
+          "backend": "cvc5_eunoia",
+          "case_id": "coefficient_three_lower",
+          "expected": "proved",
+          "new_assumptions": [],
+          "qed_wall_s": 0.015,
+          "status": "solved",
+          "tactic_wall_s": 0.448,
+          "timeout": false
+        },
+        {
+          "backend": "cvc5_eunoia",
+          "case_id": "scoped_coefficient",
+          "expected": "proved",
+          "new_assumptions": [],
+          "qed_wall_s": 0.097,
+          "status": "solved",
+          "tactic_wall_s": 4.16,
+          "timeout": false
+        },
+        {
+          "backend": "cvc5_eunoia",
+          "case_id": "boolean_scope",
+          "expected": "proved",
+          "new_assumptions": [],
+          "qed_wall_s": 0.179,
+          "status": "solved",
+          "tactic_wall_s": 4.253,
+          "timeout": false
+        },
+        {
+          "backend": "cvc5_eunoia",
+          "case_id": "uf_cut",
+          "expected": "proved",
+          "new_assumptions": [],
+          "qed_wall_s": 0.031,
+          "status": "solved",
+          "tactic_wall_s": 1.179,
+          "timeout": false
+        },
+        {
+          "backend": "cvc5_eunoia",
+          "case_id": "false_upper",
+          "expected": "rejected",
+          "new_assumptions": null,
+          "qed_wall_s": null,
+          "status": "negative_rejected",
+          "tactic_wall_s": 0.091,
+          "timeout": false
+        },
+        {
+          "backend": "cvc5_eunoia",
+          "case_id": "false_negative",
+          "expected": "rejected",
+          "new_assumptions": null,
+          "qed_wall_s": null,
+          "status": "negative_rejected",
+          "tactic_wall_s": 0.095,
+          "timeout": false
+        },
+        {
+          "backend": "cvc5_eunoia",
+          "case_id": "false_even",
+          "expected": "rejected",
+          "new_assumptions": null,
+          "qed_wall_s": null,
+          "status": "negative_rejected",
+          "tactic_wall_s": 0.078,
+          "timeout": false
+        },
+        {
+          "backend": "cvc5_eunoia",
+          "case_id": "false_two_variable",
+          "expected": "rejected",
+          "new_assumptions": null,
+          "qed_wall_s": null,
+          "status": "negative_rejected",
+          "tactic_wall_s": 0.088,
+          "timeout": false
+        },
+        {
+          "backend": "cvc5_eunoia",
+          "case_id": "false_scoped",
+          "expected": "rejected",
+          "new_assumptions": null,
+          "qed_wall_s": null,
+          "status": "negative_rejected",
+          "tactic_wall_s": 0.158,
+          "timeout": false
+        }
+      ],
+      "tactic_wall_s": 14.925
+    },
+    {
+      "artifact_hashes": {
+        "cases.json": "c2f0a719590fab8d78ea373fc111bad45976a92def296b6470300877db31ff6f",
+        "integrity.json": "0f9732071aabc96662979198c067859ad0bf8058fe95745ce8da23df1428a44c",
+        "metadata.json": "cfa9a5df8d8ae1c19da5a901b524d4a5a639dd5616a8ff5ca9d860fd07fe58f2",
+        "results.json": "72eb5f0540df04d8703a7550caedafce616a97c0dbd82c90a7245aa63f3bd225"
+      },
+      "false_rejected": 0,
+      "integrity_passed": true,
+      "name": "scalability",
+      "output": "/tmp/eunoia-single-kernel-extensions-49a7aa7-scalability",
+      "positive_passed": 21,
+      "rows": [
+        {
+          "backend": "cvc5_eunoia",
+          "case_id": "uf_boolean_chain_3",
+          "expected": "proved",
+          "new_assumptions": [],
+          "qed_wall_s": 0.032,
+          "status": "solved",
+          "tactic_wall_s": 0.774,
+          "timeout": false
+        },
+        {
+          "backend": "cvc5_eunoia",
+          "case_id": "uf_prop_chain_3",
+          "expected": "proved",
+          "new_assumptions": [],
+          "qed_wall_s": 0.017,
+          "status": "solved",
+          "tactic_wall_s": 0.505,
+          "timeout": false
+        },
+        {
+          "backend": "cvc5_eunoia",
+          "case_id": "uf_boolean_chain_6",
+          "expected": "proved",
+          "new_assumptions": [],
+          "qed_wall_s": 0.08,
+          "status": "solved",
+          "tactic_wall_s": 1.659,
+          "timeout": false
+        },
+        {
+          "backend": "cvc5_eunoia",
+          "case_id": "uf_prop_chain_6",
+          "expected": "proved",
+          "new_assumptions": [],
+          "qed_wall_s": 0.027,
+          "status": "solved",
+          "tactic_wall_s": 1.08,
+          "timeout": false
+        },
+        {
+          "backend": "cvc5_eunoia",
+          "case_id": "uf_boolean_chain_10",
+          "expected": "proved",
+          "new_assumptions": [],
+          "qed_wall_s": 0.245,
+          "status": "solved",
+          "tactic_wall_s": 7.93,
+          "timeout": false
+        },
+        {
+          "backend": "cvc5_eunoia",
+          "case_id": "uf_prop_chain_10",
+          "expected": "proved",
+          "new_assumptions": [],
+          "qed_wall_s": 0.036,
+          "status": "solved",
+          "tactic_wall_s": 1.993,
+          "timeout": false
+        },
+        {
+          "backend": "cvc5_eunoia",
+          "case_id": "uf_nested_2",
+          "expected": "proved",
+          "new_assumptions": [],
+          "qed_wall_s": 0.01,
+          "status": "solved",
+          "tactic_wall_s": 0.46,
+          "timeout": false
+        },
+        {
+          "backend": "cvc5_eunoia",
+          "case_id": "uf_nested_5",
+          "expected": "proved",
+          "new_assumptions": [],
+          "qed_wall_s": 0.017,
+          "status": "solved",
+          "tactic_wall_s": 0.717,
+          "timeout": false
+        },
+        {
+          "backend": "cvc5_eunoia",
+          "case_id": "uf_nested_10",
+          "expected": "proved",
+          "new_assumptions": [],
+          "qed_wall_s": 0.057,
+          "status": "solved",
+          "tactic_wall_s": 1.184,
+          "timeout": false
+        },
+        {
+          "backend": "cvc5_eunoia",
+          "case_id": "lia_cut_3",
+          "expected": "proved",
+          "new_assumptions": [],
+          "qed_wall_s": 0.03,
+          "status": "solved",
+          "tactic_wall_s": 0.909,
+          "timeout": false
+        },
+        {
+          "backend": "cvc5_eunoia",
+          "case_id": "lia_parity_3",
+          "expected": "proved",
+          "new_assumptions": [],
+          "qed_wall_s": 0.017,
+          "status": "solved",
+          "tactic_wall_s": 0.398,
+          "timeout": false
+        },
+        {
+          "backend": "cvc5_eunoia",
+          "case_id": "mixed_cut_3",
+          "expected": "proved",
+          "new_assumptions": [],
+          "qed_wall_s": 0.063,
+          "status": "solved",
+          "tactic_wall_s": 1.183,
+          "timeout": false
+        },
+        {
+          "backend": "cvc5_eunoia",
+          "case_id": "lia_cut_7",
+          "expected": "proved",
+          "new_assumptions": [],
+          "qed_wall_s": 0.029,
+          "status": "solved",
+          "tactic_wall_s": 0.952,
+          "timeout": false
+        },
+        {
+          "backend": "cvc5_eunoia",
+          "case_id": "lia_parity_7",
+          "expected": "proved",
+          "new_assumptions": [],
+          "qed_wall_s": 0.016,
+          "status": "solved",
+          "tactic_wall_s": 0.399,
+          "timeout": false
+        },
+        {
+          "backend": "cvc5_eunoia",
+          "case_id": "mixed_cut_7",
+          "expected": "proved",
+          "new_assumptions": [],
+          "qed_wall_s": 0.062,
+          "status": "solved",
+          "tactic_wall_s": 1.24,
+          "timeout": false
+        },
+        {
+          "backend": "cvc5_eunoia",
+          "case_id": "lia_cut_31",
+          "expected": "proved",
+          "new_assumptions": [],
+          "qed_wall_s": 0.026,
+          "status": "solved",
+          "tactic_wall_s": 0.916,
+          "timeout": false
+        },
+        {
+          "backend": "cvc5_eunoia",
+          "case_id": "lia_parity_31",
+          "expected": "proved",
+          "new_assumptions": [],
+          "qed_wall_s": 0.019,
+          "status": "solved",
+          "tactic_wall_s": 0.402,
+          "timeout": false
+        },
+        {
+          "backend": "cvc5_eunoia",
+          "case_id": "mixed_cut_31",
+          "expected": "proved",
+          "new_assumptions": [],
+          "qed_wall_s": 0.059,
+          "status": "solved",
+          "tactic_wall_s": 1.226,
+          "timeout": false
+        },
+        {
+          "backend": "cvc5_eunoia",
+          "case_id": "lia_cycle_3",
+          "expected": "proved",
+          "new_assumptions": [],
+          "qed_wall_s": 0.041,
+          "status": "solved",
+          "tactic_wall_s": 1.974,
+          "timeout": false
+        },
+        {
+          "backend": "cvc5_eunoia",
+          "case_id": "lia_cycle_5",
+          "expected": "proved",
+          "new_assumptions": [],
+          "qed_wall_s": 0.154,
+          "status": "solved",
+          "tactic_wall_s": 2.985,
+          "timeout": false
+        },
+        {
+          "backend": "cvc5_eunoia",
+          "case_id": "lia_cycle_8",
+          "expected": "proved",
+          "new_assumptions": [],
+          "qed_wall_s": 0.097,
+          "status": "solved",
+          "tactic_wall_s": 5.062,
+          "timeout": false
+        }
+      ],
+      "tactic_wall_s": 33.948
+    },
+    {
+      "artifact_hashes": {
+        "cases.json": "113e7ea76fc1369753c9fdba6d6e4de261463fbb9dcd3a4be74dae13e574d8f3",
+        "integrity.json": "0f9732071aabc96662979198c067859ad0bf8058fe95745ce8da23df1428a44c",
+        "metadata.json": "f890f31e5df92f7f036504cf3ba653c025cebc282ad8628cb0c90b434368ebf4",
+        "results.json": "496bd0a8daf42ce7184844b4f2299c56a8f6dd7d9f79539072c0ad6ed5b501ac"
+      },
+      "false_rejected": 8,
+      "integrity_passed": true,
+      "name": "division",
+      "output": "/tmp/eunoia-single-kernel-extensions-49a7aa7-division",
+      "positive_passed": 27,
+      "rows": [
+        {
+          "backend": "cvc5_eunoia",
+          "case_id": "positive_remainder",
+          "expected": "proved",
+          "new_assumptions": [],
+          "qed_wall_s": 0.016,
+          "status": "solved",
+          "tactic_wall_s": 0.667,
+          "timeout": false
+        },
+        {
+          "backend": "cvc5_eunoia",
+          "case_id": "positive_reconstruction",
+          "expected": "proved",
+          "new_assumptions": [],
+          "qed_wall_s": 0.009,
+          "status": "solved",
+          "tactic_wall_s": 0.465,
+          "timeout": false
+        },
+        {
+          "backend": "cvc5_eunoia",
+          "case_id": "positive_quotient_bound",
+          "expected": "proved",
+          "new_assumptions": [],
+          "qed_wall_s": 0.045,
+          "status": "solved",
+          "tactic_wall_s": 2.046,
+          "timeout": false
+        },
+        {
+          "backend": "cvc5_eunoia",
+          "case_id": "negative_remainder",
+          "expected": "proved",
+          "new_assumptions": [],
+          "qed_wall_s": 0.024,
+          "status": "solved",
+          "tactic_wall_s": 1.036,
+          "timeout": false
+        },
+        {
+          "backend": "cvc5_eunoia",
+          "case_id": "negative_quotient_bound",
+          "expected": "proved",
+          "new_assumptions": [],
+          "qed_wall_s": 0.072,
+          "status": "solved",
+          "tactic_wall_s": 2.157,
+          "timeout": false
+        },
+        {
+          "backend": "cvc5_eunoia",
+          "case_id": "zero_divisor",
+          "expected": "proved",
+          "new_assumptions": [],
+          "qed_wall_s": 0.017,
+          "status": "solved",
+          "tactic_wall_s": 0.607,
+          "timeout": false
+        },
+        {
+          "backend": "cvc5_eunoia",
+          "case_id": "ground_divisor_expression",
+          "expected": "proved",
+          "new_assumptions": [],
+          "qed_wall_s": 0.015,
+          "status": "solved",
+          "tactic_wall_s": 0.744,
+          "timeout": false
+        },
+        {
+          "backend": "cvc5_eunoia",
+          "case_id": "nested_division",
+          "expected": "proved",
+          "new_assumptions": [],
+          "qed_wall_s": 0.018,
+          "status": "solved",
+          "tactic_wall_s": 0.993,
+          "timeout": false
+        },
+        {
+          "backend": "cvc5_eunoia",
+          "case_id": "division_uf",
+          "expected": "proved",
+          "new_assumptions": [],
+          "qed_wall_s": 0.017,
+          "status": "solved",
+          "tactic_wall_s": 0.741,
+          "timeout": false
+        },
+        {
+          "backend": "cvc5_eunoia",
+          "case_id": "quotient_from_hypothesis",
+          "expected": "proved",
+          "new_assumptions": [],
+          "qed_wall_s": 0.008,
+          "status": "solved",
+          "tactic_wall_s": 0.407,
+          "timeout": false
+        },
+        {
+          "backend": "cvc5_eunoia",
+          "case_id": "negative_numerator",
+          "expected": "proved",
+          "new_assumptions": [],
+          "qed_wall_s": 0.008,
+          "status": "solved",
+          "tactic_wall_s": 0.391,
+          "timeout": false
+        },
+        {
+          "backend": "cvc5_eunoia",
+          "case_id": "negative_divisor_from_hypothesis",
+          "expected": "proved",
+          "new_assumptions": [],
+          "qed_wall_s": 0.009,
+          "status": "solved",
+          "tactic_wall_s": 0.423,
+          "timeout": false
+        },
+        {
+          "backend": "cvc5_eunoia",
+          "case_id": "division_only_in_hypotheses",
+          "expected": "proved",
+          "new_assumptions": [],
+          "qed_wall_s": 0.035,
+          "status": "solved",
+          "tactic_wall_s": 1.841,
+          "timeout": false
+        },
+        {
+          "backend": "cvc5_eunoia",
+          "case_id": "two_divisors",
+          "expected": "proved",
+          "new_assumptions": [],
+          "qed_wall_s": 0.023,
+          "status": "solved",
+          "tactic_wall_s": 1.11,
+          "timeout": false
+        },
+        {
+          "backend": "cvc5_eunoia",
+          "case_id": "modulo_periodicity",
+          "expected": "proved",
+          "new_assumptions": [],
+          "qed_wall_s": 0.017,
+          "status": "solved",
+          "tactic_wall_s": 1.189,
+          "timeout": false
+        },
+        {
+          "backend": "cvc5_eunoia",
+          "case_id": "modulo_congruence",
+          "expected": "proved",
+          "new_assumptions": [],
+          "qed_wall_s": 0.014,
+          "status": "solved",
+          "tactic_wall_s": 0.742,
+          "timeout": false
+        },
+        {
+          "backend": "cvc5_eunoia",
+          "case_id": "nonnegative_quotient_bound",
+          "expected": "proved",
+          "new_assumptions": [],
+          "qed_wall_s": 0.048,
+          "status": "solved",
+          "tactic_wall_s": 2.551,
+          "timeout": false
+        },
+        {
+          "backend": "cvc5_eunoia",
+          "case_id": "quotient_monotonicity",
+          "expected": "proved",
+          "new_assumptions": [],
+          "qed_wall_s": 0.068,
+          "status": "solved",
+          "tactic_wall_s": 4.099,
+          "timeout": false
+        },
+        {
+          "backend": "cvc5_eunoia",
+          "case_id": "nested_quotient",
+          "expected": "proved",
+          "new_assumptions": [],
+          "qed_wall_s": 0.011,
+          "status": "solved",
+          "tactic_wall_s": 0.974,
+          "timeout": false
+        },
+        {
+          "backend": "cvc5_eunoia",
+          "case_id": "division_abstract_argument",
+          "expected": "proved",
+          "new_assumptions": [],
+          "qed_wall_s": 0.019,
+          "status": "solved",
+          "tactic_wall_s": 0.747,
+          "timeout": false
+        },
+        {
+          "backend": "cvc5_eunoia",
+          "case_id": "negative_modulo_shift",
+          "expected": "proved",
+          "new_assumptions": [],
+          "qed_wall_s": 0.025,
+          "status": "solved",
+          "tactic_wall_s": 1.218,
+          "timeout": false
+        },
+        {
+          "backend": "cvc5_eunoia",
+          "case_id": "positive_division_shift",
+          "expected": "proved",
+          "new_assumptions": [],
+          "qed_wall_s": 0.018,
+          "status": "solved",
+          "tactic_wall_s": 1.367,
+          "timeout": false
+        },
+        {
+          "backend": "cvc5_eunoia",
+          "case_id": "negative_division_shift",
+          "expected": "proved",
+          "new_assumptions": [],
+          "qed_wall_s": 0.022,
+          "status": "solved",
+          "tactic_wall_s": 1.531,
+          "timeout": false
+        },
+        {
+          "backend": "cvc5_eunoia",
+          "case_id": "subtraction_modulo_shift",
+          "expected": "proved",
+          "new_assumptions": [],
+          "qed_wall_s": 0.022,
+          "status": "solved",
+          "tactic_wall_s": 1.432,
+          "timeout": false
+        },
+        {
+          "backend": "cvc5_eunoia",
+          "case_id": "negative_nested_quotient",
+          "expected": "proved",
+          "new_assumptions": [],
+          "qed_wall_s": 0.012,
+          "status": "solved",
+          "tactic_wall_s": 0.983,
+          "timeout": false
+        },
+        {
+          "backend": "cvc5_eunoia",
+          "case_id": "large_divisor",
+          "expected": "proved",
+          "new_assumptions": [],
+          "qed_wall_s": 0.047,
+          "status": "solved",
+          "tactic_wall_s": 3.414,
+          "timeout": false
+        },
+        {
+          "backend": "cvc5_eunoia",
+          "case_id": "both_shift_operations",
+          "expected": "proved",
+          "new_assumptions": [],
+          "qed_wall_s": 0.037,
+          "status": "solved",
+          "tactic_wall_s": 2.356,
+          "timeout": false
+        },
+        {
+          "backend": "cvc5_eunoia",
+          "case_id": "wrong_remainder_sign",
+          "expected": "rejected",
+          "new_assumptions": null,
+          "qed_wall_s": null,
+          "status": "negative_rejected",
+          "tactic_wall_s": 0.094,
+          "timeout": false
+        },
+        {
+          "backend": "cvc5_eunoia",
+          "case_id": "quotient_identity",
+          "expected": "rejected",
+          "new_assumptions": null,
+          "qed_wall_s": null,
+          "status": "negative_rejected",
+          "tactic_wall_s": 0.094,
+          "timeout": false
+        },
+        {
+          "backend": "cvc5_eunoia",
+          "case_id": "negative_remainder_strict",
+          "expected": "rejected",
+          "new_assumptions": null,
+          "qed_wall_s": null,
+          "status": "negative_rejected",
+          "tactic_wall_s": 0.096,
+          "timeout": false
+        },
+        {
+          "backend": "cvc5_eunoia",
+          "case_id": "zero_modulo",
+          "expected": "rejected",
+          "new_assumptions": null,
+          "qed_wall_s": null,
+          "status": "negative_rejected",
+          "tactic_wall_s": 0.08,
+          "timeout": false
+        },
+        {
+          "backend": "cvc5_eunoia",
+          "case_id": "wrong_period",
+          "expected": "rejected",
+          "new_assumptions": null,
+          "qed_wall_s": null,
+          "status": "negative_rejected",
+          "tactic_wall_s": 0.121,
+          "timeout": false
+        },
+        {
+          "backend": "cvc5_eunoia",
+          "case_id": "truncating_negative_division",
+          "expected": "rejected",
+          "new_assumptions": null,
+          "qed_wall_s": null,
+          "status": "negative_rejected",
+          "tactic_wall_s": 0.194,
+          "timeout": false
+        },
+        {
+          "backend": "cvc5_eunoia",
+          "case_id": "wrong_negative_shift",
+          "expected": "rejected",
+          "new_assumptions": null,
+          "qed_wall_s": null,
+          "status": "negative_rejected",
+          "tactic_wall_s": 0.212,
+          "timeout": false
+        },
+        {
+          "backend": "cvc5_eunoia",
+          "case_id": "wrong_negative_outer_quotient",
+          "expected": "rejected",
+          "new_assumptions": null,
+          "qed_wall_s": null,
+          "status": "negative_rejected",
+          "tactic_wall_s": 0.232,
+          "timeout": false
+        }
+      ],
+      "tactic_wall_s": 36.231
+    },
+    {
+      "artifact_hashes": {
+        "cases.json": "3bcfe5b461e17ca7b54fea5f7754c46a11be41426dbdf15a7cf86df8d8f931b4",
+        "integrity.json": "0f9732071aabc96662979198c067859ad0bf8058fe95745ce8da23df1428a44c",
+        "metadata.json": "c7a5e5afa785e3e327f5d68892a1dfd2735b4e55888e2ff0d0cac0399613c330",
+        "results.json": "c6ffafbf7770a2ed31e5b5c8f03af77aec3f3821a3bbebb7aac7138ec426de12"
+      },
+      "false_rejected": 3,
+      "integrity_passed": true,
+      "name": "known-values",
+      "output": "/tmp/eunoia-single-kernel-extensions-49a7aa7-known-values",
+      "positive_passed": 5,
+      "rows": [
+        {
+          "backend": "cvc5_eunoia",
+          "case_id": "known_value_reverse_equality",
+          "expected": "proved",
+          "new_assumptions": [],
+          "qed_wall_s": 0.007,
+          "status": "solved",
+          "tactic_wall_s": 0.472,
+          "timeout": false
+        },
+        {
+          "backend": "cvc5_eunoia",
+          "case_id": "known_value_remainder",
+          "expected": "proved",
+          "new_assumptions": [],
+          "qed_wall_s": 0.009,
+          "status": "solved",
+          "tactic_wall_s": 0.43,
+          "timeout": false
+        },
+        {
+          "backend": "cvc5_eunoia",
+          "case_id": "known_value_negative_remainder",
+          "expected": "proved",
+          "new_assumptions": [],
+          "qed_wall_s": 0.008,
+          "status": "solved",
+          "tactic_wall_s": 0.426,
+          "timeout": false
+        },
+        {
+          "backend": "cvc5_eunoia",
+          "case_id": "known_value_ground_expression",
+          "expected": "proved",
+          "new_assumptions": [],
+          "qed_wall_s": 0.009,
+          "status": "solved",
+          "tactic_wall_s": 0.418,
+          "timeout": false
+        },
+        {
+          "backend": "cvc5_eunoia",
+          "case_id": "known_value_uf_result",
+          "expected": "proved",
+          "new_assumptions": [],
+          "qed_wall_s": 0.006,
+          "status": "solved",
+          "tactic_wall_s": 0.438,
+          "timeout": false
+        },
+        {
+          "backend": "cvc5_eunoia",
+          "case_id": "wrong_reverse_quotient",
+          "expected": "rejected",
+          "new_assumptions": null,
+          "qed_wall_s": null,
+          "status": "negative_rejected",
+          "tactic_wall_s": 0.175,
+          "timeout": false
+        },
+        {
+          "backend": "cvc5_eunoia",
+          "case_id": "wrong_negative_remainder",
+          "expected": "rejected",
+          "new_assumptions": null,
+          "qed_wall_s": null,
+          "status": "negative_rejected",
+          "tactic_wall_s": 0.176,
+          "timeout": false
+        },
+        {
+          "backend": "cvc5_eunoia",
+          "case_id": "wrong_uf_result_quotient",
+          "expected": "rejected",
+          "new_assumptions": null,
+          "qed_wall_s": null,
+          "status": "negative_rejected",
+          "tactic_wall_s": 0.422,
+          "timeout": false
+        }
+      ],
+      "tactic_wall_s": 2.184
+    }
+  ]
+}

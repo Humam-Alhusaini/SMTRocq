@@ -480,13 +480,13 @@ let with_normalized_proof ?(normalize=true) ~conversion_phase ~acceptance_phase 
   R.tclTHEN (typecheck_helper_goal ty) (Proofview.Goal.enter (fun _ ->
     let started = phase_start () in
     (* Abstract's private declaration synchronously kernel-checks the complete
-       original type before exposing the lemma. The experimental path records
+       original type before exposing the lemma. The default path records
        a VM cast directly: conversion happens in that mandatory kernel check,
        rather than also evaluating the same goal while constructing its body.
        Never move this construction outside the checked Abstract boundary. *)
     let exact = Tactics.exact_check (EConstr.of_constr proof) in
     let certificate = if normalize &&
-      Sys.getenv_opt "EUNOIA_SINGLE_KERNEL_ACCEPTANCE" = Some "1" then
+      Sys.getenv_opt "EUNOIA_SINGLE_KERNEL_ACCEPTANCE" <> Some "0" then
         Tactics.vm_cast_no_check (EConstr.of_constr proof)
       else if normalize then R.tclTHEN Tactics.normalise_vm_in_concl exact
       else exact in
@@ -587,9 +587,9 @@ let tactic_using produce ?fuel ?(preprocess=Tactics.intros) ~witness ?(lemmas=[]
       let binding_proof = C.call "Corelib.Init.Logic.eq_refl" [values_ty;actual_values] in
       (* A kernel-checked equality binds the complete ordered root vector to
          the actual Boolean goal/hypotheses. No root is dropped or changed. *)
-      (* Lazy kernel conversion avoids fully normalizing symbolic arithmetic
-         while binding the model. Both paths use exact_check and Abstract's
-         synchronous kernel check against the complete equality type. *)
+      (* Ordinary conversion avoids fully normalizing symbolic arithmetic
+         while binding the model. That path retains exact_check; both paths
+         retain Abstract's synchronous check of the complete equality type. *)
       with_normalized_proof ~normalize:(arithmetic = []) ~conversion_phase:"root_conversion" ~acceptance_phase:"checked_root"
         binding_type binding_proof (fun binding ->
       let facts =
