@@ -42,3 +42,21 @@ experiment. An isolated cycle profile located the regression in checked
 acceptance/reduction; forcing the same certificate representation did not
 remove it. A short-prefix/trie hybrid was also rejected after its focused
 diagnostic failed to improve that cost.
+
+## Separating lookup from representation
+
+The initial native index option forced the shared-certificate representation.
+Consequently its earlier full-tactic comparison measured both program lookup
+and that representation choice. The historical negative result remains a
+measurement of the complete option at its frozen revision.
+
+New proved flat and scoped adapters let the native emitter preserve its normal
+adaptive sharing policy when program indexing is enabled. Their correctness
+transports acceptance to the existing checkers using the exact indexed-source
+refinement theorem; source replay, semantic gates and scope/root binding remain
+checked. The shared adapter remains available when sharing is selected.
+
+Fresh `IndexedAdaptive` and `IndexedReference` replay modes exercise adaptive
+and forced nonshared emission; the existing `Indexed` mode forces sharing.
+Program indexing remains opt-in (`EUNOIA_PROGRAM_INDEX=1`) pending a matched
+comparison with the same sharing policy on both paths.

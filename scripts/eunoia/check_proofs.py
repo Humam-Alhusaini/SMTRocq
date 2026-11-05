@@ -39,6 +39,8 @@ def main():
     for i in range(0, len(mappings), 3):
         audit += ["--loadpath", mappings[i + 1], mappings[i + 2]]
     for module, names in {
+        "EunoiaProgramIndexFlat": ["flat_step_ext", "flat_run_ext", "flat_checker_ext", "checker_refinement", "checker_correct", "checker_b_refinement", "checker_b_correct", "checker_eq_refinement", "checker_eq_correct"],
+        "EunoiaProgramIndexScoped": ["checker_refinement", "checker_correct", "checker_b_refinement", "checker_b_correct", "checker_eq_refinement", "checker_eq_correct"],
         "EoRename": ["refinement"],
         "EoDirect": ["compile_refinement", "run_program_correct", "call_compiled_correct"],
         "CpcDirect": ["dispatch_correct"],
@@ -138,6 +140,8 @@ def main():
                   "SMTCoq.checker.eunoia.EoCheckedMemoTests",
                   "SMTCoq.checker.eunoia.EunoiaHelperCache",
                   "SMTCoq.checker.eunoia.EunoiaProgramIndex",
+                  "SMTCoq.checker.eunoia.EunoiaProgramIndexFlat",
+                  "SMTCoq.checker.eunoia.EunoiaProgramIndexScoped",
                   "SMTCoq.checker.eunoia.EunoiaStagedTests",
                   "SMTCoq.checker.eunoia.EunoiaDirectTests",
                   "SMTCoq.checker.eunoia.EunoiaDirectScoped",

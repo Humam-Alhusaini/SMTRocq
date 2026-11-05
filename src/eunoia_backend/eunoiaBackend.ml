@@ -308,7 +308,7 @@ let prepare ?(fuel=10000) ~witness env t roots parsed =
     let reference_trace = if has_scopes then nested proof.trace else
       C.list (C.call (core "step") [rule_ty;witness_ty]) (List.map ordinary proof.steps) in
     let sharing_hits = List.length proof.steps - List.length !certificates - !inline_certificates in
-    let memoize = share_helpers || use_staged || use_program_index || collect_cache &&
+    let memoize = share_helpers || use_staged || collect_cache &&
       (Sys.getenv_opt "EUNOIA_FORCE_CHECKED_CACHE" = Some "1" ||
        (sharing_hits >= 4 && sharing_hits * 4 >= List.length proof.steps)) in
     (* Keep the original representation for nonrepeating proofs. If sharing
@@ -440,7 +440,9 @@ let prepare ?(fuel=10000) ~witness env t roots parsed =
        else if use_staged then
          (fun n -> "SMTCoq.checker.eunoia.EunoiaStaged.EunoiaStaged." ^ n)
        else if use_program_index then
-         (fun n -> "SMTCoq.checker.eunoia.EunoiaProgramIndex.EunoiaProgramIndex." ^ n)
+         (fun n -> (if memoize then "SMTCoq.checker.eunoia.EunoiaProgramIndex.EunoiaProgramIndex."
+                    else if has_scopes then "SMTCoq.checker.eunoia.EunoiaProgramIndexScoped.EunoiaProgramIndexScoped."
+                    else "SMTCoq.checker.eunoia.EunoiaProgramIndexFlat.EunoiaProgramIndexFlat.") ^ n)
        else if memoize then memo_api else if has_scopes then scoped else tactic_api)})
 
 let refutation env sigma p =
