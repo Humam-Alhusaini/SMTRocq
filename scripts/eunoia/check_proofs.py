@@ -129,7 +129,9 @@ def main():
     acceptance = "SMTCoq.eunoia_kernel_acceptance_probe.Controls"
     audit += ["--import", acceptance,
               "--theorem", acceptance + ".accepted",
-              "--theorem", acceptance + ".rejected_before_callback"]
+              "--theorem", acceptance + ".rejected_before_callback",
+              "--theorem", acceptance + ".transparent_data",
+              "--theorem", acceptance + ".illtyped_data_rejected_before_callback"]
     commands = []
     summary = dict(passed=False, commands=commands)
     try:

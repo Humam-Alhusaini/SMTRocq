@@ -152,6 +152,7 @@ type prepared = {
   common_args : R.constr list;
   roots_arg : R.constr;
   tail_args : R.constr list;
+  trace_type : R.constr;
   diagnose : unit -> unit;
   checker_api : string -> string;
 }
@@ -431,6 +432,7 @@ let prepare ?(fuel=10000) ~witness env t roots parsed =
      tail_args=[term_list root_terms;
        claims (List.map2 (fun (i,_) c -> i,c) proof.roots root_clauses);
        trace;mkint proof.conflict];diagnose;
+     trace_type=C.global ((if memoize then memo_api else if has_scopes then scoped else tactic_api) "trace");
      checker_api=(if share_helpers then
        (fun n -> "SMTCoq.checker.eunoia.EunoiaHelperCache.EunoiaHelperCache." ^ n)
        else if use_direct then
@@ -477,6 +479,27 @@ let typecheck_helper_goal ty =
         (Evd.universe_context_set sigma) globals in
       R.tclTHEN (Proofview.Unsafe.tclEVARS sigma)
         (Proofview.Unsafe.tclSETENV globals)))
+
+(* This declares only the exact input data, not its validity. Abstract checks
+   the transparent definition before the callback; the complete source and
+   semantic checkers still evaluate that data during checked acceptance. *)
+let with_prepared_trace p use =
+  if Sys.getenv_opt "EUNOIA_TRACE_CONSTANTS" <> Some "1" then use p else
+  match p.tail_args with
+  | [root_terms;claims;trace;goal] ->
+    R.tclTHEN (typecheck_helper_goal p.trace_type)
+      (Proofview.Goal.enter(fun _ ->
+       let started=phase_start () in
+       Abstract.cache_term_by_tactic_then ~opaque:false ~name_op:None
+        ~goal_type:(Some(EConstr.of_constr p.trace_type))
+        (phase_tactic "trace_data_construction"
+          (Tactics.exact_no_check(EConstr.of_constr trace)))
+        (fun value args -> Proofview.Goal.enter(fun gl ->
+          let data=EConstr.to_constr (Proofview.Goal.sigma gl)
+            (EConstr.mkApp(value,Array.of_list args)) in
+          phase_end "trace_data_checked" started;
+          use {p with tail_args=[root_terms;claims;data;goal]}))))
+  | _ -> R.raise_error "Eunoia: malformed prepared trace arguments"
 
 let with_normalized_proof ?(normalize=true) ~conversion_phase ~acceptance_phase ty proof use =
   R.tclTHEN (typecheck_helper_goal ty) (Proofview.Goal.enter (fun _ ->
@@ -551,6 +574,7 @@ let tactic_using produce ?fuel ?(preprocess=Tactics.intros) ~witness ?(lemmas=[]
       let roots = ng :: List.map (fun (f,_,_) -> f) ls in
       let parsed = phase "solver_and_parse" (fun () -> produce env t roots) in
       let prepared = phase "prepare" (fun () -> prepare ?fuel ~witness env t roots parsed) in
+      with_prepared_trace prepared (fun prepared ->
       if not has_lemmas then begin
         let name,args = if boolean_result then
           "checker_b",[Form.to_coq fa;b]
@@ -616,7 +640,7 @@ let tactic_using produce ?fuel ?(preprocess=Tactics.intros) ~witness ?(lemmas=[]
       let proof = C.call (std "Bool.Bool.eqb_prop") [a;b;is_true] in
       phase_tactic "goal_conversion" (Tactics.exact_check (EConstr.of_constr proof))))
 
-      end
+      end)
     with
     | EunoiaSolver.Error s | E.Error s | Failure s | Invalid_argument s ->
       R.raise_error "Eunoia: %s" s))
