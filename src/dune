@@ -1,7 +1,14 @@
 (library
  (name smtcoq)
  (public_name rocq-smtcoq.smtcoq)
- (libraries lfsc rocq-runtime.plugins.ltac common verit zchaff))
+ (libraries
+  lfsc
+  rocq-runtime.plugins.ltac
+  common
+  verit
+  zchaff
+  eunoia_backend
+  eunoia_witness))
 
 (rocq.pp
  (modules g_smtcoq))

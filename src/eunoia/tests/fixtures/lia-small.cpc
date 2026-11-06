@@ -1,0 +1,15 @@
+unsat
+(
+(declare-const x Int)
+(define @t1 () (+ 2 1))
+(define @t2 () (>= x @t1))
+(assume @p1 (>= x 3))
+(assume @p2 (<= x 2))
+(step @p3 :rule evaluate :args (@t1))
+(step @p4 :rule cong :premises (@p3) :args (@t2))
+(step @p5 :rule cong :premises (@p4) :args ((not @t2)))
+(step @p6 :rule arith-leq-norm :args (x 2))
+(step @p7 :rule trans :premises (@p6 @p5))
+(step @p8 :rule eq_resolve :premises (@p2 @p7))
+(step @p9 false :rule contra :premises (@p1 @p8))
+)

@@ -1,0 +1,149 @@
+[
+  {
+    "id": "uf_boolean_chain_3",
+    "theory": "UF",
+    "expected": "proved",
+    "source": "parameterized scalability diagnostics; not part of the original workload",
+    "statement": "forall (x0 x1 x2 x3 : Z), (x0 =? x1) && (x1 =? x2) && (x2 =? x3) && negb (x0 =? x3) = false"
+  },
+  {
+    "id": "uf_prop_chain_3",
+    "theory": "UF",
+    "expected": "proved",
+    "source": "parameterized scalability diagnostics; not part of the original workload",
+    "statement": "forall (x0 x1 x2 x3 : Z), x0 = x1 -> x1 = x2 -> x2 = x3 -> x0 = x3"
+  },
+  {
+    "id": "uf_boolean_chain_6",
+    "theory": "UF",
+    "expected": "proved",
+    "source": "parameterized scalability diagnostics; not part of the original workload",
+    "statement": "forall (x0 x1 x2 x3 x4 x5 x6 : Z), (x0 =? x1) && (x1 =? x2) && (x2 =? x3) && (x3 =? x4) && (x4 =? x5) && (x5 =? x6) && negb (x0 =? x6) = false"
+  },
+  {
+    "id": "uf_prop_chain_6",
+    "theory": "UF",
+    "expected": "proved",
+    "source": "parameterized scalability diagnostics; not part of the original workload",
+    "statement": "forall (x0 x1 x2 x3 x4 x5 x6 : Z), x0 = x1 -> x1 = x2 -> x2 = x3 -> x3 = x4 -> x4 = x5 -> x5 = x6 -> x0 = x6"
+  },
+  {
+    "id": "uf_boolean_chain_10",
+    "theory": "UF",
+    "expected": "proved",
+    "source": "parameterized scalability diagnostics; not part of the original workload",
+    "statement": "forall (x0 x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 : Z), (x0 =? x1) && (x1 =? x2) && (x2 =? x3) && (x3 =? x4) && (x4 =? x5) && (x5 =? x6) && (x6 =? x7) && (x7 =? x8) && (x8 =? x9) && (x9 =? x10) && negb (x0 =? x10) = false"
+  },
+  {
+    "id": "uf_prop_chain_10",
+    "theory": "UF",
+    "expected": "proved",
+    "source": "parameterized scalability diagnostics; not part of the original workload",
+    "statement": "forall (x0 x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 : Z), x0 = x1 -> x1 = x2 -> x2 = x3 -> x3 = x4 -> x4 = x5 -> x5 = x6 -> x6 = x7 -> x7 = x8 -> x8 = x9 -> x9 = x10 -> x0 = x10"
+  },
+  {
+    "id": "uf_nested_2",
+    "theory": "UF",
+    "expected": "proved",
+    "source": "parameterized scalability diagnostics; not part of the original workload",
+    "statement": "forall (f : Z -> Z) (x y : Z), x = y -> (f (f x)) = (f (f y))"
+  },
+  {
+    "id": "uf_nested_5",
+    "theory": "UF",
+    "expected": "proved",
+    "source": "parameterized scalability diagnostics; not part of the original workload",
+    "statement": "forall (f : Z -> Z) (x y : Z), x = y -> (f (f (f (f (f x))))) = (f (f (f (f (f y)))))"
+  },
+  {
+    "id": "uf_nested_10",
+    "theory": "UF",
+    "expected": "proved",
+    "source": "parameterized scalability diagnostics; not part of the original workload",
+    "statement": "forall (f : Z -> Z) (x y : Z), x = y -> (f (f (f (f (f (f (f (f (f (f x)))))))))) = (f (f (f (f (f (f (f (f (f (f y))))))))))"
+  },
+  {
+    "id": "lia_cut_3",
+    "theory": "LIA",
+    "expected": "proved",
+    "source": "parameterized scalability diagnostics; not part of the original workload",
+    "statement": "forall x : Z, 3*x <= 11 -> x <= 3"
+  },
+  {
+    "id": "lia_parity_3",
+    "theory": "LIA",
+    "expected": "proved",
+    "source": "parameterized scalability diagnostics; not part of the original workload",
+    "statement": "forall x : Z, 3*x <> 10"
+  },
+  {
+    "id": "mixed_cut_3",
+    "theory": "LIA",
+    "expected": "proved",
+    "source": "parameterized scalability diagnostics; not part of the original workload",
+    "statement": "forall (f : Z -> Z) (x : Z), 3*x <= 11 -> x >= 3 -> f x = f 3"
+  },
+  {
+    "id": "lia_cut_7",
+    "theory": "LIA",
+    "expected": "proved",
+    "source": "parameterized scalability diagnostics; not part of the original workload",
+    "statement": "forall x : Z, 7*x <= 27 -> x <= 3"
+  },
+  {
+    "id": "lia_parity_7",
+    "theory": "LIA",
+    "expected": "proved",
+    "source": "parameterized scalability diagnostics; not part of the original workload",
+    "statement": "forall x : Z, 7*x <> 22"
+  },
+  {
+    "id": "mixed_cut_7",
+    "theory": "LIA",
+    "expected": "proved",
+    "source": "parameterized scalability diagnostics; not part of the original workload",
+    "statement": "forall (f : Z -> Z) (x : Z), 7*x <= 27 -> x >= 3 -> f x = f 3"
+  },
+  {
+    "id": "lia_cut_31",
+    "theory": "LIA",
+    "expected": "proved",
+    "source": "parameterized scalability diagnostics; not part of the original workload",
+    "statement": "forall x : Z, 31*x <= 123 -> x <= 3"
+  },
+  {
+    "id": "lia_parity_31",
+    "theory": "LIA",
+    "expected": "proved",
+    "source": "parameterized scalability diagnostics; not part of the original workload",
+    "statement": "forall x : Z, 31*x <> 94"
+  },
+  {
+    "id": "mixed_cut_31",
+    "theory": "LIA",
+    "expected": "proved",
+    "source": "parameterized scalability diagnostics; not part of the original workload",
+    "statement": "forall (f : Z -> Z) (x : Z), 31*x <= 123 -> x >= 3 -> f x = f 3"
+  },
+  {
+    "id": "lia_cycle_3",
+    "theory": "LIA",
+    "expected": "proved",
+    "source": "parameterized scalability diagnostics; not part of the original workload",
+    "statement": "forall (x0 x1 x2 : Z), x0 <= x1 -> x1 <= x2 -> x2 < x0 -> False"
+  },
+  {
+    "id": "lia_cycle_5",
+    "theory": "LIA",
+    "expected": "proved",
+    "source": "parameterized scalability diagnostics; not part of the original workload",
+    "statement": "forall (x0 x1 x2 x3 x4 : Z), x0 <= x1 -> x1 <= x2 -> x2 <= x3 -> x3 <= x4 -> x4 < x0 -> False"
+  },
+  {
+    "id": "lia_cycle_8",
+    "theory": "LIA",
+    "expected": "proved",
+    "source": "parameterized scalability diagnostics; not part of the original workload",
+    "statement": "forall (x0 x1 x2 x3 x4 x5 x6 x7 : Z), x0 <= x1 -> x1 <= x2 -> x2 <= x3 -> x3 <= x4 -> x4 <= x5 -> x5 <= x6 -> x6 <= x7 -> x7 < x0 -> False"
+  }
+]

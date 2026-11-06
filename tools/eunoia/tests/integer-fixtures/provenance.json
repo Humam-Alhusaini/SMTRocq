@@ -1,0 +1,68 @@
+{
+  "lia_coefficient_bound": {
+    "argv": [
+      "/home/charles/code/friends/.toolchains/cvc5-1.4.2/cvc5-Linux-x86_64-static/bin/cvc5",
+      "--lang=smt2",
+      "--dump-proofs",
+      "--proof-format=cpc",
+      "--proof-granularity=dsl-rewrite",
+      "--no-proof-allow-trust",
+      "--proof-check=eager",
+      "--check-proofs-complete",
+      "--tlimit=5000",
+      "tools/eunoia/tests/integer-fixtures/lia_coefficient_bound.smt2"
+    ],
+    "bytes": 1158,
+    "exit_code": 0,
+    "input": "tools/eunoia/tests/integer-fixtures/lia_coefficient_bound.smt2",
+    "input_sha256": "c9aeb9b8cb54671ea35453f737a200d5ea4668b1d9b2374f16b13564cb33fc84",
+    "proof_sha256": "0aaa695e455aeb43b124496ca55e40d39d694649a17bc09133afe022c0ac4eaf",
+    "solver_sha256": "6aecddf466552b83bb5883756c7955e0c9d5ddcc6d7f45b48c2f6e06a741b102",
+    "solver_version": "cvc5 1.4.2 [git 282d5e0 on branch HEAD]",
+    "wall_s": 0.010649802978150547
+  },
+  "lia_coefficient_scoped": {
+    "argv": [
+      "/home/charles/code/friends/.toolchains/cvc5-1.4.2/cvc5-Linux-x86_64-static/bin/cvc5",
+      "--lang=smt2",
+      "--dump-proofs",
+      "--proof-format=cpc",
+      "--proof-granularity=dsl-rewrite",
+      "--no-proof-allow-trust",
+      "--proof-check=eager",
+      "--check-proofs-complete",
+      "--tlimit=5000",
+      "tools/eunoia/tests/integer-fixtures/lia_coefficient_scoped.smt2"
+    ],
+    "bytes": 8978,
+    "exit_code": 0,
+    "input": "tools/eunoia/tests/integer-fixtures/lia_coefficient_scoped.smt2",
+    "input_sha256": "ed320062cd03ee492e85c72bb87a5363fd4c1b1aa20a3e66cd570947067c9f95",
+    "proof_sha256": "fefb5f1c7f1b535f46719026b9c27d31139ceea1462a36ae1ca03801972c5813",
+    "solver_sha256": "6aecddf466552b83bb5883756c7955e0c9d5ddcc6d7f45b48c2f6e06a741b102",
+    "solver_version": "cvc5 1.4.2 [git 282d5e0 on branch HEAD]",
+    "wall_s": 0.01176133705303073
+  },
+  "lia_parity": {
+    "argv": [
+      "/home/charles/code/friends/.toolchains/cvc5-1.4.2/cvc5-Linux-x86_64-static/bin/cvc5",
+      "--lang=smt2",
+      "--dump-proofs",
+      "--proof-format=cpc",
+      "--proof-granularity=dsl-rewrite",
+      "--no-proof-allow-trust",
+      "--proof-check=eager",
+      "--check-proofs-complete",
+      "--tlimit=5000",
+      "tools/eunoia/tests/integer-fixtures/lia_parity.smt2"
+    ],
+    "bytes": 796,
+    "exit_code": 0,
+    "input": "tools/eunoia/tests/integer-fixtures/lia_parity.smt2",
+    "input_sha256": "d274122e90c902def9164ba5981b955d71821a8c910f52ada966536c0b7a5076",
+    "proof_sha256": "02abf5f12af803f494dfbfd1e45e021e5bea389a15307f005435cba6fd72e06a",
+    "solver_sha256": "6aecddf466552b83bb5883756c7955e0c9d5ddcc6d7f45b48c2f6e06a741b102",
+    "solver_version": "cvc5 1.4.2 [git 282d5e0 on branch HEAD]",
+    "wall_s": 0.009300031932070851
+  }
+}

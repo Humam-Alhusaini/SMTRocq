@@ -1,0 +1,363 @@
+{
+  "compiler_timeout_seconds": 30,
+  "decision": "The specialized tactic path was slower overall (39.226 s vs 33.420 s) and remains disabled by default; isolated helper-loop gains did not transfer to this workload.",
+  "implementation_commit": "f1ef28e1fd1a0faa88fe712307fea66db228c43b",
+  "printed_conclusions_enabled": true,
+  "rounds": [
+    {
+      "artifact_hashes": {
+        "cases.json": "9437de6db69351e78c5547bd8fbf6eb9ca092fa9a173ad89ba7956cbfc6f7030",
+        "integrity.json": "0f9732071aabc96662979198c067859ad0bf8058fe95745ce8da23df1428a44c",
+        "metadata.json": "20ecdb1c8185f02f889247a29ab92cd1801900b01741f298535e4155c5cb6c2a",
+        "results.json": "a508a835d6e5adb8b99b00536c135e5587bc05736be91dd3235d0e6c6f5ff0ad"
+      },
+      "exit_code": 0,
+      "integrity_passed": true,
+      "mode": "reference",
+      "output": "/tmp/eunoia-f1ef28e-staged-reference-1",
+      "rows": [
+        {
+          "case_id": "uf_abstract_congruence",
+          "expected": "proved",
+          "new_assumptions": [],
+          "process_wall_s": 3.576818991001346,
+          "qed_wall_s": 0.01,
+          "status": "solved",
+          "tactic_wall_s": 0.606,
+          "timeout": false
+        },
+        {
+          "case_id": "negative_uf_injectivity",
+          "expected": "rejected",
+          "new_assumptions": null,
+          "process_wall_s": 1.0067843930009985,
+          "qed_wall_s": null,
+          "status": "negative_rejected",
+          "tactic_wall_s": 0.078,
+          "timeout": false
+        },
+        {
+          "case_id": "negative_lia_missing_gap",
+          "expected": "rejected",
+          "new_assumptions": null,
+          "process_wall_s": 0.8758879789966159,
+          "qed_wall_s": null,
+          "status": "negative_rejected",
+          "tactic_wall_s": 0.092,
+          "timeout": false
+        },
+        {
+          "case_id": "coefficient_upper",
+          "expected": "proved",
+          "new_assumptions": [],
+          "process_wall_s": 3.61016106599709,
+          "qed_wall_s": 0.025,
+          "status": "solved",
+          "tactic_wall_s": 1.337,
+          "timeout": false
+        },
+        {
+          "case_id": "lia_cycle_8",
+          "expected": "proved",
+          "new_assumptions": [],
+          "process_wall_s": 11.830939453997416,
+          "qed_wall_s": 0.14,
+          "status": "solved",
+          "tactic_wall_s": 9.028,
+          "timeout": false
+        },
+        {
+          "case_id": "quotient_from_hypothesis",
+          "expected": "proved",
+          "new_assumptions": [],
+          "process_wall_s": 2.7620414340053685,
+          "qed_wall_s": 0.007,
+          "status": "solved",
+          "tactic_wall_s": 0.499,
+          "timeout": false
+        },
+        {
+          "case_id": "large_divisor",
+          "expected": "proved",
+          "new_assumptions": [],
+          "process_wall_s": 7.476237681999919,
+          "qed_wall_s": 0.049,
+          "status": "solved",
+          "tactic_wall_s": 4.98,
+          "timeout": false
+        }
+      ]
+    },
+    {
+      "artifact_hashes": {
+        "cases.json": "9437de6db69351e78c5547bd8fbf6eb9ca092fa9a173ad89ba7956cbfc6f7030",
+        "integrity.json": "0f9732071aabc96662979198c067859ad0bf8058fe95745ce8da23df1428a44c",
+        "metadata.json": "21b42b2d0a1499bfd1c659cc1cd124b696d6961999215921f8a1edc922725ab9",
+        "results.json": "1be9b0e445864618d7ebcb7ba6894fcc1d618e94e3a4767a0b7a864721542e9d"
+      },
+      "exit_code": 0,
+      "integrity_passed": true,
+      "mode": "staged",
+      "output": "/tmp/eunoia-f1ef28e-staged-staged-2",
+      "rows": [
+        {
+          "case_id": "uf_abstract_congruence",
+          "expected": "proved",
+          "new_assumptions": [],
+          "process_wall_s": 4.388413150009001,
+          "qed_wall_s": 0.01,
+          "status": "solved",
+          "tactic_wall_s": 0.719,
+          "timeout": false
+        },
+        {
+          "case_id": "negative_uf_injectivity",
+          "expected": "rejected",
+          "new_assumptions": null,
+          "process_wall_s": 0.888345876999665,
+          "qed_wall_s": null,
+          "status": "negative_rejected",
+          "tactic_wall_s": 0.087,
+          "timeout": false
+        },
+        {
+          "case_id": "negative_lia_missing_gap",
+          "expected": "rejected",
+          "new_assumptions": null,
+          "process_wall_s": 1.348532875010278,
+          "qed_wall_s": null,
+          "status": "negative_rejected",
+          "tactic_wall_s": 0.078,
+          "timeout": false
+        },
+        {
+          "case_id": "coefficient_upper",
+          "expected": "proved",
+          "new_assumptions": [],
+          "process_wall_s": 5.202340899995761,
+          "qed_wall_s": 0.02,
+          "status": "solved",
+          "tactic_wall_s": 1.611,
+          "timeout": false
+        },
+        {
+          "case_id": "lia_cycle_8",
+          "expected": "proved",
+          "new_assumptions": [],
+          "process_wall_s": 13.657924266997725,
+          "qed_wall_s": 0.089,
+          "status": "solved",
+          "tactic_wall_s": 10.862,
+          "timeout": false
+        },
+        {
+          "case_id": "quotient_from_hypothesis",
+          "expected": "proved",
+          "new_assumptions": [],
+          "process_wall_s": 3.8997725600056583,
+          "qed_wall_s": 0.005,
+          "status": "solved",
+          "tactic_wall_s": 0.649,
+          "timeout": false
+        },
+        {
+          "case_id": "large_divisor",
+          "expected": "proved",
+          "new_assumptions": [],
+          "process_wall_s": 9.14510034500563,
+          "qed_wall_s": 0.036,
+          "status": "solved",
+          "tactic_wall_s": 5.918,
+          "timeout": false
+        }
+      ]
+    },
+    {
+      "artifact_hashes": {
+        "cases.json": "9437de6db69351e78c5547bd8fbf6eb9ca092fa9a173ad89ba7956cbfc6f7030",
+        "integrity.json": "0f9732071aabc96662979198c067859ad0bf8058fe95745ce8da23df1428a44c",
+        "metadata.json": "94b46a37726900e7001611f447a09a39c6d0933c0497c1ae4145a02e100427de",
+        "results.json": "a367ebe3d1a7fde65a5f5135b2388bab52f0371829f233b0bf423773c33b761f"
+      },
+      "exit_code": 0,
+      "integrity_passed": true,
+      "mode": "staged",
+      "output": "/tmp/eunoia-f1ef28e-staged-staged-3",
+      "rows": [
+        {
+          "case_id": "uf_abstract_congruence",
+          "expected": "proved",
+          "new_assumptions": [],
+          "process_wall_s": 3.8517995930014877,
+          "qed_wall_s": 0.01,
+          "status": "solved",
+          "tactic_wall_s": 0.642,
+          "timeout": false
+        },
+        {
+          "case_id": "negative_uf_injectivity",
+          "expected": "rejected",
+          "new_assumptions": null,
+          "process_wall_s": 0.8454192870121915,
+          "qed_wall_s": null,
+          "status": "negative_rejected",
+          "tactic_wall_s": 0.086,
+          "timeout": false
+        },
+        {
+          "case_id": "negative_lia_missing_gap",
+          "expected": "rejected",
+          "new_assumptions": null,
+          "process_wall_s": 0.930662686994765,
+          "qed_wall_s": null,
+          "status": "negative_rejected",
+          "tactic_wall_s": 0.087,
+          "timeout": false
+        },
+        {
+          "case_id": "coefficient_upper",
+          "expected": "proved",
+          "new_assumptions": [],
+          "process_wall_s": 4.306884500998422,
+          "qed_wall_s": 0.021,
+          "status": "solved",
+          "tactic_wall_s": 1.55,
+          "timeout": false
+        },
+        {
+          "case_id": "lia_cycle_8",
+          "expected": "proved",
+          "new_assumptions": [],
+          "process_wall_s": 14.095793065993348,
+          "qed_wall_s": 0.099,
+          "status": "solved",
+          "tactic_wall_s": 11.198,
+          "timeout": false
+        },
+        {
+          "case_id": "quotient_from_hypothesis",
+          "expected": "proved",
+          "new_assumptions": [],
+          "process_wall_s": 3.5737963229912566,
+          "qed_wall_s": 0.006,
+          "status": "solved",
+          "tactic_wall_s": 0.643,
+          "timeout": false
+        },
+        {
+          "case_id": "large_divisor",
+          "expected": "proved",
+          "new_assumptions": [],
+          "process_wall_s": 8.197898243000964,
+          "qed_wall_s": 0.035,
+          "status": "solved",
+          "tactic_wall_s": 5.434,
+          "timeout": false
+        }
+      ]
+    },
+    {
+      "artifact_hashes": {
+        "cases.json": "9437de6db69351e78c5547bd8fbf6eb9ca092fa9a173ad89ba7956cbfc6f7030",
+        "integrity.json": "0f9732071aabc96662979198c067859ad0bf8058fe95745ce8da23df1428a44c",
+        "metadata.json": "4fe49a0a6ed7a6f74d11e3caa0ff7c7c8a819fa72b71256f6642ebfa4f05522b",
+        "results.json": "8802a5ea27c668710a69fd2e36f9cd3d3844f82b1e0e99c0fa83b8294a822c3f"
+      },
+      "exit_code": 0,
+      "integrity_passed": true,
+      "mode": "reference",
+      "output": "/tmp/eunoia-f1ef28e-staged-reference-4",
+      "rows": [
+        {
+          "case_id": "uf_abstract_congruence",
+          "expected": "proved",
+          "new_assumptions": [],
+          "process_wall_s": 2.8972261699964292,
+          "qed_wall_s": 0.01,
+          "status": "solved",
+          "tactic_wall_s": 0.541,
+          "timeout": false
+        },
+        {
+          "case_id": "negative_uf_injectivity",
+          "expected": "rejected",
+          "new_assumptions": null,
+          "process_wall_s": 0.9776100619928911,
+          "qed_wall_s": null,
+          "status": "negative_rejected",
+          "tactic_wall_s": 0.08,
+          "timeout": false
+        },
+        {
+          "case_id": "negative_lia_missing_gap",
+          "expected": "rejected",
+          "new_assumptions": null,
+          "process_wall_s": 1.325443499998073,
+          "qed_wall_s": null,
+          "status": "negative_rejected",
+          "tactic_wall_s": 0.074,
+          "timeout": false
+        },
+        {
+          "case_id": "coefficient_upper",
+          "expected": "proved",
+          "new_assumptions": [],
+          "process_wall_s": 3.428115180999157,
+          "qed_wall_s": 0.025,
+          "status": "solved",
+          "tactic_wall_s": 1.286,
+          "timeout": false
+        },
+        {
+          "case_id": "lia_cycle_8",
+          "expected": "proved",
+          "new_assumptions": [],
+          "process_wall_s": 12.12588166599744,
+          "qed_wall_s": 0.148,
+          "status": "solved",
+          "tactic_wall_s": 9.744,
+          "timeout": false
+        },
+        {
+          "case_id": "quotient_from_hypothesis",
+          "expected": "proved",
+          "new_assumptions": [],
+          "process_wall_s": 3.7428740979958093,
+          "qed_wall_s": 0.008,
+          "status": "solved",
+          "tactic_wall_s": 0.542,
+          "timeout": false
+        },
+        {
+          "case_id": "large_divisor",
+          "expected": "proved",
+          "new_assumptions": [],
+          "process_wall_s": 7.515227140000206,
+          "qed_wall_s": 0.048,
+          "status": "solved",
+          "tactic_wall_s": 4.857,
+          "timeout": false
+        }
+      ]
+    }
+  ],
+  "staged_default_enabled": false,
+  "totals": {
+    "reference": {
+      "false_controls": 4,
+      "false_rejected": 4,
+      "positive_attempts": 10,
+      "positive_solved": 10,
+      "qed_wall_s": 0.47,
+      "tactic_wall_s": 33.42
+    },
+    "staged": {
+      "false_controls": 4,
+      "false_rejected": 4,
+      "positive_attempts": 10,
+      "positive_solved": 10,
+      "qed_wall_s": 0.331,
+      "tactic_wall_s": 39.226
+    }
+  }
+}

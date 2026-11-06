@@ -1,0 +1,10 @@
+(rocq.theory
+ (name SMTCoq.eunoia_proof_reuse)
+ (package rocq-smtcoq)
+ (modules Controls)
+ (theories Stdlib SMTCoq SMTCoq.checker.eunoia)
+ (plugins rocq-smtcoq.eunoia_backend_test))
+
+(alias
+ (name runtest)
+ (deps Controls.vo))

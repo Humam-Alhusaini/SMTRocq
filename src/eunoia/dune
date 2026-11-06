@@ -1,0 +1,4 @@
+(library
+ (name eunoia_frontend)
+ (public_name rocq-smtcoq.eunoia_frontend)
+ (modules eunoiaProof))

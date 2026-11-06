@@ -14,5 +14,6 @@
   SMTCoq.structures
   SMTCoq.checker.fol
   SMTCoq.checker
+  SMTCoq.checker.eunoia
   SMTCoq.tactics)
  (plugins rocq-smtcoq.smtcoq))

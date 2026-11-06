@@ -19,6 +19,7 @@ From SMTCoq.utils Require Import PArray.
 From SMTCoq.structures Require Import CompDecInstances.
 From SMTCoq.checker.fol Require Import State Terms.
 From SMTCoq.checker Require Import MainChecker.
+From SMTCoq.checker.eunoia Require Import EunoiaTactic EunoiaScopedAdapter.
 
 Require Import Conversion QInst.
 
@@ -188,6 +189,42 @@ Ltac2 cvc4_tac nocheck :=
 
 Tactic Notation "cvc4"          := ltac2:(cvc4_tac false).
 Tactic Notation "cvc4_no_check" := ltac2:(cvc4_tac true).
+
+(* cvc5 CPC/Eunoia, with the generated evaluator and concrete semantic gate. *)
+Ltac2 cvc5_eunoia_tac global :=
+  Control.enter (fun () =>
+    ltac1:(intros; unfold is_true in *);
+    (* Kernel equality elimination avoids passing a formula-valued Boolean
+       constant as a UF atom to the legacy SMT-LIB reifier. Normalize before
+       capturing local proof terms. Explicit supplied lemmas keep their
+       original context and follow the unchanged path. *)
+    (match global with
+     | [] => ltac1:(repeat match goal with
+         | H : ?x = true |- _ => is_var x; subst x
+         | H : true = ?x |- _ => is_var x; subst x
+         | H : ?x = false |- _ => is_var x; subst x
+         | H : false = ?x |- _ => is_var x; subst x
+         end)
+     | _ => ()
+     end);
+    let local := List.map (fun (id, _) => (Some id, Control.hyp id)) (get_hyps_prop ()) in
+    let global := List.map (fun t => (None, t)) global in
+    let hsglob := pose_hyps global [] in
+    let hs := pose_hyps local hsglob in
+    preprocess1 true hs;
+    let n := Control.numgoals () in
+    Control.focus n n (fun () =>
+      let hs' := preprocess2 hs in
+      let r := tupleify (List.map Control.hyp hs') in
+      ltac1:(r |- cvc5_eunoia_bool_base r) (Ltac1.of_constr r)
+    );
+    ltac1:(QInst.vauto)
+  ).
+
+Tactic Notation "cvc5_eunoia" := ltac2:(cvc5_eunoia_tac []).
+Tactic Notation "cvc5_eunoia" constr(h) :=
+  let tac := ltac2:(h |- cvc5_eunoia_tac (global_of_ltac1_constr h)) in
+  tac h.
 
 Tactic Notation "smt" constr(h) := try verit h; cvc4; try verit h.
 Tactic Notation "smt"           := try verit  ; cvc4; try verit.
