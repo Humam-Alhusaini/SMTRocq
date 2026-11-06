@@ -1,0 +1,65 @@
+[
+  {
+    "id": "uf_prop_chain_6",
+    "theory": "UF",
+    "expected": "proved",
+    "source": "parameterized scalability diagnostics; not part of the original workload",
+    "statement": "forall (x0 x1 x2 x3 x4 x5 x6 : Z), x0 = x1 -> x1 = x2 -> x2 = x3 -> x3 = x4 -> x4 = x5 -> x5 = x6 -> x0 = x6"
+  },
+  {
+    "id": "uf_prop_chain_10",
+    "theory": "UF",
+    "expected": "proved",
+    "source": "parameterized scalability diagnostics; not part of the original workload",
+    "statement": "forall (x0 x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 : Z), x0 = x1 -> x1 = x2 -> x2 = x3 -> x3 = x4 -> x4 = x5 -> x5 = x6 -> x6 = x7 -> x7 = x8 -> x8 = x9 -> x9 = x10 -> x0 = x10"
+  },
+  {
+    "id": "uf_nested_5",
+    "theory": "UF",
+    "expected": "proved",
+    "source": "parameterized scalability diagnostics; not part of the original workload",
+    "statement": "forall (f : Z -> Z) (x y : Z), x = y -> (f (f (f (f (f x))))) = (f (f (f (f (f y)))))"
+  },
+  {
+    "id": "uf_nested_10",
+    "theory": "UF",
+    "expected": "proved",
+    "source": "parameterized scalability diagnostics; not part of the original workload",
+    "statement": "forall (f : Z -> Z) (x y : Z), x = y -> (f (f (f (f (f (f (f (f (f (f x)))))))))) = (f (f (f (f (f (f (f (f (f (f y))))))))))"
+  },
+  {
+    "id": "lia_cycle_8",
+    "theory": "LIA",
+    "expected": "proved",
+    "source": "parameterized scalability diagnostics; not part of the original workload",
+    "statement": "forall (x0 x1 x2 x3 x4 x5 x6 x7 : Z), x0 <= x1 -> x1 <= x2 -> x2 <= x3 -> x3 <= x4 -> x4 <= x5 -> x5 <= x6 -> x6 <= x7 -> x7 < x0 -> False"
+  },
+  {
+    "id": "uf_nested_20",
+    "theory": "UF",
+    "expected": "proved",
+    "source": "Nested congruence stress; fixed full Eunoia source checker and 30-second compiler budget",
+    "statement": "forall (A:Type)(HA:CompDec A)(f:A->A)(x y:A),x=y -> (f (f (f (f (f (f (f (f (f (f (f (f (f (f (f (f (f (f (f (f (x)))))))))))))))))))))=(f (f (f (f (f (f (f (f (f (f (f (f (f (f (f (f (f (f (f (f (y)))))))))))))))))))))"
+  },
+  {
+    "id": "uf_nested_40",
+    "theory": "UF",
+    "expected": "proved",
+    "source": "Nested congruence stress; fixed full Eunoia source checker and 30-second compiler budget",
+    "statement": "forall (A:Type)(HA:CompDec A)(f:A->A)(x y:A),x=y -> (f (f (f (f (f (f (f (f (f (f (f (f (f (f (f (f (f (f (f (f (f (f (f (f (f (f (f (f (f (f (f (f (f (f (f (f (f (f (f (f (x)))))))))))))))))))))))))))))))))))))))))=(f (f (f (f (f (f (f (f (f (f (f (f (f (f (f (f (f (f (f (f (f (f (f (f (f (f (f (f (f (f (f (f (f (f (f (f (f (f (f (f (y)))))))))))))))))))))))))))))))))))))))))"
+  },
+  {
+    "id": "negative_uf_injectivity",
+    "theory": "UF",
+    "expected": "rejected",
+    "source": "False converse of congruence; counterexample f := fun _ => 0, x := 0, y := 1",
+    "statement": "forall (f : Z -> Z) (x y : Z), f x = f y -> x = y"
+  },
+  {
+    "id": "negative_lia_missing_gap",
+    "theory": "LIA",
+    "expected": "rejected",
+    "source": "False integer-gap strengthening; counterexample x := 0, y := 0",
+    "statement": "forall (x y : Z), x <= y -> x + 1 <= y"
+  }
+]

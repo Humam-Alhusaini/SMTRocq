@@ -41,6 +41,9 @@ def main():
     prefix = "SMTCoq.checker.eunoia.CpcSpecialized"
     audit += ["--import", prefix, "--theorem", prefix + ".CpcSpecialized.rules_correct"]
     for module, names in {
+        "EoModelDagCache": ["run_correct", "compile_correct", "cached_correct"],
+        "EunoiaModelDag": ["body_reference", "prepare_valid", "encode_literal_cached_correct", "encoding_entries_refinement"],
+        "EunoiaModelDagCheck": ["checker_refinement", "checker_correct", "checker_b_refinement", "checker_b_correct", "checker_eq_refinement", "checker_eq_correct"],
         "EunoiaProgramIndexFlat": ["flat_step_ext", "flat_run_ext", "flat_checker_ext", "checker_refinement", "checker_correct", "checker_b_refinement", "checker_b_correct", "checker_eq_refinement", "checker_eq_correct"],
         "EunoiaProgramIndexScoped": ["checker_refinement", "checker_correct", "checker_b_refinement", "checker_b_correct", "checker_eq_refinement", "checker_eq_correct"],
         "EoRename": ["refinement"],
@@ -113,6 +116,11 @@ def main():
         audit += ["--import", module]
         for name in names:
             audit += ["--theorem", module + "." + name]
+    model_tests = "SMTCoq.checker.eunoia.EunoiaModelDagTests"
+    audit += ["--import", model_tests]
+    for name in re.findall(r"^\s*(?:Lemma|Theorem|Example)\s+(\w+)",
+            (ROOT / "theories/checker/eunoia/EunoiaModelDagTests.v").read_text(), re.M):
+        audit += ["--theorem", model_tests + "." + name]
     public_modules = ("eunoia_tactics", "eunoia_uf", "eunoia_uf_bool", "eunoia_lia", "eunoia_purification", "eunoia_integer_casts", "eunoia_division")
     for module in public_modules:
         public = "SMTCoq.tests." + module
@@ -145,6 +153,7 @@ def main():
                   "SMTCoq.eunoia_runtime_profile.QueryRefinement",
                   "SMTCoq.eunoia_runtime_profile.SurfaceOutRefinement",
                   "SMTCoq.checker.eunoia.EunoiaMemoTests",
+                  model_tests,
                   "SMTCoq.checker.eunoia.EoCheckedMemoTests",
                   "SMTCoq.checker.eunoia.EunoiaHelperCache",
                   "SMTCoq.checker.eunoia.EunoiaProgramIndex",

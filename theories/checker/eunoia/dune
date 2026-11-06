@@ -31,6 +31,7 @@
   EunoiaStagedTests.vo
   EunoiaDirectTests.vo
   EunoiaSpecializedTests.vo
+  EunoiaModelDagTests.vo
   EunoiaIntegerEmbeddingTests.vo
   EoArithmeticTests.vo
   EoRuntime.vo

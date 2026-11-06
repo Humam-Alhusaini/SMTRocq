@@ -133,6 +133,7 @@ def main():
     metadata = {"argv": os.sys.argv, "root": str(ROOT), "cases": CASES,
                 "loadavg_start": os.getloadavg(), "source_sha256": {}, "artifact_sha256": {},
                 "profile_components": os.environ.get("ROCQ_PROFILE_COMPONENTS", "default"),
+                "model_dag": os.environ.get("EUNOIA_MODEL_DAG", "auto"),
                 "single_kernel_acceptance": os.environ.get("EUNOIA_SINGLE_KERNEL_ACCEPTANCE", "1"),
                 "trace_constants": os.environ.get("EUNOIA_TRACE_CONSTANTS", "1")}
     for command in (["git", "rev-parse", "HEAD"], ["git", "branch", "--show-current"],

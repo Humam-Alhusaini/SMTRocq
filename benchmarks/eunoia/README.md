@@ -248,3 +248,10 @@ retain failures and false controls, and preserve the whole-compiler timeout.
 preserving normal adaptive sharing. Set it explicitly to `0` in experiments on
 other optimizations. Its normal, forced-shared and forced-reference native
 replays are available through `scripts/eunoia/check_modes.py`.
+
+`EUNOIA_MODEL_DAG=auto` (the default) shares model encodings for roots with at
+least 16 nested applications. Compare it with `=0` using `--cases
+benchmarks/eunoia/model-graph.json`; `=1` forces it even on small goals. This
+changes the adapter's encoding work while retaining the full signature-generated
+source checker. [Design and matched results](../../docs/eunoia/indexed-model-encoding.md)
+document the exact refinement, fallback and remaining veriT gap.

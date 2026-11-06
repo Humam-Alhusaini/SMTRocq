@@ -3,6 +3,7 @@ From SMTCoq.checker.eunoia Require Import EunoiaAdapter EunoiaLocal EunoiaTactic
 From SMTCoq.checker.eunoia Require Import EunoiaMemo EunoiaHelperCache CpcMemoCollector EunoiaProgramIndex EunoiaStaged EunoiaDirect EunoiaDirectScoped EunoiaDirectFlat.
 From SMTCoq.checker.eunoia Require Import EunoiaProgramIndexFlat EunoiaProgramIndexScoped.
 From SMTCoq.checker.eunoia Require Import CpcSpecialized EunoiaSpecialized EunoiaSpecializedFlat EunoiaSpecializedScoped.
+From SMTCoq.checker.eunoia Require Import EunoiaModelDagCheck.
 Declare ML Module "rocq-smtcoq.eunoia_backend_test".
 
 (* These unused steps claim semantically valid reflexive equalities after a

@@ -178,6 +178,18 @@ let prepare ?(fuel=10000) ~witness env t roots parsed =
   let root_terms = List.map (fun r -> encode [r]) roots in
   let query = C.call (adapter "typeof")
     [List.nth table_args 0;List.nth table_args 1;ns;fuel] in
+  (* Deep model graphs make repeated recursive encoding expensive. Use the
+     proved single-pass encoder there; retain the cheaper setup for small
+     roots. This heuristic only selects pointwise-equal checked encoders. *)
+  let rec deep budget raw =
+    budget <= 0 || match raw with
+    | E.Symbol _ -> false
+    | E.Apply _ -> let _,args = E.spine raw in
+      List.exists (deep (budget - 1)) args in
+  let model_dag_requested = match Sys.getenv_opt "EUNOIA_MODEL_DAG" with
+    | Some "0" -> false
+    | Some "1" -> true
+    | _ -> List.exists (deep 16) root_terms in
   let use_direct = Sys.getenv_opt "EUNOIA_DIRECT_PROGRAMS" = Some "1" in
   let use_specialized = Sys.getenv_opt "EUNOIA_SPECIALIZED_RULES" = Some "1" in
   let use_staged = Sys.getenv_opt "EUNOIA_STAGED_PROGRAMS" = Some "1" in
@@ -227,6 +239,9 @@ let prepare ?(fuel=10000) ~witness env t roots parsed =
       ~declarations:(declarations t) ~roots:root_terms ~derive ~derive_assuming parsed) in
   let helpers = phase "select_helpers" (fun () -> finish_helpers term) in
   let share_helpers = helpers <> [] in
+  let use_model_dag = model_dag_requested && not share_helpers in
+  if Sys.getenv_opt "EUNOIA_CACHE_PROFILE" = Some "1" then
+    Printf.eprintf "EUNOIA_MODEL_DAG enabled=%b\n%!" use_model_dag;
   if Sys.getenv_opt "EUNOIA_CACHE_PROFILE" = Some "1" then
     Printf.eprintf "EUNOIA_HELPER_CACHE entries=%d enabled=%b\n%!" (List.length helpers) share_helpers;
   SmtMaps.clear ();
@@ -320,13 +335,14 @@ let prepare ?(fuel=10000) ~witness env t roots parsed =
     (* Keep the original representation for nonrepeating proofs. If sharing
        pays, emit references from already-produced data; never repeat search
        or skip a source inference. Both representations are kernel checked. *)
-    let trace = if not memoize then reference_trace else begin
+    let memo_format = memoize || use_model_dag in
+    let trace = if not memo_format then reference_trace else begin
       let info = Hashtbl.create proof.capacity in
       List.iter (fun (st,a,_,_,_,c,w) -> Hashtbl.add info st.E.id (a,c,w)) !checked_steps;
       let witness_ty = C.global (memo_api "witness_ref") in
       let parameters = [rule_ty;rule_ty;witness_ty] in
       let data st = let _,c,w = Hashtbl.find info st.E.id in
-        let reference = match Hashtbl.find_opt cache_slots st.id with
+        let reference = match (if memoize then Hashtbl.find_opt cache_slots st.id else None) with
           | Some id -> C.call (memo_api "Cached") [CoqTerms.mkNat id]
           | None -> C.call (memo_api "Inline") [w] in
         c,reference in
@@ -420,11 +436,11 @@ let prepare ?(fuel=10000) ~witness env t roots parsed =
           Stdlib.Option.iter (fun m -> inspect 0 m commands) (machine loaded);
           R.raise_error "Eunoia: %s; source result: %a"
             (context "local semantic certificate failed") E.pp_term st.result)) (List.rev !checked_steps) in
-    let memo_args = if memoize then
+    let memo_args = if memo_format then
       [C.list (C.global (memo_api "cache_entry"))
         (List.rev_map (fun (cs,c,w) -> C.call (memo_api "CacheEntry") [clauses cs;clause c;w])
-          !certificates)] else [] in
-    let specialized_args = if use_specialized && not share_helpers then
+          (if memoize then !certificates else []))] else [] in
+    let specialized_args = if use_specialized && not share_helpers && not use_model_dag then
       (* Names only select proved implementations. The checker compares each
          key with the actual source rule and falls back to reference evaluation
          when no implementation is present. No source step is removed. *)
@@ -446,8 +462,10 @@ let prepare ?(fuel=10000) ~witness env t roots parsed =
      tail_args=[term_list root_terms;
        claims (List.map2 (fun (i,_) c -> i,c) proof.roots root_clauses);
        trace;mkint proof.conflict];diagnose;
-     trace_type=C.global ((if memoize then memo_api else if has_scopes then scoped else tactic_api) "trace");
-     checker_api=(if share_helpers then
+     trace_type=C.global ((if memo_format then memo_api else if has_scopes then scoped else tactic_api) "trace");
+     checker_api=(if use_model_dag then
+       (fun n -> "SMTCoq.checker.eunoia.EunoiaModelDagCheck.EunoiaModelDagCheck." ^ n)
+       else if share_helpers then
        (fun n -> "SMTCoq.checker.eunoia.EunoiaHelperCache.EunoiaHelperCache." ^ n)
        else if use_specialized then
          (fun n -> (if memoize then "SMTCoq.checker.eunoia.EunoiaSpecialized.EunoiaSpecialized."
