@@ -2,7 +2,7 @@
 (*     SMTCoq -- distributed under the terms of the CeCILL-C licence       *)
 (**************************************************************************)
 
-(** Untrusted local candidates. Only [EunoiaLocal.gate] can accept one. *)
+(** Untrusted local candidates. Only [EunoiaLocal.gate] or [EunoiaLocalDirect.gate] can accept one. *)
 type literal = int
 type clause = literal list
 type clause_id = int

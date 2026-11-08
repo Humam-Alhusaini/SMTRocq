@@ -150,7 +150,13 @@ let make_eunoia_witness () =
   match cached with
   | Some candidate -> Ok candidate
   | None ->
-  match Eunoia_witness.Search.produce ~atoms ~forms ~premises ~conclusion () with
+  let direct, result =
+    if Sys.getenv_opt "EUNOIA_DIRECT_CERTIFICATES" = Some "1" then
+      match Eunoia_witness.Search.produce_derivation ~atoms ~forms ~premises ~conclusion () with
+      | Ok candidate -> true, Ok candidate
+      | Error _ -> false, Eunoia_witness.Search.produce ~atoms ~forms ~premises ~conclusion ()
+    else false, Eunoia_witness.Search.produce ~atoms ~forms ~premises ~conclusion () in
+  match result with
   | Error error -> Error (Eunoia_witness.Search.string_of_failure error)
   | Ok candidate ->
       let candidate = Eunoia_witness.Certificate.to_coq
@@ -161,6 +167,8 @@ let make_eunoia_witness () =
       (* Tables only grow during this invocation. Reuse producer data with
          identical ordered clauses; every source occurrence still goes
          through the complete generated checker and local semantic gate. *)
+      let candidate = if direct then RocqInterface.mkApp
+        (Eunoia_backend.EunoiaRocq.global "SMTCoq.checker.eunoia.EunoiaMemo.EunoiaMemo.Direct",[|candidate|]) else candidate in
       if enabled && Hashtbl.length candidates < 256 then Hashtbl.replace candidates key candidate;
       Ok candidate
 

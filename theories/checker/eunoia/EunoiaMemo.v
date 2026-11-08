@@ -4,7 +4,7 @@ From Stdlib Require Import List Bool Uint63.
 From SMTCoq.utils Require Import PArray CompDec.
 From SMTCoq.checker.fol Require Import State Terms.
 From SMTCoq.checker.eunoia Require Import EoRuntime CpcGenerated EunoiaChecker
-  EunoiaAdapter EunoiaLocal EunoiaScope EunoiaTactic EunoiaScopedAdapter.
+  EunoiaAdapter EunoiaLocal EunoiaLocalDirect EunoiaScope EunoiaTactic EunoiaScopedAdapter.
 Import ListNotations.
 Local Open Scope uint63_scope.
 Local Open Scope array_scope.
@@ -16,7 +16,8 @@ Record cache_entry := CacheEntry {
   cached_conclusion : C.t;
   cached_witness : EunoiaLocal.witness
 }.
-Inductive witness_ref := Cached (id : nat) | Inline (w : EunoiaLocal.witness).
+Inductive witness_ref := Cached (id : nat) | Inline (w : EunoiaLocal.witness)
+ | Direct (w : EunoiaLocal.witness).
 Definition trace := @EunoiaScope.trace EunoiaAdapter.rule_payload
   EunoiaAdapter.rule_payload witness_ref.
 Definition discharge := @EunoiaScope.discharge EunoiaAdapter.rule_payload witness_ref.
@@ -53,10 +54,13 @@ Section Tables.
     forallb (fun e => verify
       (cached_premises e) (cached_conclusion e) (cached_witness e)) entries.
   Definition gate (entries : list cache_entry) : list C.t -> C.t -> witness_ref -> bool :=
-    let verify := @EunoiaLocal.gate t_i t_func t_atom t_form in
+    let ready := Form.check_form t_form && Atom.check_atom t_atom in
+    let verify := @EunoiaLocal.prepared_gate t_i t_func t_atom t_form ready in
+    let derive := @EunoiaLocalDirect.prepared_gate t_i t_func t_atom t_form ready in
     fun cs c w =>
     match w with
     | Inline original => verify cs c original
+    | Direct original => derive cs c original
     | Cached id =>
       match nth_error entries id with
       | Some e => clauses_eqb cs (cached_premises e) &&
@@ -69,7 +73,9 @@ Section Tables.
     @EunoiaChecker.gate_sound witness_ref (gate entries) valuation.
   Proof.
     intros entries Hwt Hvalid cs c ref Hgate Hcs.
-    destruct ref as [id|original]; [|exact (@EunoiaLocal.gate_correct t_i t_func t_atom t_form Hwt cs c original Hgate Hcs)].
+    destruct ref as [id|original|original].
+    2: exact (@EunoiaLocal.gate_correct t_i t_func t_atom t_form Hwt cs c original Hgate Hcs).
+    2: exact (@EunoiaLocalDirect.gate_correct t_i t_func t_atom t_form Hwt cs c original Hgate Hcs).
     unfold gate in Hgate.
     destruct (nth_error entries id) as [e|] eqn:He; try discriminate.
     apply andb_true_iff in Hgate; destruct Hgate as [Hprem Hconcl].

@@ -273,8 +273,7 @@ Section Context.
 
   (* The trace passes this partially applied callback to every step. Keep the
      immutable table guard outside its changing premise/witness arguments. *)
-  Definition gate : list C.t -> C.t -> witness -> bool :=
-    let tables_ready := Form.check_form t_form && Atom.check_atom t_atom in
+  Definition prepared_gate (tables_ready : bool) : list C.t -> C.t -> witness -> bool :=
     fun cs c w => tables_ready &&
     clause_wf (PArray.length t_form) c &&
     match load_roots (PArray.length t_form) (initial (capacity w))
@@ -287,6 +286,8 @@ Section Context.
                    clause_eqb (S.get (clauses m') (conflict w)) []
       end
     end.
+
+  Definition gate := prepared_gate (Form.check_form t_form && Atom.check_atom t_atom).
 
   (* Acceptance exposes exact roots, all local reads, a fresh bounded output,
      exact computed intermediate clauses, and explicit rejection of fallback. *)
@@ -395,7 +396,7 @@ Section Context.
       available m' (conflict w) = true /\
       S.get (clauses m') (conflict w) = [].
   Proof.
-    intros cs c w H; unfold gate in H; rewrite !andb_true_iff in H.
+    intros cs c w H; unfold gate, prepared_gate in H; rewrite !andb_true_iff in H.
     destruct H as [_ H].
     destruct (load_roots (PArray.length t_form) (initial (capacity w))
       (local_roots cs c) (root_claims w)) as [m| ] eqn:Hl; try discriminate.
@@ -408,7 +409,7 @@ Section Context.
 
   Theorem gate_correct : Atom.wt t_i t_func t_atom -> gate_sound valuation.
   Proof.
-    intros Hwt cs c w Hgate Hcs; unfold gate in Hgate.
+    intros Hwt cs c w Hgate Hcs; unfold gate, prepared_gate in Hgate.
     rewrite !andb_true_iff in Hgate.
     destruct Hgate as [[[Hform Hatom] Hc] Hgate].
     unfold C.valid; destruct (C.interp valuation c) eqn:Hfalse; [reflexivity| ].

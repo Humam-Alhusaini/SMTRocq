@@ -111,7 +111,8 @@ def main():
     parser.add_argument("--output", type=Path, required=True, help="new directory outside checkout")
     parser.add_argument("--cases", nargs="+", choices=CASES, default=list(CASES))
     parser.add_argument("--repeat", type=int, default=1)
-    parser.add_argument("--timeout", type=float, default=120)
+    parser.add_argument("--timeout", type=float, default=30, help="whole-compiler deadline per measured case")
+    parser.add_argument("--kernel-timeout", type=float, default=900)
     parser.add_argument("--kernel-check", action="store_true",
                         help="recursive rocq check with VM enabled, no admitted dependencies")
     parser.add_argument("--controls", action="store_true", help="run source, semantic and false-goal controls")
@@ -119,7 +120,7 @@ def main():
     output = args.output.resolve()
     if output == ROOT or ROOT in output.parents or '"' in str(output) or "\n" in str(output):
         parser.error("output must be an external path without quotes or newlines")
-    if args.repeat <= 0 or args.timeout <= 0:
+    if args.repeat <= 0 or args.timeout <= 0 or args.kernel_timeout <= 0:
         parser.error("repeat and timeout must be positive")
     output.mkdir(parents=True, exist_ok=False)
     # A consumer plugin can stay up to date when a dependency's implementation
@@ -127,13 +128,23 @@ def main():
     build_dir = output / "build"
     build_dir.mkdir()
     build = execute([WRAPPER, "dune", "build", "-j2", "src/eunoia_backend/eunoia_backend.cmxs",
-                     "src/eunoia_backend/tests/integration/backend_test_plugin.cmxs"], build_dir, args.timeout)
+                     "src/eunoia_witness/eunoia_witness.cmxs",
+                     "src/eunoia_backend/tests/integration/backend_test_plugin.cmxs",
+                     "src/smtcoq.cmxs"], build_dir, args.timeout)
     if build["exit_code"] != 0 or build["timeout"]:
         return 1
     metadata = {"argv": os.sys.argv, "root": str(ROOT), "cases": CASES,
                 "loadavg_start": os.getloadavg(), "source_sha256": {}, "artifact_sha256": {},
                 "profile_components": os.environ.get("ROCQ_PROFILE_COMPONENTS", "default"),
                 "model_dag": os.environ.get("EUNOIA_MODEL_DAG", "auto"),
+                "direct_certificates": os.environ.get("EUNOIA_DIRECT_CERTIFICATES", "0"),
+                "declared_conclusions": os.environ.get("EUNOIA_DECLARED_CONCLUSIONS", "1"),
+                "environment_overrides": {k: os.environ[k] for k in (
+                    "EUNOIA_DIRECT_CERTIFICATES", "EUNOIA_MODEL_DAG", "EUNOIA_DECLARED_CONCLUSIONS",
+                    "EUNOIA_HELPER_CACHE", "EUNOIA_SPECIALIZED_RULES", "EUNOIA_DIRECT_PROGRAMS",
+                    "EUNOIA_STAGED_PROGRAMS", "EUNOIA_PROGRAM_INDEX", "EUNOIA_CVC5_PROFILE",
+                    "EUNOIA_DISABLE_CHECKED_CACHE", "EUNOIA_FORCE_CHECKED_CACHE",
+                    "EUNOIA_SINGLE_KERNEL_ACCEPTANCE", "EUNOIA_TRACE_CONSTANTS") if k in os.environ},
                 "single_kernel_acceptance": os.environ.get("EUNOIA_SINGLE_KERNEL_ACCEPTANCE", "1"),
                 "trace_constants": os.environ.get("EUNOIA_TRACE_CONSTANTS", "1")}
     for command in (["git", "rev-parse", "HEAD"], ["git", "branch", "--show-current"],
@@ -142,10 +153,13 @@ def main():
         metadata[" ".join(command)] = result.stdout
     for relative in ("src/eunoia_backend/eunoiaRocq.ml", "src/eunoia_backend/eunoiaBackend.ml",
                      "tools/eunoia-profile/run.py", "tools/eunoia-profile/Controls.v",
-                     "theories/checker/eunoia/EunoiaTactic.v"):
+                     "theories/checker/eunoia/EunoiaTactic.v", "src/g_smtcoq.mlg",
+                     "src/eunoia_witness/search.ml", "theories/checker/eunoia/EunoiaMemo.v",
+                     "theories/checker/eunoia/EunoiaLocalDirect.v"):
         metadata["source_sha256"][relative] = hashlib.sha256((ROOT / relative).read_bytes()).hexdigest()
     for relative in ("src/eunoia_backend/eunoia_backend.cmxs",
-                     "src/eunoia_backend/tests/integration/backend_test_plugin.cmxs"):
+                     "src/eunoia_witness/eunoia_witness.cmxs",
+                     "src/eunoia_backend/tests/integration/backend_test_plugin.cmxs", "src/smtcoq.cmxs"):
         metadata["artifact_sha256"][relative] = hashlib.sha256(
             (ROOT / "_build/default" / relative).read_bytes()).hexdigest()
     write_json(output / "metadata.json", metadata)
@@ -170,6 +184,7 @@ def main():
             row["checked"] = checked
             if checked:
                 row["tactic_wall_s"], row["qed_wall_s"] = [float(t[0]) for t in timings]
+                row["proof_wall_s"] = row["tactic_wall_s"] + row["qed_wall_s"]
                 for stage in ("tactic", "qed"):
                     summary = trace_summary(directory / f"{stage}.json")
                     row[f"{stage}_profile"] = summary
@@ -186,7 +201,7 @@ def main():
                     check_dir = directory / "kernel"
                     check_dir.mkdir()
                     check = execute([WRAPPER, "rocq", "check", "-silent", "-bytecode-compiler", "yes",
-                                     *local_flags, "EunoiaProfile.Case"], check_dir, args.timeout)
+                                     *local_flags, "EunoiaProfile.Case"], check_dir, args.kernel_timeout)
                     row["kernel_exit_code"] = check["exit_code"]
                     failed |= check["exit_code"] != 0 or check["timeout"]
             failed |= not checked
@@ -216,7 +231,7 @@ def main():
                 check_dir = directory / "kernel"
                 check_dir.mkdir()
                 check = execute([WRAPPER, "rocq", "check", "-silent", "-bytecode-compiler", "yes",
-                                 *local_flags, "EunoiaProfile.Controls"], check_dir, args.timeout)
+                                 *local_flags, "EunoiaProfile.Controls"], check_dir, args.kernel_timeout)
                 failed |= check["exit_code"] != 0 or check["timeout"]
         print(f"controls: exit={execution['exit_code']}", flush=True)
     metadata["loadavg_end"] = os.getloadavg()

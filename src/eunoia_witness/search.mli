@@ -25,3 +25,11 @@ val produce :
   ?limits:limits -> atoms:Atom.reify_tbl -> forms:Form.reify ->
   premises:Form.t list list -> conclusion:Form.t list -> unit ->
   (Certificate.witness, failure) result
+
+(** Bounded direct-clause search for [EunoiaLocalDirect.gate]. Roots are
+    exactly [premises]; the final slot contains [conclusion]. A caller can
+    fall back to [produce] on failure. No candidate is accepted natively. *)
+val produce_derivation :
+  ?limits:limits -> atoms:Atom.reify_tbl -> forms:Form.reify ->
+  premises:Form.t list list -> conclusion:Form.t list -> unit ->
+  (Certificate.witness, failure) result

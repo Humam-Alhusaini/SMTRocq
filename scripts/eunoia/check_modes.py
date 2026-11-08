@@ -14,7 +14,7 @@ ROOT = Path(__file__).resolve().parents[2]
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", type=Path)
-    parser.add_argument("--modes", nargs="+", choices=("Reference", "Shared", "Helpers", "Conclusions", "Indexed", "Staged", "Direct", "DirectShared", "DirectReference", "IndexedAdaptive", "IndexedReference", "Specialized", "SpecializedShared", "SpecializedReference", "Model", "ModelShared", "ModelReference"),
+    parser.add_argument("--modes", nargs="+", choices=("Reference", "Shared", "Helpers", "Conclusions", "Indexed", "Staged", "Direct", "DirectShared", "DirectReference", "IndexedAdaptive", "IndexedReference", "Specialized", "SpecializedShared", "SpecializedReference", "Model", "ModelShared", "ModelReference", "Certificates", "CertificatesShared", "CertificatesModel"),
                         default=("Reference", "Shared", "Helpers", "Conclusions", "Indexed", "Staged", "Direct", "Specialized"))
     parser.add_argument("--fixtures", nargs="+",
                         choices=("Proof", "Lia", "IntegerCasts", "Division",
@@ -53,14 +53,17 @@ def main():
                 ("SpecializedReference", "1", "0", "0", "1", "0", "0"),
                 ("Model", "0", "0", "0", "0", "0", "0"),
                 ("ModelShared", "0", "1", "0", "0", "0", "0"),
-                ("ModelReference", "1", "0", "0", "0", "0", "0")):
+                ("ModelReference", "1", "0", "0", "0", "0", "0"),
+                ("Certificates", "0", "0", "0", "0", "0", "0"),
+                ("CertificatesShared", "0", "1", "0", "0", "0", "0"),
+                ("CertificatesModel", "0", "0", "0", "0", "0", "0")):
             if mode not in args.modes:
                 continue
             fixtures = [(name, ROOT / "src/eunoia_backend/tests/integration" / (name + ".v"))
                         for name in ("Proof", "Lia")]
             fixtures.append(("IntegerCasts", ROOT / "unit-tests/eunoia_integer_casts.v"))
             fixtures.append(("Division", ROOT / "unit-tests/eunoia_division.v"))
-            if mode.startswith("Model") or mode in ("Conclusions", "Indexed", "Staged", "Direct", "IndexedAdaptive", "IndexedReference", "Specialized"):
+            if mode.startswith(("Model", "Certificates")) or mode in ("Conclusions", "Indexed", "Staged", "Direct", "IndexedAdaptive", "IndexedReference", "Specialized"):
                 fixtures += [(name, ROOT / "unit-tests" / (source + ".v")) for name, source in
                              (("Uf", "eunoia_uf"), ("UfBool", "eunoia_uf_bool"),
                               ("Purification", "eunoia_purification"), ("PublicLia", "eunoia_lia"),
@@ -76,8 +79,9 @@ def main():
                 target.write_bytes(source.read_bytes())
                 summary["sources"][name] = hashlib.sha256(target.read_bytes()).hexdigest()
                 command = [wrapper, "env",
-                           "EUNOIA_MODEL_DAG=" + ("1" if mode.startswith("Model") else "0"), "EUNOIA_DISABLE_CHECKED_CACHE=" + disabled,
-                           "EUNOIA_FORCE_CHECKED_CACHE=" + forced, "EUNOIA_HELPER_CACHE=" + helpers,
+                           "EUNOIA_MODEL_DAG=" + ("1" if mode.startswith("Model") or mode == "CertificatesModel" else "0"), "EUNOIA_DISABLE_CHECKED_CACHE=" + disabled,
+                           "EUNOIA_FORCE_CHECKED_CACHE=" + forced,
+                           "EUNOIA_DIRECT_CERTIFICATES=" + ("1" if mode.startswith("Certificates") else "0"), "EUNOIA_HELPER_CACHE=" + helpers,
                            "EUNOIA_DIRECT_PROGRAMS=" + direct,
                            "EUNOIA_SPECIALIZED_RULES=" + ("1" if mode.startswith("Specialized") else "0"),
                            "EUNOIA_STAGED_PROGRAMS=" + ("1" if mode == "Staged" else "0"),

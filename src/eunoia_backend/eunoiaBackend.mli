@@ -11,11 +11,13 @@ type witness_producer =
   atoms:SmtAtom.Atom.reify_tbl -> forms:SmtAtom.Form.reify ->
   premises:SmtAtom.Form.t list list -> conclusion:SmtAtom.Form.t list ->
   (RocqInterface.constr, string) result
-(** Candidate constructor for [EunoiaLocal.witness]. Called for EVERY CPC step,
+(** Candidate constructor for [EunoiaLocal.witness], or a [EunoiaMemo.Direct]
+    wrapper containing a direct-clause witness. Called for EVERY CPC step,
     including unused ones and scope discharges. A discharge receives solely
     [[EunoiaScope.guarded actual_pushed_literal exact_endpoint_clause]], while
     its generated payload retains the unguarded endpoint as sole premise. Final checking reruns the generated evaluator, exact
-    adapter bindings, and [EunoiaLocal.gate] for the whole trace. *)
+    adapter bindings, and the appropriate [EunoiaLocal.gate] or
+    [EunoiaLocalDirect.gate] for the whole trace. *)
 
 val create_tables : unit -> tables
 val export : ?env:Environ.env -> tables -> SmtAtom.Form.t list -> string

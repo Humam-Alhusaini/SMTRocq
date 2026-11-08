@@ -239,6 +239,12 @@ new semantic assumptions. The regression suite rejects corrupted unused entries,
 wrong references, changed conclusions, reordered premises, invalid inline
 certificates and unsupported generated rules.
 
+The experimental [direct local certificate gate](direct-certificates.md) can
+prove an exact clause from its premises without first negating that clause.
+`EUNOIA_DIRECT_CERTIFICATES=1` enables bounded candidate search with the original
+refutation fallback; it retains full generated source validation and remains
+disabled by default pending comparative timing results.
+
 Set `EUNOIA_CACHE_PROFILE=1` to record preparation counts (source steps, shared
 entries, inline certificates and sharing hits). Counts describe producer data; successful
 `Qed`, assumption audits and independent kernel checks remain the acceptance

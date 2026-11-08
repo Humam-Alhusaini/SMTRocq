@@ -82,6 +82,7 @@ def main():
                                 "scope_assumption_binding", "scope_eval_with_binding",
                                 "cached_scope_eval_with_refinement", "prepared_scope_eval_with_refinement"],
         "EunoiaLocal": ["gate_correct"],
+        "EunoiaLocalDirect": ["gate_correct"],
         "EunoiaAdapter": ["eval_with_binding", "checker_correct", "encode_atom_refinement",
                           "encode_literal_refinement", "typeof_with_ready_refinement",
                           "prepared_eval_with_refinement", "normalize_source_ordinary",
@@ -116,11 +117,12 @@ def main():
         audit += ["--import", module]
         for name in names:
             audit += ["--theorem", module + "." + name]
-    model_tests = "SMTCoq.checker.eunoia.EunoiaModelDagTests"
-    audit += ["--import", model_tests]
-    for name in re.findall(r"^\s*(?:Lemma|Theorem|Example)\s+(\w+)",
-            (ROOT / "theories/checker/eunoia/EunoiaModelDagTests.v").read_text(), re.M):
-        audit += ["--theorem", model_tests + "." + name]
+    for test_module in ("EunoiaModelDagTests", "EunoiaLocalDirectTests"):
+        test_import = "SMTCoq.checker.eunoia." + test_module
+        audit += ["--import", test_import]
+        for name in re.findall(r"^\s*(?:Lemma|Theorem|Example)\s+(\w+)",
+                (ROOT / "theories/checker/eunoia" / (test_module + ".v")).read_text(), re.M):
+            audit += ["--theorem", test_import + (".EunoiaLocalDirectTests" if test_module == "EunoiaLocalDirectTests" else "") + "." + name]
     public_modules = ("eunoia_tactics", "eunoia_uf", "eunoia_uf_bool", "eunoia_lia", "eunoia_purification", "eunoia_integer_casts", "eunoia_division")
     for module in public_modules:
         public = "SMTCoq.tests." + module
@@ -153,7 +155,8 @@ def main():
                   "SMTCoq.eunoia_runtime_profile.QueryRefinement",
                   "SMTCoq.eunoia_runtime_profile.SurfaceOutRefinement",
                   "SMTCoq.checker.eunoia.EunoiaMemoTests",
-                  model_tests,
+                  "SMTCoq.checker.eunoia.EunoiaModelDagTests",
+                  "SMTCoq.checker.eunoia.EunoiaLocalDirectTests",
                   "SMTCoq.checker.eunoia.EoCheckedMemoTests",
                   "SMTCoq.checker.eunoia.EunoiaHelperCache",
                   "SMTCoq.checker.eunoia.EunoiaProgramIndex",

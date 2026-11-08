@@ -92,7 +92,7 @@ let congr_args a b = match Atom.atom a, Atom.atom b with
     Some (Array.to_list xs,Array.to_list ys)
   | _ -> None
 
-let produce_search ?(limits=default_limits) ~atoms ~forms ~premises ~conclusion () =
+let produce_search ?(derivation=false) ?(limits=default_limits) ~atoms ~forms ~premises ~conclusion () =
   let profiling = Sys.getenv_opt "EUNOIA_WITNESS_PROFILE" = Some "1" in
   let sequence = if profiling then (incr profile_sequence; !profile_sequence) else 0 in
   let started = if profiling then Sys.time () else 0. in
@@ -148,7 +148,7 @@ let produce_search ?(limits=default_limits) ~atoms ~forms ~premises ~conclusion 
       let c = List.map lit c in
       if canonical c <> c then raise (Fail (Invalid_input "noncanonical clause")); c in
     let pcs = List.map input premises and cc = input conclusion in
-    let roots = pcs @ List.map (fun l -> [neg l]) cc in
+    let roots = if derivation then pcs else pcs @ List.map (fun l -> [neg l]) cc in
     if List.length roots > limits.max_clauses then raise (Fail (Resource_limit "roots"));
     let root_claims = List.mapi (fun id c -> id,c) roots in
     let next = ref (List.length roots) and program = ref [] in
@@ -225,7 +225,7 @@ let produce_search ?(limits=default_limits) ~atoms ~forms ~premises ~conclusion 
         let id = !next in incr next;
         program := {action=mk id;expected=c} :: !program;
         register id c;
-        if c = [] then raise (Conflict id)
+        if c = (if derivation then cc else []) then raise (Conflict id)
       end in
     let resolve_pending ?(units_only=false) ?(pair_budget=max_int) () =
       let starting_pairs = !pair_count in
@@ -233,7 +233,7 @@ let produce_search ?(limits=default_limits) ~atoms ~forms ~premises ~conclusion 
         !pair_count - starting_pairs < pair_budget do
         let id = Queue.take (if Queue.is_empty units then pending else units) in
         let c = Hashtbl.find clauses id in
-        if c = [] then raise (Conflict id);
+        if c = (if derivation then cc else []) then raise (Conflict id);
         (* A stronger available clause can do all resolution work of this
            superset. Keep its exact slot/root claim; only skip producer work. *)
         if not (subsumed ~strict:true c) then begin
@@ -394,7 +394,12 @@ let produce_search ?(limits=default_limits) ~atoms ~forms ~premises ~conclusion 
         | Some proof -> let c = List.map lit c in
           add (fun p -> LiaMicromega (p,c,proof)) c in
     let run () =
-      List.iter (fun (id,c) -> if c = [] then raise (Conflict id)) root_claims;
+      if derivation then begin
+        (match Hashtbl.find_opt known cc with Some id -> raise (Conflict id) | None -> ());
+        (* A globally valid target needs just its existing theory clause. *)
+        try_lia conclusion
+      end;
+      List.iter (fun (id,c) -> if c = (if derivation then cc else []) then raise (Conflict id)) root_claims;
       (* Preserve exact source trees at the outer boundary. Within the local
          proof, the existing syntactic checker can certify removal of Fnot2
          and associative Boolean nesting from singleton roots. *)
@@ -410,7 +415,7 @@ let produce_search ?(limits=default_limits) ~atoms ~forms ~premises ~conclusion 
             remember_tree flat;
             add (fun p -> ImmFlatten (p,id,lit flat)) [lit flat]
           end
-        | _ -> ()) (premises @ List.map (fun f -> [Form.neg f]) conclusion);
+        | _ -> ()) (if derivation then premises else premises @ List.map (fun f -> [Form.neg f]) conclusion);
       (* Keep disjunctive premises whole for Micromega. CNF equivalences below
          connect each auxiliary disjunction back to its exact root clause. *)
       let arithmetic_inputs = List.concat premises @ conclusion in
@@ -523,3 +528,12 @@ let produce ?(limits=default_limits) ~atoms ~forms ~premises ~conclusion () =
         sequence after_atoms after_forms;
       raise e
   end
+
+(* An untrusted direct-clause candidate. The separate Rocq derivation gate
+   checks every root, command and final clause; callers retain refutation fallback. *)
+let produce_derivation ?(limits=default_limits) ~atoms ~forms ~premises ~conclusion () =
+  let limits = {limits with max_clauses=min limits.max_clauses 512;
+    max_resolution_pairs=min limits.max_resolution_pairs 512;
+    max_theory_rounds=min limits.max_theory_rounds 2;
+    max_boolean_pairs=min limits.max_boolean_pairs 64} in
+  produce_search ~limits ~derivation:true ~atoms ~forms ~premises ~conclusion ()

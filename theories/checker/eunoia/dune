@@ -24,6 +24,7 @@
   EunoiaScopedAdapterTests.vo
   EunoiaContextTests.vo
   EunoiaMemoTests.vo
+  EunoiaLocalDirectTests.vo
   EoCheckedMemoTests.vo
   EunoiaHelperCacheTests.vo
   EoNameIndexTests.vo
