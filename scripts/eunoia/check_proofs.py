@@ -124,6 +124,9 @@ def main():
         for name in re.findall(r"^\s*(?:Lemma|Theorem|Example)\s+(\w+)",
                 (ROOT / "theories/checker/eunoia" / (test_module + ".v")).read_text(), re.M):
             audit += ["--theorem", test_import + (".EunoiaLocalDirectTests" if test_module == "EunoiaLocalDirectTests" else "") + "." + name]
+    for name in ("and_iff", "or_iff", "impl_iff", "iff_iff", "not_iff", "bool_true_iff"):
+        audit += ["--import", "SMTCoq.tactics.preproc.EunoiaFrontend",
+                  "--theorem", "SMTCoq.tactics.preproc.EunoiaFrontend.EunoiaFrontend." + name]
     public_modules = ("eunoia_tactics", "eunoia_uf", "eunoia_uf_bool", "eunoia_lia", "eunoia_purification", "eunoia_integer_casts", "eunoia_division")
     for module in public_modules:
         public = "SMTCoq.tests." + module

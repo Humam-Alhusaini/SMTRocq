@@ -36,3 +36,29 @@ Proof.
   Fail assert (forall x y : Z, x = y) by cvc5_eunoia.
   exact I.
 Qed.
+
+(* Proof-producing Boolean translation of compound hypotheses. *)
+Lemma eunoia_frontend_implications (a b c : bool) :
+  (a = true -> b = true) -> (b = true -> c = true) -> a = true -> c = true.
+Proof. cvc5_eunoia. Qed.
+
+Lemma eunoia_frontend_iff_negation (a b : bool) :
+  (a = true <-> b = true) -> (a = false <-> b = false).
+Proof. cvc5_eunoia. Qed.
+
+(* Legacy preprocessing supplies inferred comparison instances for carriers
+   absent from the local context; the direct path deliberately falls back. *)
+Lemma eunoia_frontend_instance_fallback (f : list Z -> list Z) (x y : list Z) :
+  x = y -> f x = f y.
+Proof. cvc5_eunoia. Qed.
+
+Example eunoia_frontend_fallback_rejects_false : True.
+Proof.
+  Fail assert (forall (f : list Z -> list Z) (x y : list Z),
+    f x = f y -> x = y) by cvc5_eunoia.
+  exact I.
+Qed.
+
+(* Explicit facts retain their original preprocessing and proof context. *)
+Lemma eunoia_frontend_supplied_fact (x : Z) : x = x.
+Proof. cvc5_eunoia (eunoia_live_reflexivity x). Qed.

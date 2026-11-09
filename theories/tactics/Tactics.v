@@ -22,6 +22,7 @@ From SMTCoq.checker Require Import MainChecker.
 From SMTCoq.checker.eunoia Require Import EunoiaTactic EunoiaScopedAdapter.
 
 Require Import Conversion QInst.
+From SMTCoq.tactics.preproc Require Import EunoiaFrontend.
 
 Declare ML Module "rocq-smtcoq.smtcoq".
 
@@ -191,7 +192,7 @@ Tactic Notation "cvc4"          := ltac2:(cvc4_tac false).
 Tactic Notation "cvc4_no_check" := ltac2:(cvc4_tac true).
 
 (* cvc5 CPC/Eunoia, with the generated evaluator and concrete semantic gate. *)
-Ltac2 cvc5_eunoia_tac global :=
+Ltac2 cvc5_eunoia_tac_with_fast_preprocessing fast global :=
   Control.enter (fun () =>
     ltac1:(intros; unfold is_true in *);
     (* Kernel equality elimination avoids passing a formula-valued Boolean
@@ -207,19 +208,33 @@ Ltac2 cvc5_eunoia_tac global :=
          end)
      | _ => ()
      end);
-    let local := List.map (fun (id, _) => (Some id, Control.hyp id)) (get_hyps_prop ()) in
-    let global := List.map (fun t => (None, t)) global in
-    let hsglob := pose_hyps global [] in
-    let hs := pose_hyps local hsglob in
-    preprocess1 true hs;
-    let n := Control.numgoals () in
-    Control.focus n n (fun () =>
-      let hs' := preprocess2 hs in
-      let r := tupleify (List.map Control.hyp hs') in
-      ltac1:(r |- cvc5_eunoia_bool_base r) (Ltac1.of_constr r)
-    );
-    ltac1:(QInst.vauto)
+    let legacy () :=
+      let local := List.map (fun (id, _) => (Some id, Control.hyp id)) (get_hyps_prop ()) in
+      let global := List.map (fun t => (None, t)) global in
+      let hsglob := pose_hyps global [] in
+      let hs := pose_hyps local hsglob in
+      preprocess1 true hs;
+      let n := Control.numgoals () in
+      Control.focus n n (fun () =>
+        let hs' := preprocess2 hs in
+        let r := tupleify (List.map Control.hyp hs') in
+        ltac1:(r |- cvc5_eunoia_bool_base r) (Ltac1.of_constr r)
+      );
+      ltac1:(QInst.vauto) in
+    match global with
+    | [] => if fast then
+        Control.plus
+          (fun () =>
+            let (r,back) := EunoiaFrontend.prepare () in
+            ltac1:(back |- apply back) (Ltac1.of_constr back);
+            ltac1:(r |- cvc5_eunoia_bool_base r) (Ltac1.of_constr r))
+          (fun _ => legacy ())
+      else legacy ()
+    | _ => legacy ()
+    end
   ).
+
+Ltac2 cvc5_eunoia_tac global := cvc5_eunoia_tac_with_fast_preprocessing true global.
 
 Tactic Notation "cvc5_eunoia" := ltac2:(cvc5_eunoia_tac []).
 Tactic Notation "cvc5_eunoia" constr(h) :=
