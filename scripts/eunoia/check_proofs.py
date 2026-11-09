@@ -117,6 +117,7 @@ def main():
         audit += ["--import", module]
         for name in names:
             audit += ["--theorem", module + "." + name]
+    audit += ["--import", "SMTCoq.utils.PArray", "--theorem", "SMTCoq.utils.PArray.IntOrderedType.compare_gt"]
     for test_module in ("EunoiaModelDagTests", "EunoiaLocalDirectTests"):
         test_import = "SMTCoq.checker.eunoia." + test_module
         audit += ["--import", test_import]
