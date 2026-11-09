@@ -245,6 +245,12 @@ prove an exact clause from its premises without first negating that clause.
 refutation fallback; it retains full generated source validation and remains
 disabled by default pending comparative timing results.
 
+The shared [integer-map comparison optimization](opaque-array-comparison-2026-11-09.md)
+keeps the greater-than arithmetic justification opaque to VM evaluation. This
+retains the original Boolean branches and proofs, while avoiding repeated proof
+computation during array reads and writes. Its comparison updates both Eunoia
+and veriT; the larger performance goal is still open.
+
 Set `EUNOIA_CACHE_PROFILE=1` to record preparation counts (source steps, shared
 entries, inline certificates and sharing hits). Counts describe producer data; successful
 `Qed`, assumption audits and independent kernel checks remain the acceptance

@@ -43,9 +43,11 @@ performance work are in progress. See the [backend guide](docs/eunoia/README.md)
 [private solver setup and provenance](scripts/eunoia/README.md),
 [signature regeneration](tools/eunoia/README.md), and
 [checked benchmark protocol](benchmarks/eunoia/README.md).
-The current [proof-construction comparison](docs/eunoia/construction-bundle.md)
-measures about 45% less tactic time, while retaining all source and kernel
-checks; the CVC5/Eunoia backend still trails veriT on that suite.
+The latest [integer-map comparison fix](docs/eunoia/opaque-array-comparison-2026-11-09.md)
+removes repeated arithmetic-proof evaluation from both checkers. It substantially
+reduces Eunoia proof-construction time; LIA still trails veriT. Earlier
+[proof-construction measurements](docs/eunoia/construction-bundle.md) retain their
+own checkpoints and timing boundaries.
 The [proof-specific compilation experiment](docs/eunoia/specialized-rules.md)
 generates individually checked rule implementations and remains off by default.
 
