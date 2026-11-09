@@ -245,6 +245,11 @@ prove an exact clause from its premises without first negating that clause.
 refutation fallback; it retains full generated source validation and remains
 disabled by default pending comparative timing results.
 
+The [direct Boolean front end](boolean-frontend-2026-11-09.md) constructs
+checked equivalence proofs for supported UF/LIA propositions and their actual
+hypotheses. Unsupported inputs and supplied facts retain the legacy path.
+All generated source and semantic checks still run.
+
 The shared [integer-map comparison optimization](opaque-array-comparison-2026-11-09.md)
 keeps the greater-than arithmetic justification opaque to VM evaluation. This
 retains the original Boolean branches and proofs, while avoiding repeated proof

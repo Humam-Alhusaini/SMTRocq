@@ -43,7 +43,12 @@ performance work are in progress. See the [backend guide](docs/eunoia/README.md)
 [private solver setup and provenance](scripts/eunoia/README.md),
 [signature regeneration](tools/eunoia/README.md), and
 [checked benchmark protocol](benchmarks/eunoia/README.md).
-The latest [integer-map comparison fix](docs/eunoia/opaque-array-comparison-2026-11-09.md)
+The [direct Boolean front end](docs/eunoia/boolean-frontend-2026-11-09.md) builds
+checked reflection proofs and retains the existing preprocessing as a fallback.
+It reduces a 64-link equality-chain diagnostic from 24.9 s to 4.6 s and improves
+the standard proof-construction workload by about 8%; veriT parity remains open.
+
+The earlier [integer-map comparison fix](docs/eunoia/opaque-array-comparison-2026-11-09.md)
 removes repeated arithmetic-proof evaluation from both checkers. It substantially
 reduces Eunoia proof-construction time; LIA still trails veriT. Earlier
 [proof-construction measurements](docs/eunoia/construction-bundle.md) retain their
