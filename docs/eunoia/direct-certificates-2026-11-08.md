@@ -78,7 +78,11 @@ include the original source and semantic corruption controls. The direct mode
 passed 21 initial native/public replay groups and an initial 372-target
 assumption audit with recursive kernel checking.
 
-Final validation after sharing the immutable guard is recorded separately in
+Final validation after sharing the immutable guard passed the full build and
+regressions, three fresh native/public replay groups with recursive kernel
+checking, and the 372-target assumption audit plus final recursive kernel pass.
+The standalone extraction passed 193 assumption targets and four fresh component
+fixtures with recursive kernel replay. Exact commands and source hashes are in
 [the validation artifact](direct-certificates-validation-2026-11-08.json).
 No axioms or admitted proofs were added; the inherited SMTCoq UInt63 and
 proof-irrelevance baseline remains.
