@@ -256,9 +256,13 @@ let prepare ?(fuel=10000) ~witness env t roots parsed =
     let cache_slots = Hashtbl.create 127 in
     let certificates = ref [] in
     let inline_certificates = ref 0 in
-    let has_direct = ref false in
-    let direct_witness w = match R.decompose_app_list w with
-      | h,[_] when R.eq_constr h (C.global (memo_api "Direct")) -> true
+    let has_special = ref false in
+    let special_witness w = match R.decompose_app_list w with
+      | h,[_] when R.eq_constr h (C.global (memo_api "Direct")) ||
+          R.eq_constr h (C.global (memo_api "Theory")) -> true
+      | _ -> false in
+    let primitive_witness tag w = match R.decompose_app_list w with
+      | h,[_] -> R.eq_constr h (C.global (memo_api tag))
       | _ -> false in
     let certificate_index = Hashtbl.create 127 in
     let result_clause st = phase "reify_result" (fun () ->
@@ -273,9 +277,9 @@ let prepare ?(fuel=10000) ~witness env t roots parsed =
             E.pp_term st.result in
       checked_steps := (st,assumption,source_assumption,syntax_cs,cs,c,w)::!checked_steps;
       Hashtbl.add mapped st.id c;
-      if direct_witness w then begin
-        has_direct := true; incr inline_certificates
-      end else if collect_cache then begin
+      if special_witness w then has_special := true;
+      if primitive_witness "Direct" w then incr inline_certificates
+      else if collect_cache then begin
         let key = List.map (List.map Form.to_lit) cs, List.map Form.to_lit c in
         let bucket = Stdlib.Option.value ~default:[] (Hashtbl.find_opt certificate_index key) in
         match List.find_opt (fun (_,old_w) -> R.eq_constr w old_w) bucket with
@@ -341,16 +345,16 @@ let prepare ?(fuel=10000) ~witness env t roots parsed =
     (* Keep the original representation for nonrepeating proofs. If sharing
        pays, emit references from already-produced data; never repeat search
        or skip a source inference. Both representations are kernel checked. *)
-    let memo_format = memoize || use_model_dag || !has_direct in
+    let memo_format = memoize || use_model_dag || !has_special in
     let trace = if not memo_format then reference_trace else begin
       let info = Hashtbl.create proof.capacity in
       List.iter (fun (st,a,_,_,_,c,w) -> Hashtbl.add info st.E.id (a,c,w)) !checked_steps;
       let witness_ty = C.global (memo_api "witness_ref") in
       let parameters = [rule_ty;rule_ty;witness_ty] in
       let data st = let _,c,w = Hashtbl.find info st.E.id in
-        let reference = if direct_witness w then w else match (if memoize then Hashtbl.find_opt cache_slots st.id else None) with
+        let reference = if primitive_witness "Direct" w then w else match (if memoize then Hashtbl.find_opt cache_slots st.id else None) with
           | Some id -> C.call (memo_api "Cached") [CoqTerms.mkNat id]
-          | None -> C.call (memo_api "Inline") [w] in
+          | None -> if primitive_witness "Theory" w then w else C.call (memo_api "Inline") [w] in
         c,reference in
       let ordinary st = let c,w = data st in
         C.call (core "Step") [rule_ty;witness_ty;mkint st.E.id;
@@ -406,15 +410,19 @@ let prepare ?(fuel=10000) ~witness env t roots parsed =
          | Result.Ok () -> ()
          | Result.Error () -> R.raise_error "Eunoia: %s"
              (context "generated source evaluation failed"));
-        let is_direct = direct_witness evidence in
-        let evidence = if is_direct then match R.decompose_app_list evidence with
-          | _,[original] -> original | _ -> R.raise_error "Eunoia: malformed direct witness" else evidence in
+        let is_direct, is_theory, evidence = match R.decompose_app_list evidence with
+          | h,[original] when R.eq_constr h (C.global (memo_api "Direct")) -> true,false,original
+          | h,[original] when R.eq_constr h (C.global (memo_api "Theory")) -> false,true,original
+          | _ -> false,false,evidence in
         let gate_api = if is_direct then
-          "SMTCoq.checker.eunoia.EunoiaLocalDirect.EunoiaLocalDirect.gate" else local "gate" in
+          "SMTCoq.checker.eunoia.EunoiaLocalDirect.EunoiaLocalDirect.gate"
+          else if is_theory then "SMTCoq.checker.eunoia.EunoiaTheory.EunoiaTheory.gate"
+          else local "gate" in
         let gate = C.call gate_api (tables @ [clauses cs;clause c;evidence]) in
         (match R.vm_conv Conversion.CUMUL env gate (Lazy.force CoqTerms.ctrue) with
         | Result.Ok () -> ()
         | Result.Error () ->
+          if is_theory then R.raise_error "Eunoia: %s" (context "direct theory certificate failed");
           let machine_ty = C.global (local "machine") in
           let option_ty = SmtMisc.mklApp CoqTerms.coption [|machine_ty|] in
           let machine computation =
@@ -449,7 +457,11 @@ let prepare ?(fuel=10000) ~witness env t roots parsed =
             (context "local semantic certificate failed") E.pp_term st.result)) (List.rev !checked_steps) in
     let memo_args = if memo_format then
       [C.list (C.global (memo_api "cache_entry"))
-        (List.rev_map (fun (cs,c,w) -> C.call (memo_api "CacheEntry") [clauses cs;clause c;w])
+        (List.rev_map (fun (cs,c,w) ->
+          if primitive_witness "Theory" w then match R.decompose_app_list w with
+            | _,[data] -> C.call (memo_api "TheoryEntry") [clauses cs;clause c;data]
+            | _ -> R.raise_error "Eunoia: malformed theory cache entry"
+          else C.call (memo_api "CacheEntry") [clauses cs;clause c;w])
           (if memoize then !certificates else []))] else [] in
     let specialized_args = if use_specialized && not share_helpers && not use_model_dag then
       (* Names only select proved implementations. The checker compares each
@@ -467,7 +479,11 @@ let prepare ?(fuel=10000) ~witness env t roots parsed =
         (if collect_cache then sharing_hits else 0);
     if Sys.getenv_opt "EUNOIA_CACHE_PROFILE" = Some "1" then
       Printf.eprintf "EUNOIA_CERTIFICATES direct=%d total=%d\n%!"
-        (List.fold_left(fun n(_,_,_,_,_,_,w)->if direct_witness w then n+1 else n)0 !checked_steps)
+        (List.fold_left(fun n(_,_,_,_,_,_,w)->if primitive_witness "Direct" w then n+1 else n)0 !checked_steps)
+        (List.length !checked_steps);
+    if Sys.getenv_opt "EUNOIA_CACHE_PROFILE" = Some "1" then
+      Printf.eprintf "EUNOIA_THEORY_CERTIFICATES theory=%d total=%d\n%!"
+        (List.fold_left(fun n(_,_,_,_,_,_,w)->if primitive_witness "Theory" w then n+1 else n)0 !checked_steps)
         (List.length !checked_steps);
     {table_args=tables;
      common_args=tables @ [ns] @ specialized_args @ [fuel] @

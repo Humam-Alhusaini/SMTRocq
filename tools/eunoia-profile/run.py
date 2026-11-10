@@ -138,9 +138,10 @@ def main():
                 "profile_components": os.environ.get("ROCQ_PROFILE_COMPONENTS", "default"),
                 "model_dag": os.environ.get("EUNOIA_MODEL_DAG", "auto"),
                 "direct_certificates": os.environ.get("EUNOIA_DIRECT_CERTIFICATES", "0"),
+                "theory_certificates": os.environ.get("EUNOIA_THEORY_CERTIFICATES", "0"),
                 "declared_conclusions": os.environ.get("EUNOIA_DECLARED_CONCLUSIONS", "1"),
                 "environment_overrides": {k: os.environ[k] for k in (
-                    "EUNOIA_DIRECT_CERTIFICATES", "EUNOIA_MODEL_DAG", "EUNOIA_DECLARED_CONCLUSIONS",
+                    "EUNOIA_THEORY_CERTIFICATES", "EUNOIA_DIRECT_CERTIFICATES", "EUNOIA_MODEL_DAG", "EUNOIA_DECLARED_CONCLUSIONS",
                     "EUNOIA_HELPER_CACHE", "EUNOIA_SPECIALIZED_RULES", "EUNOIA_DIRECT_PROGRAMS",
                     "EUNOIA_STAGED_PROGRAMS", "EUNOIA_PROGRAM_INDEX", "EUNOIA_CVC5_PROFILE",
                     "EUNOIA_DISABLE_CHECKED_CACHE", "EUNOIA_FORCE_CHECKED_CACHE",
@@ -155,7 +156,10 @@ def main():
                      "tools/eunoia-profile/run.py", "tools/eunoia-profile/Controls.v",
                      "theories/checker/eunoia/EunoiaTactic.v", "src/g_smtcoq.mlg",
                      "src/eunoia_witness/search.ml", "theories/checker/eunoia/EunoiaMemo.v",
-                     "theories/checker/eunoia/EunoiaLocalDirect.v"):
+                     "theories/checker/eunoia/EunoiaLocalDirect.v",
+                     "theories/checker/eunoia/EunoiaTheory.v", "src/eunoia_witness/theory.ml",
+                     "_build/default/theories/checker/eunoia/EunoiaTheory.vo",
+                     "_build/default/theories/checker/eunoia/EunoiaMemo.vo"):
         metadata["source_sha256"][relative] = hashlib.sha256((ROOT / relative).read_bytes()).hexdigest()
     for relative in ("src/eunoia_backend/eunoia_backend.cmxs",
                      "src/eunoia_witness/eunoia_witness.cmxs",
@@ -194,7 +198,7 @@ def main():
                 audit = execute(["python3", "-B", str(ROOT / "tools/audit-eunoia-assumptions.py"),
                                  "--import", "EunoiaProfile.Case", "--theorem", "profile_result",
                                  "--loadpath", str(directory), "EunoiaProfile",
-                                 "--output-dir", str(audit_dir)], audit_dir, args.timeout)
+                                 "--output-dir", str(audit_dir)], audit_dir, args.kernel_timeout)
                 row["audit_exit_code"] = audit["exit_code"]
                 failed |= audit["exit_code"] != 0 or audit["timeout"]
                 if args.kernel_check:
@@ -225,7 +229,7 @@ def main():
                              "--import", "EunoiaProfile.Controls", "--theorem", "false_controls",
                              "--theorem", "source_controls", "--theorem", "local_controls",
                              "--loadpath", str(directory), "EunoiaProfile",
-                             "--output-dir", str(audit_dir)], audit_dir, args.timeout)
+                             "--output-dir", str(audit_dir)], audit_dir, args.kernel_timeout)
             failed |= audit["exit_code"] != 0 or audit["timeout"]
             if args.kernel_check:
                 check_dir = directory / "kernel"

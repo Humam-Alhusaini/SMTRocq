@@ -4,20 +4,20 @@ From Stdlib Require Import List Bool Uint63.
 From SMTCoq.utils Require Import PArray CompDec.
 From SMTCoq.checker.fol Require Import State Terms.
 From SMTCoq.checker.eunoia Require Import EoRuntime CpcGenerated EunoiaChecker
-  EunoiaAdapter EunoiaLocal EunoiaLocalDirect EunoiaScope EunoiaTactic EunoiaScopedAdapter.
+  EunoiaAdapter EunoiaLocal EunoiaLocalDirect EunoiaTheory EunoiaScope EunoiaTactic EunoiaScopedAdapter.
 Import ListNotations.
 Local Open Scope uint63_scope.
 Local Open Scope array_scope.
 Set Implicit Arguments.
 Module EunoiaMemo.
 
-Record cache_entry := CacheEntry {
-  cached_premises : list C.t;
-  cached_conclusion : C.t;
-  cached_witness : EunoiaLocal.witness
-}.
+Inductive cache_entry :=
+| CacheEntry (premises : list C.t) (conclusion : C.t) (witness : EunoiaLocal.witness)
+| TheoryEntry (premises : list C.t) (conclusion : C.t) (witness : EunoiaTheory.certificate).
+Definition cached_premises e := match e with CacheEntry cs _ _ | TheoryEntry cs _ _ => cs end.
+Definition cached_conclusion e := match e with CacheEntry _ c _ | TheoryEntry _ c _ => c end.
 Inductive witness_ref := Cached (id : nat) | Inline (w : EunoiaLocal.witness)
- | Direct (w : EunoiaLocal.witness).
+ | Direct (w : EunoiaLocal.witness) | Theory (w : EunoiaTheory.certificate).
 Definition trace := @EunoiaScope.trace EunoiaAdapter.rule_payload
   EunoiaAdapter.rule_payload witness_ref.
 Definition discharge := @EunoiaScope.discharge EunoiaAdapter.rule_payload witness_ref.
@@ -50,17 +50,23 @@ Section Tables.
   Definition scope_eval_with extra fuel :=
     @EunoiaScopedAdapter.scope_eval_with t_i t_func t_atom t_form names extra fuel.
   Definition cache_valid (entries : list cache_entry) :=
-    let verify := @EunoiaLocal.gate t_i t_func t_atom t_form in
-    forallb (fun e => verify
-      (cached_premises e) (cached_conclusion e) (cached_witness e)) entries.
+    let ready := Form.check_form t_form && Atom.check_atom t_atom in
+    let verify := @EunoiaLocal.prepared_gate t_i t_func t_atom t_form ready in
+    let theory := EunoiaTheory.prepared_gate t_form t_atom ready in
+    forallb (fun e => match e with
+      | CacheEntry cs c w => verify cs c w
+      | TheoryEntry cs c w => theory cs c w
+      end) entries.
   Definition gate (entries : list cache_entry) : list C.t -> C.t -> witness_ref -> bool :=
     let ready := Form.check_form t_form && Atom.check_atom t_atom in
     let verify := @EunoiaLocal.prepared_gate t_i t_func t_atom t_form ready in
     let derive := @EunoiaLocalDirect.prepared_gate t_i t_func t_atom t_form ready in
+    let theory := EunoiaTheory.prepared_gate t_form t_atom ready in
     fun cs c w =>
     match w with
     | Inline original => verify cs c original
     | Direct original => derive cs c original
+    | Theory original => theory cs c original
     | Cached id =>
       match nth_error entries id with
       | Some e => clauses_eqb cs (cached_premises e) &&
@@ -73,16 +79,19 @@ Section Tables.
     @EunoiaChecker.gate_sound witness_ref (gate entries) valuation.
   Proof.
     intros entries Hwt Hvalid cs c ref Hgate Hcs.
-    destruct ref as [id|original|original].
+    destruct ref as [id|original|original|original].
     2: exact (@EunoiaLocal.gate_correct t_i t_func t_atom t_form Hwt cs c original Hgate Hcs).
     2: exact (@EunoiaLocalDirect.gate_correct t_i t_func t_atom t_form Hwt cs c original Hgate Hcs).
+    2: exact (@EunoiaTheory.gate_correct t_i t_func t_atom t_form Hwt cs c original Hgate Hcs).
     unfold gate in Hgate.
     destruct (nth_error entries id) as [e|] eqn:He; try discriminate.
     apply andb_true_iff in Hgate; destruct Hgate as [Hprem Hconcl].
     apply clauses_eqb_spec in Hprem; apply EunoiaChecker.clause_eqb_spec in Hconcl.
     subst cs c.
     unfold cache_valid in Hvalid; apply forallb_forall with (x:=e) in Hvalid.
-    - eapply (@EunoiaLocal.gate_correct t_i t_func t_atom t_form Hwt); eauto.
+    - destruct e as [cs c w | cs c w]; cbn [cached_premises cached_conclusion] in *.
+      + eapply (@EunoiaLocal.gate_correct t_i t_func t_atom t_form Hwt); eauto.
+      + eapply (@EunoiaTheory.gate_correct t_i t_func t_atom t_form Hwt); eauto.
     - eapply nth_error_In; eauto.
   Qed.
 

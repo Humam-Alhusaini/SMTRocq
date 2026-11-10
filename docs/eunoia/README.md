@@ -245,6 +245,11 @@ prove an exact clause from its premises without first negating that clause.
 refutation fallback; it retains full generated source validation and remains
 disabled by default pending comparative timing results.
 
+The [direct SMTCoq theory certificate backend](theory-certificates-2026-11-10.md)
+calls the existing verified EUF and LIA small checkers without creating a local
+proof machine for supported steps. It retains signature-generated CPC checking,
+exact ordered cache bindings, and the verified fallback.
+
 The [direct Boolean front end](boolean-frontend-2026-11-09.md) constructs
 checked equivalence proofs for supported UF/LIA propositions and their actual
 hypotheses. Unsupported inputs and supplied facts retain the legacy path.

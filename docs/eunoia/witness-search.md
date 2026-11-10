@@ -163,3 +163,20 @@ On branch `t3/eunoia-witness-producer`, worktree
 
 These checks establish tested local witness production and replay coverage;
 they do not establish overall CPC importer completion.
+
+## Direct SMTCoq theory candidates
+
+`Theory.select` tries compact truth, exact premise reuse, equality transitivity,
+congruence, and atomic arithmetic certificates before local search. It uses
+actual clauses and formulas, with no CPC rule-name dispatch. Atomic arithmetic
+uses the exact canonical conditional clause and existing `Lia.build_lia_certif`.
+Pure UF inputs skip Micromega; Boolean expansion retains bounded local search.
+`Theory.from_witness` can extract an exact matching arithmetic certificate from
+that fallback. `Theory.to_coq` emits ordinary data accepted only by the proved
+`EunoiaTheory.gate`; typed native probes recompute every emitted candidate with
+that gate. The frontend serializes tables after all producers finish.
+
+The backend wraps these candidates with `EunoiaMemo.Theory` and can share them
+through checked `TheoryEntry` values. Every source occurrence still goes through
+the full generated checker and actual ordered clause bindings. See
+[the architecture and measurements](theory-certificates-2026-11-10.md).

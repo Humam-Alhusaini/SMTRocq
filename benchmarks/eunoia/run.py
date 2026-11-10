@@ -357,7 +357,7 @@ def main():
         "profiling_environment": {name: os.environ.get(name) for name in
                                   ("EUNOIA_DIRECT_CERTIFICATES", "EUNOIA_MODEL_DAG", "EUNOIA_TRACE_CONSTANTS", "EUNOIA_SINGLE_KERNEL_ACCEPTANCE", "EUNOIA_SPECIALIZED_RULES", "EUNOIA_DIRECT_PROGRAMS", "EUNOIA_STAGED_PROGRAMS", "EUNOIA_PROGRAM_INDEX", "EUNOIA_DECLARED_CONCLUSIONS", "EUNOIA_HELPER_CACHE", "EUNOIA_PROFILE_PHASES", "EUNOIA_CVC5_PROFILE", "EUNOIA_DISABLE_CHECKED_CACHE",
                                    "EUNOIA_FORCE_CHECKED_CACHE",
-                                   "EUNOIA_CACHE_PROFILE",
+                                   "EUNOIA_CACHE_PROFILE", "EUNOIA_THEORY_CERTIFICATES",
                                    "EUNOIA_DISABLE_TERM_CACHE", "EUNOIA_DISABLE_DERIVE_CACHE",
                                    "EUNOIA_DISABLE_WITNESS_CACHE",
                                    "EUNOIA_WITNESS_PROFILE", "EUNOIA_TABLE_PROFILE",

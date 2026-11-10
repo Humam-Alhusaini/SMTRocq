@@ -41,7 +41,8 @@ Proof. vm_compute; reflexivity. Qed.
 Example out_of_bounds_reference_rejected :
   gate entries [[4];[5]] [] (M.Cached 1000) = false.
 Proof. vm_compute; reflexivity. Qed.
-Definition invalid := M.CacheEntry [[4]] [] (EunoiaLocal.Witness 0 [] [] 0).
+Definition invalid_witness := EunoiaLocal.Witness 0 [] [] 0.
+Definition invalid := M.CacheEntry [[4]] [] invalid_witness.
 Example unused_invalid_entry_rejected : check (entries ++ [invalid]) shared = false.
 Proof. vm_compute; reflexivity. Qed.
 Example invalid_referenced_entry_rejected :

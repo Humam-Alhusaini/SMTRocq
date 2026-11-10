@@ -38,7 +38,7 @@ Example bad_inline_semantics_rejected :
  check 100 T.entries S.roots S.root_terms
  (EunoiaScope.Push 2 4
   (EunoiaScope.Next (T.step 3 [2;1] S.contra_p []
-    (EunoiaMemo.Inline (T.invalid.(EunoiaMemo.cached_witness)))) T.done)
+    (EunoiaMemo.Inline (T.invalid_witness))) T.done)
   (Some T.closing) T.finish) = false.
 Proof. vm_compute; reflexivity. Qed.
 Example low_fuel_retains_failure :
