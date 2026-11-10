@@ -15,7 +15,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", type=Path)
     parser.add_argument("--modes", nargs="+", choices=("Reference", "Shared", "Helpers", "Conclusions", "Indexed", "Staged", "Direct", "DirectShared", "DirectReference", "IndexedAdaptive", "IndexedReference", "Specialized", "SpecializedShared", "SpecializedReference", "Model", "ModelShared", "ModelReference", "Certificates", "CertificatesShared", "CertificatesModel", "Theory", "TheoryShared", "TheoryReference", "TheoryModel"),
-                        default=("Reference", "Shared", "Helpers", "Conclusions", "Indexed", "Staged", "Direct", "Specialized"))
+                        default=("Reference", "Shared", "Helpers", "Conclusions", "Indexed", "Staged", "Direct", "Specialized", "Theory"))
     parser.add_argument("--fixtures", nargs="+",
                         choices=("Proof", "Lia", "IntegerCasts", "Division",
                                  "Uf", "UfBool", "Purification", "PublicLia", "PublicTactics"))
