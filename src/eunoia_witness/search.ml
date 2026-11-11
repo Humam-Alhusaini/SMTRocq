@@ -92,7 +92,7 @@ let congr_args a b = match Atom.atom a, Atom.atom b with
     Some (Array.to_list xs,Array.to_list ys)
   | _ -> None
 
-let produce_search ?(derivation=false) ?(limits=default_limits) ~atoms ~forms ~premises ~conclusion () =
+let produce_search ?(derivation=false) ?(eager_theory_units=false) ?(limits=default_limits) ~atoms ~forms ~premises ~conclusion () =
   let profiling = Sys.getenv_opt "EUNOIA_WITNESS_PROFILE" = Some "1" in
   let sequence = if profiling then (incr profile_sequence; !profile_sequence) else 0 in
   let started = if profiling then Sys.time () else 0. in
@@ -217,7 +217,7 @@ let produce_search ?(derivation=false) ?(limits=default_limits) ~atoms ~forms ~p
         "EUNOIA_WITNESS id=%d event=finish cpu_s=%.6f searched_slots=%d capacity=%d commands=%d pairs=%d\n%!"
         sequence (Sys.time () -. started) !next !capacity (List.length program) !pair_count;
       { capacity = !capacity;root_claims;program;conflict=slot conflict } in
-    let add mk c =
+    let rec add mk c =
       let c = canonical c in
       let explicit_true = match mk !next with CTrue _ -> true | _ -> false in
       if (c <> [0] || explicit_true) && not (tautology c) && not (subsumed c) then begin
@@ -225,7 +225,20 @@ let produce_search ?(derivation=false) ?(limits=default_limits) ~atoms ~forms ~p
         let id = !next in incr next;
         program := {action=mk id;expected=c} :: !program;
         register id c;
-        if c = (if derivation then cc else []) then raise (Conflict id)
+        if c = (if derivation then cc else []) then raise (Conflict id);
+        (* A fresh nonunit clause must also see units already consumed from
+           the propagation queue. Emit ordinary checked resolutions eagerly;
+           otherwise a closing transitivity clause waits behind saturation. *)
+        if eager_theory_units then
+          match List.find_map (fun l ->
+            Stdlib.Option.map (fun unit -> unit,[neg l]) (Hashtbl.find_opt known [neg l])) c with
+          | None -> ()
+          | Some (unit,unit_clause) ->
+            if !pair_count >= limits.max_resolution_pairs then
+              raise (Fail (Resource_limit "resolution pairs"));
+            incr pair_count;
+            Hashtbl.replace pairs (min id unit,max id unit) ();
+            add (fun p -> Res(p,id,unit)) (resolve unit_clause c)
       end in
     let resolve_pending ?(units_only=false) ?(pair_budget=max_int) () =
       let starting_pairs = !pair_count in
@@ -290,13 +303,15 @@ let produce_search ?(derivation=false) ?(limits=default_limits) ~atoms ~forms ~p
               Hashtbl.add seen (Atom.index y) (); Queue.add (y,f::rev) q end)
               (Stdlib.Option.value ~default:[] (Hashtbl.find_opt graph (Atom.index x)));
             loop () end in loop () in
-      let trans f path = match Form.pform f with
+      let trans f path =
+        (match Form.pform f with
         | Fapp (Fiff,_) ->
           (* Boolean equality paths are propositional implications. Their
              definitions and the existing checked resolutions discharge them. *)
           cnf f; List.iter cnf path
         | _ -> add (fun p -> EqTr (p,lit f,List.map lit path))
-            (lit f :: List.map (fun f -> neg (lit f)) path) in
+            (lit f :: List.map (fun f -> neg (lit f)) path));
+        if eager_theory_units then resolve_pending ~units_only:true () in
       List.iter (fun f -> match eq f with
         | Some (a,b) when not (Hashtbl.mem known [lit f]) ->
           (* Using the target edge itself only yields a tautology and hides
@@ -537,3 +552,34 @@ let produce_derivation ?(limits=default_limits) ~atoms ~forms ~premises ~conclus
     max_theory_rounds=min limits.max_theory_rounds 2;
     max_boolean_pairs=min limits.max_boolean_pairs 64} in
   produce_search ~limits ~derivation:true ~atoms ~forms ~premises ~conclusion ()
+
+(* Whole-goal UF/CNF compression is untrusted proof production. A syntactic
+   screen bounds its input before search can intern any auxiliary formulas.
+   It deliberately leaves arithmetic and deep function graphs to the ordinary
+   CVC5 translator. The resulting local program still passes the full gate. *)
+let compress_uf ~atoms ~forms ~premises ~conclusion () =
+  let seen_forms = Hashtbl.create 31 and seen_terms = Hashtbl.create 31 in
+  let rec term depth a =
+    depth <= 4 && (Hashtbl.mem seen_terms (Atom.index a) ||
+      Hashtbl.length seen_terms < 64 && match Atom.atom a with
+      | Aapp (_,xs) ->
+        Hashtbl.add seen_terms (Atom.index a) ();
+        Array.for_all (term (depth+1)) xs
+      | _ -> false)
+  and formula f =
+    Hashtbl.mem seen_forms (Form.index f) ||
+    Hashtbl.length seen_forms < 128 && begin
+      Hashtbl.add seen_forms (Form.index f) ();
+      match Form.pform f with
+      | Fatom a -> (match Atom.atom a with
+        | Abop (BO_eq _,a,b) -> term 0 a && term 0 b
+        | Aapp _ -> term 0 a
+        | _ -> false)
+      | Fapp (_,xs) -> Array.for_all formula xs
+      | FbbT _ -> false
+    end in
+  if not (List.for_all (List.for_all formula) (conclusion::premises)) then Error Unsupported
+  else produce_search ~eager_theory_units:true ~limits:{max_clauses=1024;
+    max_resolution_pairs=4096;max_boolean_pairs=64;max_theory_rounds=8;
+    max_terms=64;max_formulas=128;max_lia_literals=0}
+    ~atoms ~forms ~premises ~conclusion ()

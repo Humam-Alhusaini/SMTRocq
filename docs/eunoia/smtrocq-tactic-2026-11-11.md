@@ -56,6 +56,17 @@ SMTCoq arithmetic producer/checker and is bounded by 64 Boolean node visits and
 CVC5 is still invoked and its proof output parsed. Compression is an untrusted
 proof-size optimization, not a trusted arithmetic answer.
 
+UF/CNF goals over built-in sorts can also use one checked local program for the
+complete root vector. Its producer propagates existing unit clauses through
+newly generated clauses immediately, emitting ordinary resolution commands.
+This avoids generating irrelevant congruences before a transitivity clause can
+close a Boolean equality chain. Each emitted command is checked by the existing
+local gate. The producer screens arithmetic and deep function graphs before
+search; it is bounded by depth 4, 64 terms, 128 formulas, 1,024 clause slots,
+4,096 resolution pairs and eight theory rounds. Larger inputs and failed
+candidates retain the normal CVC5 translation. Abstract carriers retain the
+per-step path, preserving their existing universe handling.
+
 Coverage includes UF with multiple sorts, Boolean and mixed UF/LIA goals,
 integer cuts/parity, explicit proved facts, and the existing supported Rocq
 integer-division/modulo facts. Unsupported theories and unrestricted quantified

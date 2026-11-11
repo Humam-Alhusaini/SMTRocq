@@ -11,8 +11,9 @@ type witness_producer =
   atoms:SmtAtom.Atom.reify_tbl -> forms:SmtAtom.Form.reify ->
   premises:SmtAtom.Form.t list list -> conclusion:SmtAtom.Form.t list ->
   (RocqInterface.constr, string) result
-(** Candidate constructor for [EunoiaLocal.witness], or a [EunoiaMemo.Direct]
-    wrapper containing a direct-clause witness. Called for EVERY CPC step,
+(** Candidate constructor for [EunoiaLocal.witness], a [EunoiaMemo.Direct]
+    wrapper, or a compact [EunoiaMemo.Theory] certificate. In the strict tactic
+    it is called for EVERY CPC step,
     including unused ones and scope discharges. A discharge receives solely
     [[EunoiaScope.guarded actual_pushed_literal exact_endpoint_clause]], while
     its generated payload retains the unguarded endpoint as sole premise. Final checking reruns the generated evaluator, exact
@@ -21,7 +22,9 @@ type witness_producer =
 
 val create_tables : unit -> tables
 val export : ?native:bool -> ?env:Environ.env -> tables -> SmtAtom.Form.t list -> string
-(** Export the checked adapter's exact surface syntax. Supply the current
+(** By default, export the checked adapter's exact surface syntax.
+    [native=true] exports untrusted candidate syntax for the semantic compiler;
+    subsequent certificate/goal checking remains mandatory. Supply the current
     proof environment, including its universe context, for local carriers.
     No solver declarations are imported. *)
 
@@ -73,4 +76,7 @@ val tactic_smtcoq :
 (** Compiles untrusted Eunoia input to a verified SMTCoq semantic certificate.
     Validates every compiled step, scoped assumption and actual root binding.
     It does not certify CPC source-format conformance; [tactic] retains that
-    separate contract. There is no unchecked proof-acceptance path. *)
+    separate contract. [compression] receives the full actual root vector and
+    returns an [EunoiaMemo.witness_ref], including an [Inline] wrapper when
+    using a local program. Its candidate passes the full semantic checker.
+    There is no unchecked proof-acceptance path. *)

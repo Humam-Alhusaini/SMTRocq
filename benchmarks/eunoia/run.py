@@ -363,7 +363,7 @@ def main():
                                    "EUNOIA_DISABLE_TERM_CACHE", "EUNOIA_DISABLE_DERIVE_CACHE",
                                    "EUNOIA_DISABLE_WITNESS_CACHE",
                                    "EUNOIA_WITNESS_PROFILE", "EUNOIA_TABLE_PROFILE",
-                                   "ROCQ_PROFILE_COMPONENTS")},
+                                   "ROCQ_PROFILE_COMPONENTS", "SMTROCQ_DISABLE_SLICING")},
         "configuration": vars(args) | {"wrapper": str(wrapper), "output": str(output),
                                        "cases": str(cases_path)},
         "cases_sha256": sha256(cases_path),
@@ -377,8 +377,8 @@ def main():
             "cvc5_eunoia": "signature-generated CPC validation plus semantic certificate for every source inference",
         },
         "effective_compact_theory": {
-            backend: (os.environ.get("EUNOIA_THEORY_CERTIFICATES") != "0"
-                      if "EUNOIA_THEORY_CERTIFICATES" in os.environ else backend == "smtrocq")
+            backend: {"0": False, "1": True}.get(
+                os.environ.get("EUNOIA_THEORY_CERTIFICATES"), backend == "smtrocq")
             for backend in args.backends if backend in ("smtrocq", "cvc5_eunoia")
         },
         "tools": {},

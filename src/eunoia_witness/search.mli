@@ -33,3 +33,11 @@ val produce_derivation :
   ?limits:limits -> atoms:Atom.reify_tbl -> forms:Form.reify ->
   premises:Form.t list list -> conclusion:Form.t list -> unit ->
   (Certificate.witness, failure) result
+
+(** Bounded whole-goal UF/CNF candidate. Screens out arithmetic and deep
+    function graphs before search. The caller must validate the full program
+    with the concrete gate and bind it to its actual roots. *)
+val compress_uf :
+  atoms:Atom.reify_tbl -> forms:Form.reify ->
+  premises:Form.t list list -> conclusion:Form.t list -> unit ->
+  (Certificate.witness, failure) result

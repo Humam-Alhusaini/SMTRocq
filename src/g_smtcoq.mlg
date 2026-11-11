@@ -141,10 +141,20 @@ let compact_theory_candidate candidate =
   RocqInterface.mkApp
     (Eunoia_backend.EunoiaRocq.global "SMTCoq.checker.eunoia.EunoiaMemo.EunoiaMemo.Theory",[|data|])
 
-let compress_arithmetic ~atoms:_ ~forms:_ ~premises ~conclusion =
+let compress_goal ~atoms ~forms ~premises ~conclusion =
   match Eunoia_witness.Theory.compress ~premises ~conclusion with
-  | None -> Error "no bounded arithmetic compression"
   | Some candidate -> Ok (compact_theory_candidate candidate)
+  | None ->
+    match Eunoia_witness.Search.compress_uf ~atoms ~forms ~premises ~conclusion () with
+    | Error error -> Error (Eunoia_witness.Search.string_of_failure error)
+    | Ok witness ->
+      let data = Eunoia_witness.Certificate.to_coq
+        ~local:(fun name -> Eunoia_backend.EunoiaRocq.global
+          ("SMTCoq.checker.eunoia.EunoiaLocal.EunoiaLocal." ^ name))
+        ~step:(fun name -> Eunoia_backend.EunoiaRocq.global
+          ("SMTCoq.checker.MainChecker.Checker_Ext." ^ name)) witness in
+      Ok (RocqInterface.mkApp
+        (Eunoia_backend.EunoiaRocq.global "SMTCoq.checker.eunoia.EunoiaMemo.EunoiaMemo.Inline",[|data|]))
 
 let make_eunoia_witness ?(compact=false) () =
   let candidates = Hashtbl.create 127 in
@@ -209,7 +219,7 @@ let eunoia_tactic ~compiled lpl =
     | Some tuple -> CoqTerms.list_of_constr_tuple tuple
   in
   let witness = make_eunoia_witness ~compact:compiled () in
-  if compiled then Eunoia_backend.EunoiaBackend.tactic_smtcoq ~compression:compress_arithmetic ~witness ~lemmas ()
+  if compiled then Eunoia_backend.EunoiaBackend.tactic_smtcoq ~compression:compress_goal ~witness ~lemmas ()
   else Eunoia_backend.EunoiaBackend.tactic ~witness ~lemmas ()
 
 }

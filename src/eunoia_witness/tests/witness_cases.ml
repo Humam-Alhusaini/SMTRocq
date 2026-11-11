@@ -17,9 +17,11 @@ let run ~check =
   let form forms a = Form.get forms (Fatom a) in
   let bool atoms forms i = form forms (symbol atoms i [||] SmtBtype.Tbool []) in
   let binary forms op a b = Form.get forms (Fapp (op,[|a;b|])) in
-  let positive ?limits ?(pure_uf=false) name atoms forms premises conclusion =
+  let positive ?limits ?(pure_uf=false) ?(whole_uf=false) name atoms forms premises conclusion =
     let premises = List.map sorted premises and conclusion = sorted conclusion in
-    match Search.produce ?limits ~atoms ~forms ~premises ~conclusion () with
+    let result = if whole_uf then Search.compress_uf ~atoms ~forms ~premises ~conclusion ()
+      else Search.produce ?limits ~atoms ~forms ~premises ~conclusion () in
+    match result with
     | Error e -> failwith (name ^ ": " ^ Search.string_of_failure e)
     | Ok w ->
       if pure_uf then assert (List.for_all (fun cmd -> match cmd.Certificate.action with
@@ -112,6 +114,20 @@ let run ~check =
     (Array.to_list (Array.map2 (fun a b -> [binary forms Fiff a b]) left right))
     [binary forms Fiff (Form.get forms (Fapp (Fand,left))) (Form.get forms (Fapp (Fand,right)))];
   let atoms,forms = fresh () in
+  let chain size =
+    let atoms,forms = fresh () in
+    let zs = Array.init (size+1) (fun i -> symbol atoms i [||] SmtBtype.TZ []) in
+    let eq i j = form forms (Atom.get atoms (Abop (BO_eq SmtBtype.TZ,zs.(i),zs.(j)))) in
+    let literals = Array.init (size+1) (fun i -> if i=size then Form.neg(eq 0 size) else eq i(i+1)) in
+    atoms,forms,Form.get forms (Fapp(Fand,literals)) in
+  let chain_atoms,chain_forms,root = chain 10 in
+  positive ~whole_uf:true ~pure_uf:true "whole-uf-boolean-chain" chain_atoms chain_forms [[root]] [];
+  let chain_atoms,chain_forms,root = chain 64 in
+  let before = Form.nvars chain_forms,Array.length(Atom.to_array chain_atoms None (fun a->Some a)) in
+  (match Search.compress_uf ~atoms:chain_atoms ~forms:chain_forms ~premises:[[root]] ~conclusion:[] () with
+  | Error _ -> incr count
+  | Ok _ -> failwith "whole-UF budget was not enforced");
+  assert(before=(Form.nvars chain_forms,Array.length(Atom.to_array chain_atoms None (fun a->Some a))));
   let ty = SmtBtype.Tindex (SmtBtype.dummy_indexed_type 0) in
   let x = symbol atoms 0 [||] ty [] and y = symbol atoms 1 [||] ty []
   and z = symbol atoms 2 [||] ty [] in
