@@ -6,3 +6,7 @@ val from_witness : premises:Certificate.clause list -> conclusion:Certificate.cl
   Certificate.witness -> t option
 val to_coq : constructor:(string -> Common.RocqInterface.constr) ->
   t -> Common.RocqInterface.constr
+
+(** Bounded untrusted compression of an entire arithmetic implication. *)
+val compress : premises:Common.SmtAtom.Form.t list list ->
+  conclusion:Common.SmtAtom.Form.t list -> t option

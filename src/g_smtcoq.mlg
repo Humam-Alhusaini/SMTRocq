@@ -134,7 +134,19 @@ END
 
 {
 
-let make_eunoia_witness () =
+let compact_theory_candidate candidate =
+  let data = Eunoia_witness.Theory.to_coq
+    ~constructor:(fun name -> Eunoia_backend.EunoiaRocq.global
+      ("SMTCoq.checker.eunoia.EunoiaTheory.EunoiaTheory." ^ name)) candidate in
+  RocqInterface.mkApp
+    (Eunoia_backend.EunoiaRocq.global "SMTCoq.checker.eunoia.EunoiaMemo.EunoiaMemo.Theory",[|data|])
+
+let compress_arithmetic ~atoms:_ ~forms:_ ~premises ~conclusion =
+  match Eunoia_witness.Theory.compress ~premises ~conclusion with
+  | None -> Error "no bounded arithmetic compression"
+  | Some candidate -> Ok (compact_theory_candidate candidate)
+
+let make_eunoia_witness ?(compact=false) () =
   let candidates = Hashtbl.create 127 in
   let owner = ref None in
   let enabled = Sys.getenv_opt "EUNOIA_DISABLE_WITNESS_CACHE" <> Some "1" in
@@ -150,13 +162,9 @@ let make_eunoia_witness () =
   match cached with
   | Some candidate -> Ok candidate
   | None ->
-  let theory_enabled = Sys.getenv_opt "EUNOIA_THEORY_CERTIFICATES" = Some "1" in
-  let theory candidate =
-    let data = Eunoia_witness.Theory.to_coq
-      ~constructor:(fun name -> Eunoia_backend.EunoiaRocq.global
-        ("SMTCoq.checker.eunoia.EunoiaTheory.EunoiaTheory." ^ name)) candidate in
-    RocqInterface.mkApp
-      (Eunoia_backend.EunoiaRocq.global "SMTCoq.checker.eunoia.EunoiaMemo.EunoiaMemo.Theory",[|data|]) in
+  let theory_enabled = match Sys.getenv_opt "EUNOIA_THEORY_CERTIFICATES" with
+    | Some "0" -> false | Some "1" -> true | _ -> compact in
+  let theory = compact_theory_candidate in
   let direct_candidate = if theory_enabled then
     Eunoia_witness.Theory.select ~premises ~conclusion else None in
   let result = match direct_candidate with
@@ -194,16 +202,19 @@ let make_eunoia_witness () =
       if enabled && Hashtbl.length candidates < 256 then Hashtbl.replace candidates key candidate;
       Ok candidate
 
-let eunoia_tactic lpl =
+let eunoia_tactic ~compiled lpl =
   let lpl = EConstr.Unsafe.to_constr lpl in
   let lemmas = match CoqTerms.option_of_constr_option lpl with
     | None -> []
     | Some tuple -> CoqTerms.list_of_constr_tuple tuple
   in
-  Eunoia_backend.EunoiaBackend.tactic ~witness:(make_eunoia_witness ()) ~lemmas ()
+  let witness = make_eunoia_witness ~compact:compiled () in
+  if compiled then Eunoia_backend.EunoiaBackend.tactic_smtcoq ~compression:compress_arithmetic ~witness ~lemmas ()
+  else Eunoia_backend.EunoiaBackend.tactic ~witness ~lemmas ()
 
 }
 
 TACTIC EXTEND Tactic_cvc5_eunoia
-| [ "cvc5_eunoia_bool_base" constr(lpl) ] -> { eunoia_tactic lpl }
+| [ "cvc5_eunoia_bool_base" constr(lpl) ] -> { eunoia_tactic ~compiled:false lpl }
+| [ "cvc5_smtcoq_bool_base" constr(lpl) ] -> { eunoia_tactic ~compiled:true lpl }
 END

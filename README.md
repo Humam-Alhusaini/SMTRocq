@@ -17,6 +17,23 @@ SMTCoq is distributed under the CeCILL-C license.
 
 ## Development cvc5 / Eunoia backend
 
+The new `smtrocq` tactic compiles CVC5 Eunoia proofs into compact certificates
+checked by verified SMTCoq operations. Use the lean entry point:
+
+```coq
+From SMTCoq Require Import SMTRocq.
+From Stdlib Require Import ZArith.
+Local Open Scope Z_scope.
+
+Goal forall x y : Z, x <= y -> y < x + 1 -> x = y.
+Proof. smtrocq. Qed.
+```
+
+See the [tactic guide](docs/eunoia/smtrocq-tactic-2026-11-11.md) for coverage,
+the checking contract and validation. `smtrocq` proves the actual theorem;
+`cvc5_eunoia` also validates the CPC source derivation. Both use the existing
+SMTCoq semantics and retain kernel-checked proof construction.
+
 `cvc5_eunoia` invokes the pinned private cvc5 1.4.2 installation, computes its
 CPC proof rules from the Eunoia signature, and checks every inference using
 SMTCoq's existing semantics and reflective checkers. For example:

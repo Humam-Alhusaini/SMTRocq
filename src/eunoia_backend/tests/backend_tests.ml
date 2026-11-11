@@ -159,3 +159,23 @@ let () =
       | P.Step s | P.Step_pop (_,s) -> Some s | _ -> None) raw.commands in
     assert (List.length steps>1 && List.for_all (fun s -> s.P.conclusion<>None) steps));
   Printf.printf "printed conclusions: all solver steps annotated; candidate shortcut and fallback checked\n%!"
+
+let () =
+  let module E = Eunoia_backend.EunoiaElaborate in
+  let module Slice = Eunoia_backend.EunoiaSlice in
+  let term=E.Symbol "true" in
+  let st id premises = E.{id;name=string_of_int id;rule="candidate";
+    arguments=[];premises;premise_terms=[];result=term} in
+  let a=st 2 [0] and b=st 3 [2;1] and unused=st 4 [999] in
+  let p=E.{roots=[0,term;1,term];steps=[a;b;unused];capacity=5;conflict=3;
+    trace=Next(a,Next(b,Next(unused,Done)))} in
+  let q=Slice.compile p in
+  assert(q.roots=p.roots && List.map(fun(st:E.step)->st.id)q.steps=[2;3]);
+  let inside=st 6 [5;0] and closing=st 7 [6] and final=st 8 [7;1] in
+  let scoped=E.{p with steps=[inside;closing;final;unused];capacity=9;conflict=8;
+    trace=Push(5,term,Next(inside,Done),closing,Next(final,Next(unused,Done)))} in
+  let q=Slice.compile scoped in
+  assert(List.map(fun(st:E.step)->st.id)q.steps=[6;7;8]);
+  (match q.trace with E.Push(5,_,E.Next(_ ,E.Done),_,E.Next(_,E.Done))->()|_->assert false);
+  let q=Slice.compile E.{scoped with conflict=1}in
+  assert(q.steps=[] && q.trace=E.Done && q.roots=p.roots)

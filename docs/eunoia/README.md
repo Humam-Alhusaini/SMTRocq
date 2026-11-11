@@ -1,5 +1,11 @@
 # cvc5 / Eunoia development backend
 
+The new [`smtrocq` tactic](smtrocq-tactic-2026-11-11.md) uses untrusted Eunoia
+translation into compact, verified SMTCoq certificates. It has a lean
+`From SMTCoq Require Import SMTRocq.` entry point. The strict
+`cvc5_eunoia` checker described below remains available with its stronger
+CPC source-validation contract.
+
 `cvc5_eunoia` exports a reified Rocq goal to the private cvc5 solver, reads its
 CPC proof, evaluates every inference through a signature-generated Rocq
 interpreter, checks a semantic certificate for every inference, and applies a

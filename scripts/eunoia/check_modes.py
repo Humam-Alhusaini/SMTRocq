@@ -14,8 +14,8 @@ ROOT = Path(__file__).resolve().parents[2]
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", type=Path)
-    parser.add_argument("--modes", nargs="+", choices=("Reference", "Shared", "Helpers", "Conclusions", "Indexed", "Staged", "Direct", "DirectShared", "DirectReference", "IndexedAdaptive", "IndexedReference", "Specialized", "SpecializedShared", "SpecializedReference", "Model", "ModelShared", "ModelReference", "Certificates", "CertificatesShared", "CertificatesModel", "Theory", "TheoryShared", "TheoryReference", "TheoryModel"),
-                        default=("Reference", "Shared", "Helpers", "Conclusions", "Indexed", "Staged", "Direct", "Specialized", "Theory"))
+    parser.add_argument("--modes", nargs="+", choices=("Reference", "Shared", "Helpers", "Conclusions", "Indexed", "Staged", "Direct", "DirectShared", "DirectReference", "IndexedAdaptive", "IndexedReference", "Specialized", "SpecializedShared", "SpecializedReference", "Model", "ModelShared", "ModelReference", "Certificates", "CertificatesShared", "CertificatesModel", "Theory", "TheoryShared", "TheoryReference", "TheoryModel", "Compiled"),
+                        default=("Reference", "Shared", "Helpers", "Conclusions", "Indexed", "Staged", "Direct", "Specialized", "Theory", "Compiled"))
     parser.add_argument("--fixtures", nargs="+",
                         choices=("Proof", "Lia", "IntegerCasts", "Division",
                                  "Uf", "UfBool", "Purification", "PublicLia", "PublicTactics"))
@@ -60,14 +60,15 @@ def main():
                 ("Theory", "0", "0", "0", "1", "0", "0"),
                 ("TheoryShared", "0", "1", "0", "1", "0", "0"),
                 ("TheoryReference", "1", "0", "0", "1", "0", "0"),
-                ("TheoryModel", "0", "0", "0", "1", "0", "0")):
+                ("TheoryModel", "0", "0", "0", "1", "0", "0"),
+                ("Compiled", "0", "0", "0", "1", "0", "0")):
             if mode not in args.modes:
                 continue
             fixtures = [(name, ROOT / "src/eunoia_backend/tests/integration" / (name + ".v"))
                         for name in ("Proof", "Lia")]
             fixtures.append(("IntegerCasts", ROOT / "unit-tests/eunoia_integer_casts.v"))
             fixtures.append(("Division", ROOT / "unit-tests/eunoia_division.v"))
-            if mode.startswith(("Model", "Certificates", "Theory")) or mode in ("Conclusions", "Indexed", "Staged", "Direct", "IndexedAdaptive", "IndexedReference", "Specialized"):
+            if mode.startswith(("Model", "Certificates", "Theory", "Compiled")) or mode in ("Conclusions", "Indexed", "Staged", "Direct", "IndexedAdaptive", "IndexedReference", "Specialized"):
                 fixtures += [(name, ROOT / "unit-tests" / (source + ".v")) for name, source in
                              (("Uf", "eunoia_uf"), ("UfBool", "eunoia_uf_bool"),
                               ("Purification", "eunoia_purification"), ("PublicLia", "eunoia_lia"),
@@ -80,12 +81,12 @@ def main():
             for fixture, source in fixtures:
                 name = fixture + mode
                 target = out / (name + ".v")
-                target.write_bytes(source.read_bytes())
+                target.write_bytes(source.read_bytes().replace(b"cvc5_eunoia",b"smtrocq").replace(b"From SMTCoq Require Import SMTCoq.",b"From SMTCoq Require Import SMTRocq.") if mode == "Compiled" else source.read_bytes())
                 summary["sources"][name] = hashlib.sha256(target.read_bytes()).hexdigest()
                 command = [wrapper, "env",
                            "EUNOIA_MODEL_DAG=" + ("1" if mode.startswith("Model") or mode in ("CertificatesModel", "TheoryModel") else "0"), "EUNOIA_DISABLE_CHECKED_CACHE=" + disabled,
                            "EUNOIA_FORCE_CHECKED_CACHE=" + forced,
-                           "EUNOIA_THEORY_CERTIFICATES=" + ("1" if mode.startswith("Theory") else "0"),
+                           "EUNOIA_THEORY_CERTIFICATES=" + ("1" if mode.startswith(("Theory", "Compiled")) else "0"),
                            "EUNOIA_DIRECT_CERTIFICATES=" + ("1" if mode.startswith("Certificates") else "0"), "EUNOIA_HELPER_CACHE=" + helpers,
                            "EUNOIA_DIRECT_PROGRAMS=" + direct,
                            "EUNOIA_SPECIALIZED_RULES=" + ("1" if mode.startswith("Specialized") else "0"),

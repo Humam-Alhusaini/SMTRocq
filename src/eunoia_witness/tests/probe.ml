@@ -64,9 +64,8 @@ let check name atoms forms premises conclusion w =
     | Some candidate -> Some candidate
     | None -> Theory.from_witness ~premises:(List.map (List.map SmtAtom.Form.to_lit) premises)
         ~conclusion:(List.map SmtAtom.Form.to_lit conclusion) w in
-  (match theory with
-   | None -> ()
-   | Some candidate ->
+  let compressed = Theory.compress ~premises ~conclusion in
+  List.iter (fun candidate ->
      let certificate = Theory.to_coq ~constructor:(fun s -> lookup
        ("SMTCoq.checker.eunoia.EunoiaTheory.EunoiaTheory." ^ s)) candidate in
      let term = app (lookup "witness_theory_gate") [functions;SmtAtom.Atom.interp_tbl atoms;
@@ -78,7 +77,8 @@ let check name atoms forms premises conclusion w =
      let result = Vnorm.cbv_vm env sigma term (EConstr.of_constr (Lazy.force CoqTerms.cbool)) in
      if not (eq_constr (EConstr.to_constr sigma result) (Lazy.force CoqTerms.ctrue)) then
        failwith (name ^ ": direct theory gate rejected candidate");
-     Printf.printf "PASS %s (direct theory gate)\n%!" name);
+     Printf.printf "PASS %s (direct theory gate)\n%!" name)
+    (List.filter_map Fun.id [theory;compressed]);
   if eval premises conclusion {w with Certificate.capacity=0} then
     failwith (name ^ ": gate accepted bad capacity");
   if w.root_claims <> [] && eval premises conclusion {w with root_claims=List.tl w.root_claims}

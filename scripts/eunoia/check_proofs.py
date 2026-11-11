@@ -83,6 +83,7 @@ def main():
                                 "cached_scope_eval_with_refinement", "prepared_scope_eval_with_refinement"],
         "EunoiaLocal": ["gate_correct"],
         "EunoiaLocalDirect": ["gate_correct"],
+        "EunoiaCertificate": ["checker_tables", "checker_correct", "checker_b_correct", "checker_eq_correct"],
         "EunoiaTheory": ["units_exact", "units_valid", "negations_false",
                          "implication_correct", "checked_clause_correct",
                          "global_gate_correct", "gate_correct"],
@@ -121,16 +122,16 @@ def main():
         for name in names:
             audit += ["--theorem", module + "." + name]
     audit += ["--import", "SMTCoq.utils.PArray", "--theorem", "SMTCoq.utils.PArray.IntOrderedType.compare_gt"]
-    for test_module in ("EunoiaModelDagTests", "EunoiaLocalDirectTests", "EunoiaTheoryTests"):
+    for test_module in ("EunoiaModelDagTests", "EunoiaLocalDirectTests", "EunoiaTheoryTests", "EunoiaCertificateTests"):
         test_import = "SMTCoq.checker.eunoia." + test_module
         audit += ["--import", test_import]
         for name in re.findall(r"^\s*(?:Lemma|Theorem|Example)\s+(\w+)",
                 (ROOT / "theories/checker/eunoia" / (test_module + ".v")).read_text(), re.M):
-            audit += ["--theorem", test_import + ("." + test_module if test_module in ("EunoiaLocalDirectTests", "EunoiaTheoryTests") else "") + "." + name]
+            audit += ["--theorem", test_import + ("." + test_module if test_module in ("EunoiaLocalDirectTests", "EunoiaTheoryTests", "EunoiaCertificateTests") else "") + "." + name]
     for name in ("and_iff", "or_iff", "impl_iff", "iff_iff", "not_iff", "bool_true_iff"):
         audit += ["--import", "SMTCoq.tactics.preproc.EunoiaFrontend",
                   "--theorem", "SMTCoq.tactics.preproc.EunoiaFrontend.EunoiaFrontend." + name]
-    public_modules = ("eunoia_tactics", "eunoia_uf", "eunoia_uf_bool", "eunoia_lia", "eunoia_purification", "eunoia_integer_casts", "eunoia_division")
+    public_modules = ("smtrocq", "eunoia_tactics", "eunoia_uf", "eunoia_uf_bool", "eunoia_lia", "eunoia_purification", "eunoia_integer_casts", "eunoia_division")
     for module in public_modules:
         public = "SMTCoq.tests." + module
         audit += ["--import", public]
@@ -165,6 +166,7 @@ def main():
                   "SMTCoq.checker.eunoia.EunoiaModelDagTests",
                   "SMTCoq.checker.eunoia.EunoiaLocalDirectTests",
                   "SMTCoq.checker.eunoia.EunoiaTheoryTests",
+                  "SMTCoq.checker.eunoia.EunoiaCertificateTests",
                   "SMTCoq.checker.eunoia.EoCheckedMemoTests",
                   "SMTCoq.checker.eunoia.EunoiaHelperCache",
                   "SMTCoq.checker.eunoia.EunoiaProgramIndex",

@@ -30,6 +30,7 @@ let core n = "SMTCoq.checker.eunoia.EunoiaChecker.EunoiaChecker." ^ n
 let scoped n = "SMTCoq.checker.eunoia.EunoiaScopedAdapter.EunoiaScopedAdapter." ^ n
 let memo_api n = "SMTCoq.checker.eunoia.EunoiaMemo.EunoiaMemo." ^ n
 let scope n = "SMTCoq.checker.eunoia.EunoiaScope.EunoiaScope." ^ n
+let certificate_api n = "SMTCoq.checker.eunoia.EunoiaCertificate.EunoiaCertificate." ^ n
 let tactic_api n = "SMTCoq.checker.eunoia.EunoiaTactic.EunoiaTactic." ^ n
 let specialized_rule name =
   let encoded = Buffer.create (2 * String.length name) in
@@ -93,7 +94,55 @@ let register_instances env t =
         (R.mkVar (Context.Named.Declaration.get_id d)))
     | _ -> ()) (Environ.named_context env)
 
-let export ?(env=Global.env ()) t roots =
+(* Candidate syntax only. No Rocq conversion or theorem validity is claimed.
+   The compiled certificate checker independently verifies the actual model,
+   hypotheses, all semantic inferences and the final Boolean goal. *)
+let native_root_terms roots =
+  let atom_cache = Hashtbl.create 127 and form_cache = Hashtbl.create 127 in
+  let rec positive a = match Atom.atom a with
+    | Acop CO_xH -> Big_int.unit_big_int
+    | Auop (UO_xO,a) -> Big_int.mult_int_big_int 2 (positive a)
+    | Auop (UO_xI,a) -> Big_int.succ_big_int (Big_int.mult_int_big_int 2 (positive a))
+    | _ -> R.raise_error "SMTRocq: malformed positive numeral" in
+  let rec atom a = match Hashtbl.find_opt atom_cache (Atom.index a) with
+    | Some result -> result
+    | None ->
+      let result = match Atom.atom a with
+      | Acop CO_Z0 -> E.Symbol "0"
+      | Auop (UO_Zpos,a) -> E.Symbol (Big_int.string_of_big_int (positive a))
+      | Auop (UO_Zneg,a) -> E.Symbol (Big_int.string_of_big_int (Big_int.minus_big_int (positive a)))
+      | Auop (UO_Zopp,a) -> E.app "-" [atom a]
+      | Abop (op,a,b) ->
+        let name = match op with
+          | BO_Zplus -> "+" | BO_Zminus -> "-" | BO_Zmult -> "*"
+          | BO_Zlt -> "<" | BO_Zle -> "<=" | BO_Zge -> ">=" | BO_Zgt -> ">"
+          | BO_eq _ -> "="
+          | _ -> R.raise_error "SMTRocq: unsupported arithmetic operator" in
+        E.app name [atom a;atom b]
+      | Aapp (f,args) -> E.app (name_function (indexed_op_index f)) (Array.to_list (Array.map atom args))
+      | _ -> R.raise_error "SMTRocq: unsupported atom" in
+      Hashtbl.add atom_cache (Atom.index a) result; result in
+  let rec form f = match Hashtbl.find_opt form_cache (Form.to_lit f) with
+    | Some result -> result
+    | None ->
+      let result = match Form.pform f with
+      | SmtForm.Fatom a -> atom a
+      | SmtForm.Fapp (SmtForm.Ftrue,_) -> E.Symbol "true"
+      | SmtForm.Fapp (SmtForm.Ffalse,_) -> E.Symbol "false"
+      | SmtForm.Fapp (SmtForm.Fnot2 n,args) when Array.length args=1 ->
+        let rec repeat n t = if n=0 then t else repeat (n-1) (E.app "not" [E.app "not" [t]]) in
+        repeat n (form args.(0))
+      | SmtForm.Fapp (op,args) ->
+        let name = match op with SmtForm.Fand -> "and" | SmtForm.For -> "or"
+          | SmtForm.Fimp -> "=>" | SmtForm.Fxor -> "xor" | SmtForm.Fiff -> "="
+          | SmtForm.Fite -> "ite" | _ -> R.raise_error "SMTRocq: unsupported formula" in
+        E.app name (Array.to_list (Array.map form args))
+      | _ -> R.raise_error "SMTRocq: unsupported formula" in
+      let result = if Form.is_pos f then result else E.app "not" [result] in
+      Hashtbl.add form_cache (Form.to_lit f) result; result in
+  List.map form roots
+
+let export ?(native=false) ?(env=Global.env ()) t roots =
   register_instances env t;
   ignore (declarations t);
   let b = Buffer.create 4096 in
@@ -109,13 +158,15 @@ let export ?(env=Global.env ()) t roots =
      The legacy printer changes signed literals such as -3 into (- 3), which
      cvc5 faithfully retains in source assumptions. Both are integer terms,
      but they are different CPC trees. *)
-  let tables = snapshot t and ns = names t in
-  List.iter (fun f ->
-    let encoded = C.compute_term_option env (C.call (adapter "encode_clause")
-      (tables @ [ns;fuel_term 10000;clause [f]])) in
-    match encoded with
-    | Some term -> Format.fprintf fmt "(assert %a)@." E.pp_term term
-    | None -> R.raise_error "Eunoia: exported root has no exact adapter encoding") roots;
+  let encoded = if native then native_root_terms roots else begin
+    let tables = snapshot t and ns = names t in
+    List.map (fun f ->
+      match C.compute_term_option env (C.call (adapter "encode_clause")
+        (tables @ [ns;fuel_term 10000;clause [f]])) with
+      | Some term -> term
+      | None -> R.raise_error "Eunoia: exported root has no exact adapter encoding") roots
+    end in
+  List.iter (fun term -> Format.fprintf fmt "(assert %a)@." E.pp_term term) encoded;
   Format.fprintf fmt "(check-sat)@.(exit)@."; Format.pp_print_flush fmt (); Buffer.contents b
 
 (* Translate syntax into the existing SMT-LIB reifier, never declarations or
@@ -161,7 +212,7 @@ type prepared = {
   checker_api : string -> string;
 }
 
-let prepare ?(fuel=10000) ~witness env t roots parsed =
+let prepare ?(compiled=false) ?(fuel=10000) ~witness env t roots parsed =
   if roots=[] || fuel<=0 || fuel>100000 then R.raise_error "Eunoia: invalid roots or computation fuel";
   let term = C.make_term_encoder () in
   let term_list xs = C.list (C.term_type ()) (List.map term xs) in
@@ -175,7 +226,8 @@ let prepare ?(fuel=10000) ~witness env t roots parsed =
       (C.call (adapter "encode_clause") (table_args @ [ns;fuel;clause c])) with
     | Some x -> x
     | None -> R.raise_error "Eunoia: exported root has no exact adapter encoding") in
-  let root_terms = List.map (fun r -> encode [r]) roots in
+  let root_terms = if compiled then native_root_terms roots
+    else List.map (fun r -> encode [r]) roots in
   let query = C.call (adapter "typeof")
     [List.nth table_args 0;List.nth table_args 1;ns;fuel] in
   (* Deep model graphs make repeated recursive encoding expensive. Use the
@@ -235,8 +287,14 @@ let prepare ?(fuel=10000) ~witness env t roots parsed =
         Hashtbl.add metadata_literals s b; b in
   let proof = phase "elaborate" (fun () ->
     E.elaborate ~use_declared:(EunoiaSolver.use_declared_conclusions ())
-      ~signature_names:(C.signature_names env) ~is_metadata_literal
+      ~signature_names:(if compiled then SignatureNames.names else C.signature_names env) ~is_metadata_literal
       ~declarations:(declarations t) ~roots:root_terms ~derive ~derive_assuming parsed) in
+  let source_steps = List.length proof.steps in
+  let proof = if compiled && Sys.getenv_opt "SMTROCQ_DISABLE_SLICING" <> Some "1"
+    then EunoiaSlice.compile proof else proof in
+  if compiled && Sys.getenv_opt "EUNOIA_CACHE_PROFILE" = Some "1" then
+    Printf.eprintf "SMTROCQ_COMPILE source_steps=%d certificate_steps=%d\n%!"
+      source_steps (List.length proof.steps);
   let helpers = phase "select_helpers" (fun () -> finish_helpers term) in
   let share_helpers = helpers <> [] in
   let use_model_dag = model_dag_requested && not share_helpers in
@@ -293,9 +351,9 @@ let prepare ?(fuel=10000) ~witness env t roots parsed =
       end;
       w in
     let witness_ty = C.global (local "witness") in
-    let rule_ty = C.global (adapter "rule_payload") in
+    let rule_ty = if compiled then clause_ty () else C.global (adapter "rule_payload") in
     let parameters = [rule_ty;rule_ty;witness_ty] in
-    let payload ?assumption st c = phase "payload" (fun () ->
+    let payload ?assumption st c = if compiled then clause c else phase "payload" (fun () ->
       let args = [C.string st.E.rule;term_list st.arguments;
         term_list st.premise_terms;term st.result;clause c] in
       match assumption with
@@ -345,7 +403,7 @@ let prepare ?(fuel=10000) ~witness env t roots parsed =
     (* Keep the original representation for nonrepeating proofs. If sharing
        pays, emit references from already-produced data; never repeat search
        or skip a source inference. Both representations are kernel checked. *)
-    let memo_format = memoize || use_model_dag || !has_special in
+    let memo_format = compiled || memoize || use_model_dag || !has_special in
     let trace = if not memo_format then reference_trace else begin
       let info = Hashtbl.create proof.capacity in
       List.iter (fun (st,a,_,_,_,c,w) -> Hashtbl.add info st.E.id (a,c,w)) !checked_steps;
@@ -372,7 +430,7 @@ let prepare ?(fuel=10000) ~witness env t roots parsed =
           let discharge = C.call (scope "Discharge") [rule_ty;witness_ty;
             mkint endpoint;mkint st.id;payload ~assumption st c;clause c;w] in
           let closing = SmtMisc.mklApp CoqTerms.cSome
-            [|C.global (memo_api "discharge");discharge|] in
+            [|C.global ((if compiled then certificate_api else memo_api) "discharge");discharge|] in
           C.call (scope "Push") (parameters @ [mkint slot;mkint (Form.to_lit pushed);
             emit body;closing;emit rest]) in
       emit proof.trace
@@ -486,15 +544,16 @@ let prepare ?(fuel=10000) ~witness env t roots parsed =
         (List.fold_left(fun n(_,_,_,_,_,_,w)->if primitive_witness "Theory" w then n+1 else n)0 !checked_steps)
         (List.length !checked_steps);
     {table_args=tables;
-     common_args=tables @ [ns] @ specialized_args @ [fuel] @
+     common_args=(if compiled then tables @ memo_args @ [mkint proof.capacity]
+       else tables @ [ns] @ specialized_args @ [fuel] @
        (if share_helpers then [C.list (C.global (EunoiaHelperCache.api "cache_entry")) helpers] else []) @
-       memo_args @ [mkint proof.capacity];
+       memo_args @ [mkint proof.capacity]);
      roots_arg=clauses root_clauses;
-     tail_args=[term_list root_terms;
-       claims (List.map2 (fun (i,_) c -> i,c) proof.roots root_clauses);
+     tail_args=(if compiled then [] else [term_list root_terms]) @
+       [claims (List.map2 (fun (i,_) c -> i,c) proof.roots root_clauses);
        trace;mkint proof.conflict];diagnose;
-     trace_type=C.global ((if memo_format then memo_api else if has_scopes then scoped else tactic_api) "trace");
-     checker_api=(if use_model_dag then
+     trace_type=C.global ((if compiled then certificate_api else if memo_format then memo_api else if has_scopes then scoped else tactic_api) "trace");
+     checker_api=(if compiled then certificate_api else if use_model_dag then
        (fun n -> "SMTCoq.checker.eunoia.EunoiaModelDagCheck.EunoiaModelDagCheck." ^ n)
        else if share_helpers then
        (fun n -> "SMTCoq.checker.eunoia.EunoiaHelperCache.EunoiaHelperCache." ^ n)
@@ -552,8 +611,8 @@ let typecheck_helper_goal ty =
    semantic checkers still evaluate that data during checked acceptance. *)
 let with_prepared_trace p use =
   if Sys.getenv_opt "EUNOIA_TRACE_CONSTANTS" = Some "0" then use p else
-  match p.tail_args with
-  | [root_terms;claims;trace;goal] ->
+  match List.rev p.tail_args with
+  | goal::trace::prefix when List.length prefix=1 || List.length prefix=2 ->
     R.tclTHEN (typecheck_helper_goal p.trace_type)
       (Proofview.Goal.enter(fun _ ->
        let started=phase_start () in
@@ -565,7 +624,7 @@ let with_prepared_trace p use =
           let data=EConstr.to_constr (Proofview.Goal.sigma gl)
             (EConstr.mkApp(value,Array.of_list args)) in
           phase_end "trace_data_checked" started;
-          use {p with tail_args=[root_terms;claims;data;goal]}))))
+          use {p with tail_args=List.rev prefix @ [data;goal]}))))
   | _ -> R.raise_error "Eunoia: malformed prepared trace arguments"
 
 let with_normalized_proof ?(normalize=true) ~conversion_phase ~acceptance_phase ty proof use =
@@ -601,7 +660,26 @@ let with_checked_acceptance p computation use =
     p.diagnose ();
     Proofview.tclZERO ~info error)
 
-let tactic_using produce ?fuel ?(preprocess=Tactics.intros) ~witness ?(lemmas=[]) () =
+(* Candidate proof compression, never a trusted solver answer. The complete
+   certificate is recomputed in the mandatory kernel check before use. *)
+let prepare_compressed t roots witness =
+  let tables = snapshot t in
+  let cs = List.map (fun r -> [r]) roots in
+  let count = List.length roots in
+  let clause_type = clause_ty () in
+  let witness_type = C.global (memo_api "witness_ref") in
+  let params = [clause_type;clause_type;witness_type] in
+  let empty = clause [] in
+  let indices = C.list (Lazy.force CoqTerms.cint) (List.mapi (fun i _ -> mkint i) roots) in
+  let st = C.call (core "Step") [clause_type;witness_type;mkint count;indices;empty;empty;witness] in
+  let trace = C.call (scope "Next") (params @ [st;C.call (scope "Done") params]) in
+  {table_args=tables;common_args=tables @
+    [C.list (C.global (memo_api "cache_entry")) [];mkint (count+1)];
+   roots_arg=clauses cs;tail_args=[claims (List.mapi (fun i c -> i,c) cs);trace;mkint count];
+   trace_type=C.global (certificate_api "trace");checker_api=certificate_api;
+   diagnose=(fun () -> R.raise_error "SMTRocq: compressed certificate rejected")}
+
+let tactic_using ?compression ?(compiled=false) produce ?fuel ?(preprocess=Tactics.intros) ~witness ?(lemmas=[]) () =
   R.tclTHEN preprocess (R.mk_tactic (fun env sigma goal ->
     (* Introduced polymorphic carriers have fresh levels in the proof's evar
        map. VM conversion uses a kernel environment, so carry those levels
@@ -640,7 +718,20 @@ let tactic_using produce ?fuel ?(preprocess=Tactics.intros) ~witness ?(lemmas=[]
         R.raise_error "Eunoia: supply CompDec instances through existing preprocessing";
       let roots = ng :: List.map (fun (f,_,_) -> f) ls in
       let parsed = phase "solver_and_parse" (fun () -> produce env t roots) in
-      let prepared = phase "prepare" (fun () -> prepare ?fuel ~witness env t roots parsed) in
+      let compressed = match compression with
+        | Some compress when SmtBtype.to_list t.sorts = [] ->
+          (match phase "compress" (fun () -> compress ~atoms:t.atoms ~forms:t.forms
+            ~premises:(List.map (fun r -> [r]) roots) ~conclusion:[]) with
+           | Ok candidate ->
+             let p = prepare_compressed t roots candidate in
+             let check = C.call (certificate_api "checker")
+               (p.common_args @ [p.roots_arg] @ p.tail_args) in
+             (match R.vm_conv Conversion.CUMUL env check (Lazy.force CoqTerms.ctrue) with
+              | Result.Ok () -> Some p | Result.Error () -> None)
+           | Error _ -> None)
+        | _ -> None in
+      let prepared = phase "prepare" (fun () -> match compressed with
+        | Some p -> p | None -> prepare ~compiled ?fuel ~witness env t roots parsed) in
       with_prepared_trace prepared (fun prepared ->
       if not has_lemmas then begin
         let name,args = if boolean_result then
@@ -649,7 +740,11 @@ let tactic_using produce ?fuel ?(preprocess=Tactics.intros) ~witness ?(lemmas=[]
         let args = prepared.common_args @ args @ prepared.tail_args in
         with_checked_acceptance prepared (C.call (prepared.checker_api name) args) (fun accepted ->
           let proof = C.call (prepared.checker_api (name ^ "_correct")) (args @ [accepted]) in
-          phase_tactic "goal_conversion" (Tactics.exact_check (EConstr.of_constr proof)))
+          if compiled then
+            with_normalized_proof ~conversion_phase:"goal_conversion"
+              ~acceptance_phase:"checked_goal" goal proof
+              (fun checked -> Tactics.exact_check (EConstr.of_constr checked))
+          else phase_tactic "goal_conversion" (Tactics.exact_check (EConstr.of_constr proof)))
       end else begin
       let args = prepared.common_args @ [prepared.roots_arg] @ prepared.tail_args in
       with_checked_acceptance prepared (C.call (prepared.checker_api "checker") args) (fun accepted ->
@@ -721,3 +816,8 @@ let build_refutation ?sigma ?limits ?fuel ~witness env t roots =
 let tactic ?limits = tactic_using (fun env t roots ->
   EunoiaSolver.run ?limits (export ~env t roots))
 let tactic_from_cpc parsed = tactic_using (fun _ _ _ -> parsed)
+
+(* Untrusted CPC translation, verified SMTCoq semantic certificates. Strict
+   signature validation remains provided by [tactic] and the standalone checker. *)
+let tactic_smtcoq ?limits ?compression = tactic_using ?compression ~compiled:true (fun env t roots ->
+  EunoiaSolver.run ?limits (export ~native:true ~env t roots))

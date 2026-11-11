@@ -25,7 +25,7 @@ import time
 HERE = Path(__file__).resolve().parent
 REPO = HERE.parents[1]
 WRAPPER = Path(os.environ.get("EUNOIA_ENV", str(next(p for p in Path(__file__).resolve().parents if (p / "dune-project").is_file()) / "scripts/eunoia/env")))
-BACKENDS = {name: name for name in ("verit", "cvc4", "cvc5_eunoia")}
+BACKENDS = {name: name for name in ("verit", "cvc4", "cvc5_eunoia", "smtrocq")}
 BASELINE_PATH = REPO / "docs/eunoia/baseline-assumptions.txt"
 BASELINE = {line.strip() for line in BASELINE_PATH.read_text().splitlines()
             if line.strip() and not line.startswith("#")}
@@ -188,24 +188,25 @@ def load_cases(path):
     return cases
 
 
-def prelude(extra_imports, scoped=False):
+def prelude(extra_imports, scoped=False, entrypoint="SMTCoq"):
+    module = "SMTCoq." + entrypoint
     if scoped:
-        modules = ["SMTCoq.SMTCoq", "Stdlib.Bool.Bool", "Stdlib.ZArith.ZArith", *extra_imports]
+        modules = [module, "Stdlib.Bool.Bool", "Stdlib.ZArith.ZArith", *extra_imports]
         return ("".join(f"Require {name}.\n" for name in modules)
                 + "Module EunoiaBenchmark.\n"
                 + "".join(f"Import {name}.\n" for name in modules)
                 + "Local Open Scope Z_scope.\n")
-    return ("From SMTCoq Require Import SMTCoq.\n"
+    return (f"From SMTCoq Require Import {entrypoint}.\n"
             "From Stdlib Require Import Bool ZArith.\n"
             + "".join(f"Require Import {name}.\n" for name in extra_imports)
             + "Local Open Scope Z_scope.\n")
 
 
-def source(case, backend, extra_imports):
+def source(case, backend, extra_imports, entrypoint="SMTCoq"):
     # A negative case is deliberately attempted as a real proof. Its failed
     # compilation is retained; there is no discarded or unfinished proof file
     # that can successfully compile and accidentally enter the solved count.
-    return (prelude(extra_imports, scoped=True)
+    return (prelude(extra_imports, scoped=True, entrypoint=entrypoint)
             + f"Lemma bench_result : {case['statement']}.\nProof.\n"
             + f'  idtac "{BEGIN}".\n  Time {BACKENDS[backend]}.\n'
             + "Time Qed.\n"
@@ -319,6 +320,7 @@ def parse_args():
     parser.add_argument("--wrapper", type=Path, default=WRAPPER)
     parser.add_argument("--cases", type=Path, default=HERE / "cases.json",
                         help="JSON workload manifest; its exact contents are retained")
+    parser.add_argument("--entrypoint", choices=("SMTCoq", "SMTRocq"), default="SMTCoq")
     parser.add_argument("--backends", nargs="+", choices=BACKENDS, default=["verit", "cvc4"])
     parser.add_argument("--repeat", type=int, default=3)
     parser.add_argument("--timeout", type=float, default=30, help="seconds per compiler process")
@@ -369,6 +371,16 @@ def main():
         "assumption_audit_sha256": sha256(REPO / "tools/audit-eunoia-assumptions.py"),
         "source_sha256": {p.name: sha256(p) for p in HERE.iterdir() if p.is_file()},
         "measurements": "Rocq Time backend, Time Qed, and separate compiler process wall time; no solver-only timings",
+        "checking_contracts": {
+            "verit": "SMTCoq semantic certificate for the actual theorem",
+            "smtrocq": "compiled semantic certificate for the actual theorem; no CPC source-conformance claim",
+            "cvc5_eunoia": "signature-generated CPC validation plus semantic certificate for every source inference",
+        },
+        "effective_compact_theory": {
+            backend: (os.environ.get("EUNOIA_THEORY_CERTIFICATES") != "0"
+                      if "EUNOIA_THEORY_CERTIFICATES" in os.environ else backend == "smtrocq")
+            for backend in args.backends if backend in ("smtrocq", "cvc5_eunoia")
+        },
         "tools": {},
     }
     probes = {
@@ -387,7 +399,7 @@ def main():
                   "{n: shutil.which(n) for n in ['rocq','ocamlc','dune','veriT','cvc4','cvc5','lean','lake','isabelle']}, "
                   "'environment': {n: os.getenv(n) for n in ['PATH','OPAMROOT','OPAM_SWITCH_PREFIX','LFSCSIGS']}}))"],
     }
-    if "cvc5_eunoia" in args.backends:
+    if any(b in args.backends for b in ("cvc5_eunoia", "smtrocq")):
         # The new backend uses its pinned private executable, independently of
         # the older cvc5 retained on PATH for the existing abduction backend.
         probes["cvc5_eunoia_toolchain"] = [str(wrapper), "python3", "-B",
@@ -426,7 +438,7 @@ def main():
         directory = output / "preflight" / backend
         directory.mkdir(parents=True)
         probe = directory / "probe.v"
-        probe.write_text(prelude(args.extra_import)
+        probe.write_text(prelude(args.extra_import, entrypoint=args.entrypoint)
                          + f"Ltac eunoia_bench_backend := {BACKENDS[backend]}.\n")
         result, diagnostic = record_command(compiler + [str(probe)], REPO, args.timeout, directory)
         available[backend] = result["exit_code"] == 0 and not result["timeout"]
@@ -450,7 +462,7 @@ def main():
                 if available[backend]:
                     directory.mkdir(parents=True)
                     proof = directory / "case.v"
-                    proof.write_text(source(case, backend, args.extra_import))
+                    proof.write_text(source(case, backend, args.extra_import, entrypoint=args.entrypoint))
                     temporary = directory / "tmp"
                     temporary.mkdir()
                     command = [compiler[0], "env", f"TMPDIR={temporary}", *compiler[1:], str(proof)]

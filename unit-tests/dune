@@ -18,6 +18,7 @@
  (modules
   abduce_tactics
   eunoia_tactics
+  smtrocq
   eunoia_uf
   eunoia_uf_bool
   eunoia_lia

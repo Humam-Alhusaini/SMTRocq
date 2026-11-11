@@ -111,3 +111,28 @@ let to_coq ~constructor =
     app(constructor "Congruence")[list option_ty option args]
   | Linear proof -> app(constructor "Linear")
       [list(Lazy.force micromega_coq_proofTerm) micromega_dump_proof_term proof]
+
+(* Optional whole-certificate arithmetic compression. A small syntactic budget
+   bounds Boolean expansion; larger/mixed inputs retain the CVC5 translation. *)
+let compress ~premises ~conclusion =
+  match units premises with None -> None | Some ps ->
+  let nodes = ref 0 and atoms = ref 0 and interpreted = ref false in
+  let rec supported f =
+    incr nodes;
+    !nodes <= 64 && match Form.pform f with
+    | Fatom a ->
+      incr atoms;
+      !atoms <= 12 && (match Atom.atom a with
+      | Abop ((BO_Zlt | BO_Zle | BO_Zge | BO_Zgt),_,_) -> interpreted := true; true
+      | Abop (BO_eq ty,a,b) when SmtBtype.HashedBtype.equal ty SmtBtype.TZ ->
+        let ground a = match Atom.atom a with Aapp _ -> false | _ -> true in
+        if ground a || ground b then interpreted := true;
+        true
+      | _ -> false)
+    | Fapp ((Ftrue | Ffalse | Fand | For | Fimp | Fiff | Fxor | Fite | Fnot2 _),xs) ->
+      Array.for_all supported xs
+    | _ -> false in
+  let conditional = List.sort_uniq (fun a b -> Int.compare (lit a) (lit b))
+    (conclusion @ List.map Form.neg ps) in
+  if not (List.for_all supported conditional) || not !interpreted then None else
+    Stdlib.Option.map (fun proof -> Linear proof) (Lia.build_lia_certif conditional)

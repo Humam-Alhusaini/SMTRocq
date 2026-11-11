@@ -20,7 +20,7 @@ type witness_producer =
     [EunoiaLocalDirect.gate] for the whole trace. *)
 
 val create_tables : unit -> tables
-val export : ?env:Environ.env -> tables -> SmtAtom.Form.t list -> string
+val export : ?native:bool -> ?env:Environ.env -> tables -> SmtAtom.Form.t list -> string
 (** Export the checked adapter's exact surface syntax. Supply the current
     proof environment, including its universe context, for local carriers.
     No solver declarations are imported. *)
@@ -65,3 +65,12 @@ val tactic_from_cpc :
   ?lemmas:RocqInterface.constr list -> unit -> RocqInterface.tactic
 (** Checked replay tactic; useful for reproducible solver-independent tests.
     Roots still come from the current goal and supplied lemma proofs. *)
+
+val tactic_smtcoq :
+  ?limits:EunoiaSolver.limits -> ?compression:witness_producer -> ?fuel:int ->
+  ?preprocess:RocqInterface.tactic -> witness:witness_producer ->
+  ?lemmas:RocqInterface.constr list -> unit -> RocqInterface.tactic
+(** Compiles untrusted Eunoia input to a verified SMTCoq semantic certificate.
+    Validates every compiled step, scoped assumption and actual root binding.
+    It does not certify CPC source-format conformance; [tactic] retains that
+    separate contract. There is no unchecked proof-acceptance path. *)
