@@ -34,6 +34,12 @@ the checking contract and validation. `smtrocq` proves the actual theorem;
 `cvc5_eunoia` also validates the CPC source derivation. Both use the existing
 SMTCoq semantics and retain kernel-checked proof construction.
 
+The frozen comparison measures 38% less tactic-plus-`Qed` time than `verit` on
+the standard UF/LIA suite, and about 2× faster proof construction on shared
+scaling cases.
+Fresh whole-compiler processes remain about 5% slower. The guide retains all
+coverage failures and the exact timing boundaries.
+
 `cvc5_eunoia` invokes the pinned private cvc5 1.4.2 installation, computes its
 CPC proof rules from the Eunoia signature, and checks every inference using
 SMTCoq's existing semantics and reflective checkers. For example:
@@ -62,12 +68,12 @@ performance work are in progress. See the [backend guide](docs/eunoia/README.md)
 [checked benchmark protocol](benchmarks/eunoia/README.md).
 The [direct Boolean front end](docs/eunoia/boolean-frontend-2026-11-09.md) builds
 checked reflection proofs and retains the existing preprocessing as a fallback.
-It reduces a 64-link equality-chain diagnostic from 24.9 s to 4.6 s and improves
+For the strict CPC tactic, it reduces a 64-link equality-chain diagnostic from 24.9 s to 4.6 s and improves
 the standard proof-construction workload by about 8%; veriT parity remains open.
 
 The earlier [integer-map comparison fix](docs/eunoia/opaque-array-comparison-2026-11-09.md)
 removes repeated arithmetic-proof evaluation from both checkers. It substantially
-reduces Eunoia proof-construction time; LIA still trails veriT. Earlier
+reduces strict CPC proof-construction time; that LIA path still trails veriT. Earlier
 [proof-construction measurements](docs/eunoia/construction-bundle.md) retain their
 own checkpoints and timing boundaries.
 The [proof-specific compilation experiment](docs/eunoia/specialized-rules.md)

@@ -1,8 +1,10 @@
 # Checked tactic benchmarks for the Eunoia port
 
 This harness runs the existing checked `verit` and `cvc4` tactics on the same
-small UF/LIA goals. It also invokes the integrated checked `cvc5_eunoia` tactic
-when selected explicitly. Its coverage is still under development. The default
+small UF/LIA goals. It also invokes the checked `cvc5_eunoia` and `smtrocq`
+tactics when selected explicitly. `smtrocq` checks compiled semantic
+certificates; `cvc5_eunoia` also validates signature-generated CPC source
+conformance. Coverage is still bounded. The default
 benchmark runs only the existing backends. There is no
 solver-only benchmark or external-prover performance claim here.
 
@@ -29,6 +31,9 @@ stanzas rather than adding a benchmark stanza to shared files.
 `--cases PATH` selects a JSON workload manifest for a focused diagnostic run;
 the exact manifest, its source path and hash are retained with the results.
 Compare backends on the same selected manifest.
+`--entrypoint SMTRocq` uses the lean public import for every selected backend;
+the default remains the original full `SMTCoq` import. Use the same entry point
+for a matched comparison.
 `integer-cuts.json` is a separate extension with 12 positive integer-cut/mixed-UF
 goals and five explicit false controls. `scalability.json` adds 21 positive diagnostics: Boolean/propositional equality
 chains, nested congruences, coefficient cuts/parity, mixed UF cuts and inequality
@@ -49,9 +54,8 @@ unchanged, so historical solved counts remain comparable.
 To exercise the integrated tactic:
 
 ```sh
-python3 benchmarks/eunoia/run.py --backends verit cvc4 cvc5_eunoia --repeat 3 --timeout 30 --jobs 2
-# If integration exports it from a separate module, append:
-# --extra-import SMTCoq.ACTUAL_MODULE_NAME
+python3 benchmarks/eunoia/run.py --entrypoint SMTRocq \
+  --backends verit cvc5_eunoia smtrocq --repeat 4 --timeout 30 --jobs 2
 ```
 
 A preflight imports the requested modules and resolves each actual tactic name
@@ -59,7 +63,7 @@ without invoking a solver. Missing tactics/imports are recorded as `unavailable`
 with null timing fields and no solved attempts; no fallback tactic is used.
 A `cvc5` on PATH may be distinct from the pinned 1.4.2 executable
 selected by the new backend. The ordinary PATH probe records the older binary
-and its hash. When `cvc5_eunoia` is selected, the harness additionally runs
+and its hash. When either `cvc5_eunoia` or `smtrocq` is selected, the harness additionally runs
 `scripts/eunoia/verify_toolchain.py`, which verifies the cached 1.4.2 binary,
 archives and matching signature files and reports their exact paths, hashes and
 version. Failure ends the benchmark with status 2. Metadata also records the
@@ -97,7 +101,7 @@ dependencies produce `unsupported_assumptions`; an unrecognized report produces
 `assumption_error`. Neither counts as solved. This matters because `cvc4` can return
 remaining obligations. It is not enough for a solver to report unsatisfiability
 or for the tactic command itself to succeed. The generated files use the
-existing SMTCoq import and proof-checking path. Their imports are local to a
+selected public import and the named checked tactic. Their imports are local to a
 module that closes before printing assumptions, preserving qualified dependency
 names. Both the baseline and its parser are hashed in the run metadata.
 
@@ -255,3 +259,12 @@ benchmarks/eunoia/model-graph.json`; `=1` forces it even on small goals. This
 changes the adapter's encoding work while retaining the full signature-generated
 source checker. [Design and matched results](../../docs/eunoia/indexed-model-encoding.md)
 document the exact refinement, fallback and remaining veriT gap.
+
+## Current compiled tactic checkpoint
+
+The [verified `smtrocq` guide](../../docs/eunoia/smtrocq-tactic-2026-11-11.md)
+reports the frozen four-round comparison and separate scaling/coverage runs.
+It includes unfavorable results and whole-compiler timing, which remains about
+5% slower than veriT despite the faster tactic-plus-`Qed` measurements.
+Metadata records the checking contracts and effective compact-theory defaults.
+The exact source/native/proof fingerprint must remain unchanged within each run.

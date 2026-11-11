@@ -16,8 +16,9 @@ The functional suites contain 23 public UF proofs, 11 additional Boolean UF
 proofs and 17 integer/mixed proofs, plus seven purification/constant/multi-goal regressions and 12 integer-cut proofs,
 with false-goal and corrupted-proof controls. They have passed compilation and
 baseline assumption audits. The recorded benchmark checkpoints retain compiler timeouts in their coverage
-denominators. This is an experimental backend, with explicitly
-bounded coverage and no competitive performance claim.
+denominators. The strict CPC path retains bounded coverage. The separate `smtrocq` tactic
+now has [matched proof-construction measurements](smtrocq-tactic-2026-11-11.md),
+including the remaining cold-compiler overhead.
 
 The [current development progress](backend-progress-2026-11-04.md) records
 new coverage, independent proof checks and the matched benchmark, including
@@ -61,8 +62,8 @@ solver-specific tactic also accepts supplied hypotheses, for example
 function-result sorts, needs an existing `CompDec` instance. The tactic reuses
 those proof terms and rejects unresolved instance cuts.
 
-The default `smt` strategy is unchanged. The new backend is selected explicitly
-with `cvc5_eunoia`.
+The default `smt` strategy is unchanged. Select strict CPC validation explicitly
+with `cvc5_eunoia`, or the compiled semantic certificate tactic with `smtrocq`.
 
 ## Signature generation
 
