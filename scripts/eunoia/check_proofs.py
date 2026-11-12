@@ -126,7 +126,7 @@ def main():
     for name in ("and_iff", "or_iff", "impl_iff", "iff_iff", "not_iff", "bool_true_iff"):
         audit += ["--import", "SMTCoq.tactics.preproc.EunoiaFrontend",
                   "--theorem", "SMTCoq.tactics.preproc.EunoiaFrontend.EunoiaFrontend." + name]
-    public_modules = ("smtrocq", "eunoia_tactics", "eunoia_uf", "eunoia_uf_bool", "eunoia_lia", "eunoia_purification", "eunoia_integer_casts", "eunoia_division")
+    public_modules = ("smtrocq", "smtrocq_compatibility", "eunoia_tactics", "eunoia_uf", "eunoia_uf_bool", "eunoia_lia", "eunoia_purification", "eunoia_integer_casts", "eunoia_division")
     for module in public_modules:
         public = "SMTCoq.tests." + module
         audit += ["--import", public]

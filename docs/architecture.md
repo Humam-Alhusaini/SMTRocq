@@ -11,8 +11,10 @@ solver response is not a proof: all submitted model tables, roots, clauses,
 scopes, cache entries, and semantic evidence must pass verified checks and the
 resulting theorem must pass Rocq's kernel. No check is disabled by this split.
 
-`From SMTCoq Require Import SMTCoq.` provides the inherited tactics.
-`From SMTCoq Require Import SMTRocq.` adds `smtrocq` and `cvc5_eunoia`.
+`From SMTCoq Require Import SMTRocq.` is the explicit project entry point.
+`From SMTCoq Require Import SMTCoq.` remains a compatibility re-export, including
+the existing CVC5 tactics. The inherited tactic definitions also remain directly
+available in `SMTCoq.tactics.Tactics`.
 Their CVC5-specific declarations live in `theories/tactics/Cvc5.v`, separate
 from SMTCoq's legacy tactic definitions.
 

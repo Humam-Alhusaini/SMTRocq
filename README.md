@@ -54,8 +54,9 @@ describe the current project. The [dated performance report](docs/benchmarks/smt
 retains its exact checkpoint, failures, and timing boundaries; it is not a
 benchmark of this repository cleanup.
 
-The compatibility `SMTCoq` entry point retains the inherited tactics. Use
-`From SMTCoq Require Import SMTRocq.` for the CVC5 tactics. The optional
+The compatibility `SMTCoq` entry point continues to export the inherited and
+CVC5 tactics. Prefer `From SMTCoq Require Import SMTRocq.` to identify this
+project explicitly. The optional
 `cvc5_eunoia` tactic additionally validates the CPC source derivation through
 the external checker; `smtrocq` certifies the actual theorem using semantic
 certificates. The two contracts are documented in the architecture guide.

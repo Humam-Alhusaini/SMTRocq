@@ -7,7 +7,7 @@ if [ ! -f external/rocq-eunoia-checker/theories/checker/eunoia/EunoiaCertificate
 fi
 python3 -B scripts/eunoia/install_toolchain.py
 dune build --ignore-promoted-rules -j 2 theories \
-  unit-tests/smtrocq.vo unit-tests/eunoia_tactics.vo unit-tests/eunoia_uf.vo \
+  unit-tests/smtrocq.vo unit-tests/smtrocq_compatibility.vo unit-tests/eunoia_tactics.vo unit-tests/eunoia_uf.vo \
   unit-tests/eunoia_uf_bool.vo unit-tests/eunoia_lia.vo \
   unit-tests/eunoia_purification.vo unit-tests/eunoia_integer_casts.vo unit-tests/eunoia_division.vo \
   tools/kernel-acceptance-probe/Controls.vo
