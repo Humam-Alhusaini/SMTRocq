@@ -4,6 +4,8 @@
   run.py
   report.py
   cases.json
+  arrays.json
+  integer-operations.json
   test_run.py
   test_report.py
   ../../tools/audit-eunoia-assumptions.py
