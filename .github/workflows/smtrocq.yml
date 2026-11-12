@@ -1,0 +1,23 @@
+name: SMTRocq CVC5 backend
+on: [push, pull_request, workflow_dispatch]
+permissions:
+  contents: read
+jobs:
+  eunoia:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Build pinned Rocq and Trakt environment
+        run: docker build -f .github/Dockerfile.eunoia -t smtrocq-eunoia-ci .
+      - name: Verify pinned solver, build, and check public proofs
+        run: |
+          docker run --rm --user "$(id -u):$(id -g)" \
+            -e EUNOIA_TOOLCHAIN_ROOT=/work/_build/eunoia-toolchain \
+            -e XDG_CACHE_HOME=/work/_build/cache \
+            --mount "type=bind,src=$PWD,dst=/work" -w /work \
+            --entrypoint /bin/bash \
+            smtrocq-eunoia-ci \
+            -c 'export PATH=/home/rocq/.opam/4.14.2+flambda/bin:$PATH; sh scripts/eunoia/ci.sh'

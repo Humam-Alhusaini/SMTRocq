@@ -123,8 +123,8 @@ mkRocqDerivation rec {
   passthru = { inherit lfsc-sigs eunoia-toolchain; };
 
   meta = {
-    description = "A Rocq plugin that checks proof witnesses coming from external SAT and SMT solvers";
-    homepage = "https://github.com/smtcoq/smtcoq";
+    description = "SMTRocq: a CVC5-backed SMT tactic built on SMTCoq";
+    homepage = "https://github.com/Humam-Alhusaini/SMTRocq";
     license = lib.licenses.cecill-c;
   };
 }

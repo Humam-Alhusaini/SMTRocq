@@ -26,11 +26,11 @@ HERE = Path(__file__).resolve().parent
 REPO = HERE.parents[1]
 WRAPPER = Path(os.environ.get("EUNOIA_ENV", str(next(p for p in Path(__file__).resolve().parents if (p / "dune-project").is_file()) / "scripts/eunoia/env")))
 BACKENDS = {name: name for name in ("verit", "cvc4", "cvc5_eunoia", "smtrocq")}
-BASELINE_PATH = REPO / "docs/eunoia/baseline-assumptions.txt"
+BASELINE_PATH = REPO / "docs/checker-assumptions.txt"
 BASELINE = {line.strip() for line in BASELINE_PATH.read_text().splitlines()
             if line.strip() and not line.startswith("#")}
 _audit_spec = importlib.util.spec_from_file_location(
-    "eunoia_assumption_audit", REPO / "tools/audit-eunoia-assumptions.py")
+    "eunoia_assumption_audit", REPO / "tools/audit-assumptions.py")
 _audit = importlib.util.module_from_spec(_audit_spec)
 _audit_spec.loader.exec_module(_audit)
 if not BASELINE or any(not _audit.IDENT.fullmatch(name) for name in BASELINE):
@@ -303,7 +303,7 @@ def rocq_loadpath(repo):
 def checker_fingerprint(repo):
     """Fingerprint the exact sources and built proof/plugin artifacts in use."""
     sources = {}
-    for base in ("theories", "src", "tools/eunoia"):
+    for base in ("theories", "src", "external/rocq-eunoia-checker/theories", "external/rocq-eunoia-checker/tools/eunoia"):
         for path in sorted((repo / base).rglob("*")):
             if path.is_file() and path.suffix in (".v", ".ml", ".mli", ".mlg", ".py", ".eo", ".txt", ".json"):
                 sources[str(path.relative_to(repo))] = sha256(path)
@@ -368,7 +368,7 @@ def main():
                                        "cases": str(cases_path)},
         "cases_sha256": sha256(cases_path),
         "assumption_baseline_sha256": sha256(BASELINE_PATH),
-        "assumption_audit_sha256": sha256(REPO / "tools/audit-eunoia-assumptions.py"),
+        "assumption_audit_sha256": sha256(REPO / "tools/audit-assumptions.py"),
         "source_sha256": {p.name: sha256(p) for p in HERE.iterdir() if p.is_file()},
         "measurements": "Rocq Time backend, Time Qed, and separate compiler process wall time; no solver-only timings",
         "checking_contracts": {

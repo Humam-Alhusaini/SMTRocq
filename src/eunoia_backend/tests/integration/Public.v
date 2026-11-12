@@ -1,4 +1,4 @@
-From SMTCoq Require Import SMTCoq.
+From SMTCoq Require Import SMTRocq.
 From SMTCoq.checker.eunoia Require Import EunoiaScopedAdapter.
 From Stdlib Require Import Bool.
 

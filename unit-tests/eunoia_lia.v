@@ -2,7 +2,7 @@
 (* SMTCoq: checked live cvc5/Eunoia integer arithmetic regressions.         *)
 (* Every positive theorem executes the actual public tactic.              *)
 (**************************************************************************)
-From SMTCoq Require Import SMTCoq.
+From SMTCoq Require Import SMTRocq.
 From Stdlib Require Import Bool ZArith.
 Local Open Scope Z_scope.
 

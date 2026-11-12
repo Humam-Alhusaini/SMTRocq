@@ -1,0 +1,3 @@
+[submodule "external/rocq-eunoia-checker"]
+	path = external/rocq-eunoia-checker
+	url = https://github.com/Humam-Alhusaini/rocq-eunoia-checker.git

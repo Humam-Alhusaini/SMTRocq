@@ -2,10 +2,8 @@ pin-depends: [
   ["rocq-trakt.dev" "git+https://github.com/rocq-trakt/trakt"]
 ]
 messages: "
-  ======================================================================
-  Thanks for installing SMTCoq !
-  To use it, you also need to install the solvers cvc4, veriT and zchaff,
-  following these instructions:
-    https://github.com/smtcoq/smtcoq/blob/main/INSTALL.md#installation-of-the-provers
-  ======================================================================
+  SMTRocq builds upon SMTCoq and retains its package/logical names for compatibility.
+  Initialize the pinned checker dependency with git submodule update --init --recursive.
+  Install the private CVC5 toolchain with python3 scripts/eunoia/install_toolchain.py.
+  Project and legacy-solver setup: https://github.com/Humam-Alhusaini/SMTRocq/blob/main/INSTALL.md
 "

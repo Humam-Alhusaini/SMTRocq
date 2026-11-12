@@ -47,8 +47,9 @@ python3 -B -m unittest discover -s scripts/eunoia -p 'test_*.py'
 ```
 
 `scripts/eunoia/env` runs commands in the caller's activated Rocq toolchain.
-Set `EUNOIA_ENV=/absolute/path/to/wrapper` for an isolated toolchain; regeneration,
-audits and benchmark drivers honor it. `sh scripts/eunoia/ci.sh` installs the
+Set `EUNOIA_ENV=/absolute/path/to/wrapper` for an isolated toolchain; audits
+and tactic benchmark drivers honor it. Checker regeneration belongs to the
+[standalone checker repository](https://github.com/Humam-Alhusaini/rocq-eunoia-checker). `sh scripts/eunoia/ci.sh` installs the
 pinned solver and runs the checked backend suites without old solver backends.
 
 `dump_cpc.py` always uses `--dump-proofs --proof-format=cpc
@@ -79,9 +80,11 @@ retained artifacts, not temporary disk usage. Both limits are configurable.
 
 Every report is marked `UNVERIFIED_SOLVER_OUTPUT`. The inventory parses syntax
 and declaration names only: it does not evaluate CPC rules, check premise
-references, validate assumption binding, or prove semantic correctness. The
-signature compiler and SMTCoq/Rocq checker must still check **every** inference
-and bind the exact input roots. These scripts must never become a proof
+references, validate assumption binding, or prove semantic correctness. The strict
+CPC path must validate every source inference and its exact roots
+through the standalone checker. The fast `smtrocq` path instead certifies the
+actual theorem using verified semantic certificates; it does not claim CPC
+source conformance. These scripts must never become a proof
 acceptance path. No Rocq lemmas or assumptions are introduced here.
 
 See [the fixture notes](../../unit-tests/eunoia-fixtures/README.md) for measured

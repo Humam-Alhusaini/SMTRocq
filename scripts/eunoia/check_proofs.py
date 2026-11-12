@@ -28,13 +28,11 @@ def main():
     wrapper = os.environ.get("EUNOIA_ENV", str(ROOT / "scripts/eunoia/env"))
     mappings = bench.rocq_loadpath(ROOT) + [
         "-Q", str(ROOT / "_build/default/unit-tests"), "SMTCoq.tests",
-        "-Q", str(ROOT / "_build/default/tools/eunoia-runtime-profile"),
-        "SMTCoq.eunoia_runtime_profile",
-        "-Q", str(ROOT / "_build/default/tools/eunoia-kernel-acceptance-probe"),
+        "-Q", str(ROOT / "_build/default/tools/kernel-acceptance-probe"),
         "SMTCoq.eunoia_kernel_acceptance_probe",
         "-Q", str(ROOT / "_build/default/src/eunoia_backend/tests/integration"),
         "SMTCoq.eunoia_backend_tests"]
-    audit = [sys.executable, "-B", str(ROOT / "tools/audit-eunoia-assumptions.py"),
+    audit = [sys.executable, "-B", str(ROOT / "tools/audit-assumptions.py"),
              "--env", wrapper, "--build-loadpaths", "--output-dir", str(output / "assumptions")]
     for i in range(0, len(mappings), 3):
         audit += ["--loadpath", mappings[i + 1], mappings[i + 2]]
@@ -114,9 +112,6 @@ def main():
         "SMTCoq.checker.eunoia.CpcMemo": ["validate_context_sound", "derive_context_cached_refinement", "derive_checked_correct"],
         "SMTCoq.checker.eunoia.EoRuntime": ["nil_apply_refinement", "nil_list_apply_refinement",
                                          "resolve_nil_lazy_mode_refinement"],
-        "SMTCoq.eunoia_runtime_profile.QueryRefinement": ["native_with_nils_refinement",
-                                      "surface_in_with_refinement", "match_pattern_with_refinement"],
-        "SMTCoq.eunoia_runtime_profile.SurfaceOutRefinement": ["surface_out_with_refinement"],
     }.items():
         audit += ["--import", module]
         for name in names:
@@ -126,12 +121,12 @@ def main():
         test_import = "SMTCoq.checker.eunoia." + test_module
         audit += ["--import", test_import]
         for name in re.findall(r"^\s*(?:Lemma|Theorem|Example)\s+(\w+)",
-                (ROOT / "theories/checker/eunoia" / (test_module + ".v")).read_text(), re.M):
+                (ROOT / "external/rocq-eunoia-checker/theories/checker/eunoia" / (test_module + ".v")).read_text(), re.M):
             audit += ["--theorem", test_import + ("." + test_module if test_module in ("EunoiaLocalDirectTests", "EunoiaTheoryTests", "EunoiaCertificateTests") else "") + "." + name]
     for name in ("and_iff", "or_iff", "impl_iff", "iff_iff", "not_iff", "bool_true_iff"):
         audit += ["--import", "SMTCoq.tactics.preproc.EunoiaFrontend",
                   "--theorem", "SMTCoq.tactics.preproc.EunoiaFrontend.EunoiaFrontend." + name]
-    public_modules = ("smtrocq", "eunoia_tactics", "eunoia_uf", "eunoia_uf_bool", "eunoia_lia", "eunoia_purification", "eunoia_integer_casts", "eunoia_division")
+    public_modules = ("smtrocq", "smtrocq_compatibility", "eunoia_tactics", "eunoia_uf", "eunoia_uf_bool", "eunoia_lia", "eunoia_purification", "eunoia_integer_casts", "eunoia_division")
     for module in public_modules:
         public = "SMTCoq.tests." + module
         audit += ["--import", public]
@@ -160,8 +155,6 @@ def main():
     summary = dict(passed=False, commands=commands)
     try:
         kernel = [wrapper, "rocq", "check", "-silent", *mappings,
-                  "SMTCoq.eunoia_runtime_profile.QueryRefinement",
-                  "SMTCoq.eunoia_runtime_profile.SurfaceOutRefinement",
                   "SMTCoq.checker.eunoia.EunoiaMemoTests",
                   "SMTCoq.checker.eunoia.EunoiaModelDagTests",
                   "SMTCoq.checker.eunoia.EunoiaLocalDirectTests",

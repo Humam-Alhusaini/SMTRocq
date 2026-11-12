@@ -3,8 +3,9 @@
 These are **raw solver outputs, not verified proofs or accepted SMTCoq
 certificates**. No Ethos, Logos, or Rocq checker was run on them. Successful
 capture, an `unsat` line, cvc5's internal checks, and absence of `trust` establish
-no independent soundness claim. Every inference and exact root assumption still
-needs checking by the signature-generated SMTCoq backend.
+no independent soundness claim. Strict source validation belongs to the separate
+[Rocq Eunoia Checker](https://github.com/Humam-Alhusaini/rocq-eunoia-checker);
+SMTRocq keeps these unchanged dumps as native proof-reader integration fixtures.
 
 The four retained dumps total 11,785 bytes and preserve the solver's original
 stdout, including `unsat` and the enclosing proof block:

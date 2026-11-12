@@ -5,7 +5,12 @@
 
 (rule
  (target signatureNames.ml)
- (deps gen_signature_names.py ../../theories/checker/eunoia/CpcGenerated.v)
+ (deps
+  gen_signature_names.py
+  ../../external/rocq-eunoia-checker/theories/checker/eunoia/CpcGenerated.v)
  (action
-  (run python3 %{dep:gen_signature_names.py}
-   %{dep:../../theories/checker/eunoia/CpcGenerated.v} %{target})))
+  (run
+   python3
+   %{dep:gen_signature_names.py}
+   %{dep:../../external/rocq-eunoia-checker/theories/checker/eunoia/CpcGenerated.v}
+   %{target})))

@@ -19,6 +19,7 @@
   abduce_tactics
   eunoia_tactics
   smtrocq
+  smtrocq_compatibility
   eunoia_uf
   eunoia_uf_bool
   eunoia_lia

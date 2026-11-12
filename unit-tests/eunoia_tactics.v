@@ -4,7 +4,7 @@
 (*     Distributed under the terms of the CeCILL-C licence (see LICENSE). *)
 (**************************************************************************)
 
-From SMTCoq Require Import SMTCoq.
+From SMTCoq Require Import SMTRocq.
 From Stdlib Require Import ZArith.
 Local Open Scope Z_scope.
 
