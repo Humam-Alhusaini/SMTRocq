@@ -6,6 +6,7 @@ From Stdlib Require Import List Bool Uint63.
 From SMTCoq.utils Require Import Misc PArray.
 From SMTCoq.checker.fol Require Import State Terms.
 From SMTCoq.checker Require Import MainChecker.
+From SMTCoq.checker.small_checker.array Require Import Array.
 From SMTCoq.checker.eunoia Require Import EunoiaBool.
 
 Import ListNotations.
@@ -128,19 +129,28 @@ Proof.
   now rewrite Lit.interp_neg, Hl.
 Qed.
 
-(* No proof-valued constructors exist in this witness language. Checker_Ext
-   includes BV/array shapes, but decode rejects these unsupported operations.
+(* No proof-valued constructors exist in this witness language. The raw core
+   array/BV shapes remain rejected by decode. Array rules below have their own
+   canonicalizing path through the existing verified array small checkers.
    Every accepted operation explicitly enumerates ALL its local clause reads. *)
+Inductive array_rule :=
+| ArrayReadSame (res : _lit)
+| ArrayReadOther (clause : C.t)
+| ArrayExtensionality (res : _lit).
+Definition array_literals r :=
+  match r with ArrayReadSame l | ArrayExtensionality l => [l]
+  | ArrayReadOther c => c end.
 Inductive command :=
 | Command (a : Checker_Ext.step) (expected : C.t)
 | BoolCongrCommand (pos : clause_id) (res : _lit)
-    (eqs : list (option _lit)) (expected : C.t).
+    (eqs : list (option _lit)) (expected : C.t)
+| ArrayCommand (pos : clause_id) (rule : array_rule) (expected : C.t).
 
 (* Preserve the old constructor, with an honest optional core projection. *)
 Definition action (cmd : command) : option Checker_Ext.step :=
-  match cmd with Command a _ => Some a | BoolCongrCommand _ _ _ _ => None end.
+  match cmd with Command a _ => Some a | _ => None end.
 Definition expected (cmd : command) : C.t :=
-  match cmd with Command _ c | BoolCongrCommand _ _ _ c => c end.
+  match cmd with Command _ c | BoolCongrCommand _ _ _ c | ArrayCommand _ _ c => c end.
 Record witness := Witness {
   capacity : int;
   root_claims : list (clause_id * C.t);
@@ -255,10 +265,29 @@ Section Context.
       end
     else None.
 
+  Definition array_clause rule :=
+    match rule with
+    | ArrayReadSame l => check_roweq t_form t_atom l
+    | ArrayReadOther c => check_rowneq t_form t_atom c
+    | ArrayExtensionality l => check_ext t_form t_atom l
+    end.
+
+  (* Preserve the array checker's input order while storing an exact canonical
+     clause. Its default-true failure result is never an accepted certificate. *)
+  Definition execute_array (m : machine) pos rule (c : C.t) : option machine :=
+    let raw := array_clause rule in
+    if fresh m pos &&
+       forallb (fun l => Lit.blit l <? PArray.length t_form) (array_literals rule) &&
+       clause_wf (PArray.length t_form) c &&
+       clause_eqb (S.sort raw) c && negb (clause_eqb raw C._true) then
+      Some (Machine (S.set_clause (clauses m) pos (S.sort raw)) (pos :: live m))
+    else None.
+
   Definition execute (m : machine) (cmd : command) : option machine :=
     match cmd with
     | Command a c => execute_core m a c
     | BoolCongrCommand pos res eqs c => execute_bool m pos res eqs c
+    | ArrayCommand pos rule c => execute_array m pos rule c
     end.
 
   Fixpoint run (m : machine) (cmds : list command) : option machine :=
@@ -353,12 +382,46 @@ Section Context.
     rewrite Et in Htrue; discriminate.
   Qed.
 
+  Lemma array_clause_valid : forall rule,
+    Form.check_form t_form = true -> Atom.check_atom t_atom = true ->
+    Atom.wt t_i t_func t_atom -> C.valid valuation (array_clause rule).
+  Proof.
+    intros rule Hform Hatom Hwt; destruct rule; unfold array_clause, valuation.
+    - eapply valid_check_roweq; eassumption.
+    - eapply valid_check_rowneq; eassumption.
+    - eapply valid_check_ext; eassumption.
+  Qed.
+
+  Lemma execute_array_binding : forall m pos rule c m',
+    execute_array m pos rule c = Some m' ->
+    fresh m pos = true /\
+    forallb (fun l => Lit.blit l <? PArray.length t_form) (array_literals rule) = true /\
+    clause_wf (PArray.length t_form) c = true /\
+    S.sort (array_clause rule) = c /\ array_clause rule <> C._true /\
+    m' = Machine (S.set_clause (clauses m) pos (S.sort (array_clause rule))) (pos :: live m).
+  Proof.
+    intros m pos rule c m' H; unfold execute_array in H.
+    destruct (fresh m pos &&
+      forallb (fun l => Lit.blit l <? PArray.length t_form) (array_literals rule) &&
+      clause_wf (PArray.length t_form) c &&
+      clause_eqb (S.sort (array_clause rule)) c &&
+      negb (clause_eqb (array_clause rule) C._true)) eqn:Hg; try discriminate.
+    inversion H; subst m'; clear H.
+    rewrite !andb_true_iff in Hg.
+    destruct Hg as [[[[Hfresh Hlit] Hwf] Heq] Hdefault].
+    apply clause_eqb_spec in Heq.
+    repeat split; try assumption.
+    intro H; rewrite H in Hdefault.
+    assert (clause_eqb C._true C._true = true) as Et by (apply clause_eqb_spec; reflexivity).
+    rewrite Et in Hdefault; discriminate.
+  Qed.
+
   Lemma execute_valid : forall m cmd m',
     Form.check_form t_form = true -> Atom.check_atom t_atom = true ->
     Atom.wt t_i t_func t_atom -> S.valid valuation (clauses m) ->
     execute m cmd = Some m' -> S.valid valuation (clauses m').
   Proof.
-    intros m cmd m' Hform Hatom Hwt Hm H; destruct cmd as [a c|pos res eqs c].
+    intros m cmd m' Hform Hatom Hwt Hm H; destruct cmd as [a c|pos res eqs c|pos rule c].
     - destruct (@execute_core_binding m a c m' H)
         as [p [_ [_ [_ [-> _]]]]]; simpl.
       now apply Euf_Checker.step_checker_correct.
@@ -368,6 +431,13 @@ Section Context.
       + unfold valuation; apply (proj2 (Form.check_form_correct _ _ _ Hform)).
       + exact (EunoiaBool.congr_clause_sound t_i t_func t_atom t_form
           Hatom Hform res eqs raw_clause Hr).
+    - destruct (@execute_array_binding m pos rule c m' H)
+        as [_ [_ [_ [_ [_ ->]]]]]; simpl.
+      assert (Hwf : Valuation.wf valuation).
+      { unfold valuation; apply (proj2 (Form.check_form_correct _ _ _ Hform)). }
+      apply S.valid_set_clause; auto.
+      unfold C.valid; rewrite S.sort_correct by exact Hwf.
+      eapply array_clause_valid; eassumption.
   Qed.
 
   Lemma run_valid : forall cmds m m',

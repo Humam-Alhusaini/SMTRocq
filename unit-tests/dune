@@ -19,6 +19,8 @@
   abduce_tactics
   eunoia_tactics
   smtrocq
+  smtrocq_arrays
+  smtrocq_integer_operations
   eunoia_uf
   eunoia_uf_bool
   eunoia_lia

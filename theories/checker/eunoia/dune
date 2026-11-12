@@ -17,6 +17,7 @@
   EunoiaAdapter.vo
   EunoiaUf.vo
   EunoiaLiaTests.vo
+  EunoiaArrayTests.vo
   EunoiaLocalTests.vo
   EunoiaBoolTests.vo
   EunoiaTacticTests.vo

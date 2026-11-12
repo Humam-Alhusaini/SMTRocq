@@ -87,6 +87,7 @@ let children a = match Atom.atom a with
 let congr_args a b = match Atom.atom a, Atom.atom b with
   | Auop (o,a), Auop (p,b) when o = p -> Some ([a],[b])
   | Abop (o,a,b), Abop (p,c,d) when o = p -> Some ([a;b],[c;d])
+  | Atop (o,a,b,c), Atop(p,d,e,f) when o=p -> Some([a;b;c],[d;e;f])
   | Aapp (f,xs), Aapp (g,ys) when
       indexed_op_index f = indexed_op_index g && Array.length xs = Array.length ys ->
     Some (Array.to_list xs,Array.to_list ys)
@@ -150,6 +151,17 @@ let produce_search ?(derivation=false) ?(eager_theory_units=false) ?(limits=defa
     let pcs = List.map input premises and cc = input conclusion in
     let roots = if derivation then pcs else pcs @ List.map (fun l -> [neg l]) cc in
     if List.length roots > limits.max_clauses then raise (Fail (Resource_limit "roots"));
+    let has_arrays = lazy (Hashtbl.fold (fun _ a found -> found || match Atom.atom a with
+      | Abop ((BO_select _ | BO_diffarray _),_,_) | Atop (TO_store _,_,_,_) -> true
+      | Abop (BO_eq (SmtBtype.TFArray _),_,_) -> true
+      | _ -> false) terms false) in
+    (* Extensionality is needed for the array equalities in the actual roots.
+       Applying it again to auxiliary congruence equalities creates unrelated
+       difference witnesses and an unbounded tower of read terms. *)
+    let array_targets = Hashtbl.fold (fun _ f acc -> match Form.pform f with
+      | Fatom a -> (match Atom.atom a with
+        | Abop(BO_eq(SmtBtype.TFArray _),_,_) -> f::acc | _ -> acc)
+      | _ -> acc) relevant [] in
     let root_claims = List.mapi (fun id c -> id,c) roots in
     let next = ref (List.length roots) and program = ref [] in
     let clauses = Hashtbl.create 127 and known = Hashtbl.create 127 in
@@ -211,7 +223,10 @@ let produce_search ?(derivation=false) ?(eager_theory_units=false) ?(limits=defa
           | EqCgr (_,l,ls) -> EqCgr (p,l,ls)
           | BoolCongr (_,l,ls) -> BoolCongr (p,l,ls)
           | EqCgrP (_,a,b,ls) -> EqCgrP (p,a,b,ls)
-          | LiaMicromega (_,c,proof) -> LiaMicromega (p,c,proof) in
+          | LiaMicromega (_,c,proof) -> LiaMicromega (p,c,proof)
+          | ArrayReadSame (_,l) -> ArrayReadSame(p,l)
+          | ArrayReadOther (_,c) -> ArrayReadOther(p,c)
+          | ArrayExtensionality (_,l) -> ArrayExtensionality(p,l) in
         {cmd with action}) program in
       if profiling then Printf.eprintf
         "EUNOIA_WITNESS id=%d event=finish cpu_s=%.6f searched_slots=%d capacity=%d commands=%d pairs=%d\n%!"
@@ -290,7 +305,9 @@ let produce_search ?(derivation=false) ?(eager_theory_units=false) ?(limits=defa
          transitivity and congruence lemmas; resolution must still discharge
          every edge literal against the exact local roots. *)
       List.iter (fun f -> match eq f with
-        | Some (a,b) -> edge a b f; edge b a f | None -> ()) fs;
+        | Some (a,b) when not (Lazy.force has_arrays && Hashtbl.mem known [neg(lit f)]) ->
+          edge a b f; edge b a f
+        | _ -> ()) fs;
       let path ?exclude a b =
         if Atom.equal a b then Some [] else
         let seen = Hashtbl.create 31 and q = Queue.create () in
@@ -338,7 +355,8 @@ let produce_search ?(derivation=false) ?(eager_theory_units=false) ?(limits=defa
       let ts = Hashtbl.fold (fun _ a acc -> a::acc) terms []
         |> List.sort (fun a b -> Int.compare (Atom.index a) (Atom.index b)) in
       List.iteri (fun i a -> List.iteri (fun j b ->
-        if i < j && SmtBtype.HashedBtype.equal (Atom.type_of a) (Atom.type_of b) then
+        if i < j && SmtBtype.HashedBtype.equal (Atom.type_of a) (Atom.type_of b) &&
+          (not (Lazy.force has_arrays) || match Atom.atom a with Atop(TO_store _,_,_,_) -> false | _ -> true) then
           (* Respect a requested equality's orientation rather than waiting
              another round for symmetry while resolution saturates. *)
           let a,b = if Hashtbl.mem targets (Atom.index b,Atom.index a) &&
@@ -396,7 +414,8 @@ let produce_search ?(derivation=false) ?(eager_theory_units=false) ?(limits=defa
        This only selects untrusted search; the gate still checks every command. *)
     let needs_lia = Hashtbl.fold (fun _ a needed -> needed ||
       match Atom.atom a with
-      | Aapp _ | Abop (BO_eq _,_,_) -> false
+      | Aapp _ | Abop (BO_eq _,_,_) | Abop ((BO_select _ | BO_diffarray _),_,_)
+      | Atop (TO_store _,_,_,_) -> false
       | _ -> true) terms false in
     let try_lia c =
       (* Certificates depend on the exact traversal/variable numbering of
@@ -408,6 +427,58 @@ let produce_search ?(derivation=false) ?(eager_theory_units=false) ?(limits=defa
         | None -> ()
         | Some proof -> let c = List.map lit c in
           add (fun p -> LiaMicromega (p,c,proof)) c in
+    (* Candidate array laws use existing SMTCoq operations. Every generated
+       term and clause is rechecked by the typed model and local gate. *)
+    let rec generated_atom a =
+      if not (Hashtbl.mem terms (Atom.index a)) then begin
+        if Hashtbl.length terms >= limits.max_terms then raise(Fail(Resource_limit "array terms"));
+        Hashtbl.add terms (Atom.index a) a;List.iter generated_atom (children a)
+      end in
+    let array_equality a b =
+      let ty=Atom.type_of a in
+      let f=Form.get forms(Fatom(Atom.get atoms(Abop(BO_eq ty,a,b)))) in
+      remember f;f in
+    let array_select ti te a i =
+      let v=Atom.mk_select atoms ti te a i in generated_atom v;v in
+    let array_axioms () =
+      List.iter(fun f->match Form.pform f with
+      | Fatom a -> (match Atom.atom a with
+        | Abop(BO_eq(SmtBtype.TFArray(ti,te)),a,b) ->
+          let diff=Atom.mk_diffarray atoms ti te a b in generated_atom diff;
+          let left=array_select ti te a diff and right=array_select ti te b diff in
+          let same=array_equality left right in
+          let ext=Form.get forms(Fapp(For,[|f;Form.neg same|])) in remember ext;
+          add(fun p->ArrayExtensionality(p,lit ext))[lit ext];cnf ext
+        | _ -> ())
+      | _ -> ())array_targets;
+      (* Close the finite read-over-write graph before propositional saturation.
+         Otherwise nested stores need a second round only after thousands of
+         irrelevant resolvents have exhausted the clause budget. *)
+      let rec rows () =
+        let before=Hashtbl.length terms in
+        let ts=Hashtbl.fold(fun _ a acc->a::acc)terms[] in
+      List.iter(fun a->match Atom.atom a with
+      | Abop(BO_select(ti,te),store,j) -> (match Atom.atom store with
+        | Atop(TO_store(ti',te'),base,i,value) when
+            SmtBtype.HashedBtype.equal ti ti' && SmtBtype.HashedBtype.equal te te' ->
+          let same=array_select ti te store i in
+          let same_eq=array_equality same value in
+          add(fun p->ArrayReadSame(p,lit same_eq))[lit same_eq];
+          if not(Atom.equal i j)then begin
+            let index_eq=array_equality i j in
+            let old=array_select ti te base j in
+            let read_eq=array_equality a old in
+            add(fun p->ArrayReadOther(p,[lit index_eq;lit read_eq]))[lit index_eq;lit read_eq];
+            if SmtBtype.HashedBtype.equal ti SmtBtype.TZ then begin
+              let facts=List.filter(fun f->lia_count:=0;lia_form f)(unit_forms()) in
+              let guards=List.map Form.neg facts in
+              try_lia(Form.neg index_eq::guards);try_lia(index_eq::guards)
+            end
+          end
+        | _ -> ())
+      | _ -> ())ts;
+        if Hashtbl.length terms > before then rows () in
+      rows () in
     let run () =
       if derivation then begin
         (match Hashtbl.find_opt known cc with Some id -> raise (Conflict id) | None -> ());
@@ -448,6 +519,7 @@ let produce_search ?(derivation=false) ?(eager_theory_units=false) ?(limits=defa
           resolve_pending (); raise (Fail (Resource_limit "theory rounds"))
         end;
         let before = !next in
+        if Lazy.force has_arrays then profile "arrays" array_axioms;
         profile "theory" theory;
         (* First propagate the new EUF/CNF units. Try the exact arithmetic
            implication before saturating unrelated nonunit Boolean clauses.
@@ -466,7 +538,10 @@ let produce_search ?(derivation=false) ?(eager_theory_units=false) ?(limits=defa
             lia_count := 0; lia_form f) (unit_forms ()))));
         (* Conditional EUF clauses must be available before unrestricted
            propositional saturation of the Boolean definitions. *)
-        profile "resolve_after_lia" resolve_pending;
+        profile "resolve_after_lia" (fun () ->
+          if Lazy.force has_arrays && !next > before && n+1 < limits.max_theory_rounds then
+            resolve_pending ~units_only:true ()
+          else resolve_pending ());
         if !next = before then raise (Fail Unsupported);
         rounds (n+1) in rounds 0 in
     (try run () with Conflict id -> Ok (finish id))
@@ -527,7 +602,9 @@ let produce ?(limits=default_limits) ~atoms ~forms ~premises ~conclusion () =
               | EqTr (_,l,ls) -> l::ls
               | EqCgr (_,l,ls) | BoolCongr (_,l,ls) -> l::List.filter_map Fun.id ls
               | EqCgrP (_,a,b,ls) -> a::b::List.filter_map Fun.id ls
-              | LiaMicromega (_,c,_) -> c in
+              | LiaMicromega (_,c,_) -> c
+              | ArrayReadSame (_,l) | ArrayExtensionality (_,l) -> [l]
+              | ArrayReadOther (_,c) -> c in
             action @ cmd.expected) w.program in
       let retained_atoms,retained_forms = dependencies literals in
       Printf.eprintf
@@ -583,3 +660,113 @@ let compress_uf ~atoms ~forms ~premises ~conclusion () =
     max_resolution_pairs=4096;max_boolean_pairs=64;max_theory_rounds=8;
     max_terms=64;max_formulas=128;max_lia_literals=0}
     ~atoms ~forms ~premises ~conclusion ()
+
+
+(* Reconstruct a branch proof using only ordinary checked operations. The
+   temporary assumption is never installed as a root of the result. Resolution
+   against that assumption aliases the other parent; every later resolution
+   is recomputed on the actual clauses. Failure to obtain the discharged unit
+   rejects this candidate. No branch answer is trusted. *)
+let combine_array_branches ~premises ~conclusion split left right =
+  try
+    let roots = List.map (List.map lit) premises @ List.map (fun f->[neg(lit f)]) conclusion in
+    let root_claims = List.mapi (fun i c->i,c) roots in
+    let clauses=Hashtbl.create 127 and next=ref(List.length roots) and program=ref[] in
+    List.iter(fun(i,c)->Hashtbl.add clauses i c) root_claims;
+    let emit action expected =
+      if !next>=4096 || (expected=[0] && (match action !next with CTrue _->false | _->true)) then raise Exit;
+      let p= !next in incr next;
+      program:={action=action p;expected}::!program;Hashtbl.add clauses p expected;p in
+    let discharge w branch =
+      let slots=Hashtbl.create 127 in
+      List.iteri(fun i (id,_) -> Hashtbl.add slots id
+        (if i=List.length premises then None
+         else Some(if i<List.length premises then i else i-1))) w.root_claims;
+      let slot i=Hashtbl.find slots i in
+      let actual i=match slot i with Some p->p|None->raise Exit in
+      List.iter(fun cmd ->
+        let result=match cmd.action with
+        | Res(_,a,b) -> (match slot a,slot b with
+          | None,None -> raise Exit
+          | None,p | p,None -> p
+          | Some a,Some b -> Some(emit(fun p->Res(p,a,b))
+              (resolve(Hashtbl.find clauses b)(Hashtbl.find clauses a))))
+        | a ->
+          let action p=match a with
+          | CTrue _->CTrue p | CFalse _->CFalse p
+          | BuildDef(_,l)->BuildDef(p,l) | BuildDef2(_,l)->BuildDef2(p,l)
+          | BuildProj(_,l,i)->BuildProj(p,l,i)
+          | ImmFlatten(_,a,l)->ImmFlatten(p,actual a,l)
+          | EqTr(_,l,ls)->EqTr(p,l,ls) | EqCgr(_,l,ls)->EqCgr(p,l,ls)
+          | BoolCongr(_,l,ls)->BoolCongr(p,l,ls)
+          | EqCgrP(_,a,b,ls)->EqCgrP(p,a,b,ls)
+          | LiaMicromega(_,c,proof)->LiaMicromega(p,c,proof)
+          | ArrayReadSame(_,l)->ArrayReadSame(p,l)
+          | ArrayReadOther(_,c)->ArrayReadOther(p,c)
+          | ArrayExtensionality(_,l)->ArrayExtensionality(p,l)
+          | Res _->assert false in
+          Some(emit action cmd.expected) in
+        Hashtbl.replace slots (output cmd.action) result) w.program;
+      let result=actual w.conflict in
+      let clause=Hashtbl.find clauses result in
+      if clause<>[neg branch] && clause<>[] then raise Exit;
+      result in
+    let a=discharge left (lit split) in
+    let conflict=if Hashtbl.find clauses a=[] then a else
+      let b=discharge right (neg(lit split)) in
+      if Hashtbl.find clauses b=[] then b else emit(fun p->Res(p,a,b)) [] in
+    Some {capacity= !next;root_claims;program=List.rev !program;conflict}
+  with Exit | Not_found -> None
+
+(* Whole-goal array compilation is selected only for actual array goals.
+   A bounded case split on read/write index equalities avoids unrestricted
+   resolution blow-up. Both branches are reconstructed into one ordinary
+   certificate; no temporary branch root survives in the submitted witness. *)
+let compress_arrays ~atoms ~forms ~premises ~conclusion () =
+  let limits={max_clauses=512;max_resolution_pairs=4096;max_boolean_pairs=32;
+    max_theory_rounds=6;max_terms=256;max_formulas=1024;max_lia_literals=64} in
+  let calls=ref 0 in
+  let profile = Sys.getenv_opt "EUNOIA_ARRAY_PROFILE"=Some "1" in
+  let report s=if profile then Printf.eprintf "ARRAY_SEARCH %s\n%!" s in
+  let rec search depth premises =
+    incr calls;
+    if !calls>15 then Error(Resource_limit "array branches") else
+    match produce_search ~eager_theory_units:true ~limits ~atoms ~forms ~premises ~conclusion () with
+    | Ok _ as result->report(Printf.sprintf "depth=%d success" depth);result
+    | Error e as failure ->
+      report(Printf.sprintf "depth=%d failure=%s" depth (string_of_failure e));
+      if depth=0 then failure else
+      let roots=List.map (List.map lit) premises @ List.map(fun f->[neg(lit f)]) conclusion in
+      let assigned f=List.exists(fun c->c=[lit f] || c=[neg(lit f)])roots in
+      let seen=Hashtbl.create 31 and candidates=ref[] in
+      let rec visit a=
+        if Hashtbl.length seen<256 && not(Hashtbl.mem seen (Atom.index a))then begin
+          Hashtbl.add seen (Atom.index a)();
+          (match Atom.atom a with
+          | Abop(BO_select(ti,te),store,j)->(match Atom.atom store with
+            | Atop(TO_store _,base,i,_) ->
+              if not(Atom.equal i j)then begin
+                let f=Form.get forms(Fatom(Atom.get atoms(Abop(BO_eq ti,i,j)))) in
+                if not(assigned f)then candidates:=f::!candidates
+              end;
+              visit(Atom.mk_select atoms ti te base j)
+            | _->())
+          | Abop(BO_eq(SmtBtype.TFArray(ti,te)),a,b)->
+            let d=Atom.mk_diffarray atoms ti te a b in
+            visit(Atom.mk_select atoms ti te a d);visit(Atom.mk_select atoms ti te b d)
+          | _->());List.iter visit(children a)
+        end in
+      let rec formula f=match Form.pform f with
+        | Fatom a->visit a | Fapp(_,xs)->Array.iter formula xs | _->() in
+      List.iter(List.iter formula)(conclusion::premises);
+      match List.sort_uniq(fun a b->Int.compare(lit a)(lit b))!candidates with
+      | []->failure
+      | split::_->
+        report(Printf.sprintf "depth=%d split=%s" depth (Format.asprintf "%a" (Form.to_smt ~debug:true) split));
+        match search (depth-1) (premises@[[split]]) with
+        | Error _->failure
+        | Ok left->match search (depth-1) (premises@[[Form.neg split]]) with
+          | Error _->failure
+          | Ok right->match combine_array_branches ~premises ~conclusion split left right with
+            | None->report "reconstruction failure";failure | Some w->Ok w in
+  search 3 premises

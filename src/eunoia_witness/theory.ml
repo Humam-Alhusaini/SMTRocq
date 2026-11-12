@@ -35,6 +35,7 @@ let congruent goal premises =
   let arguments a b = match Atom.atom a,Atom.atom b with
     | Auop(o,a),Auop(p,b) when o=p -> Some([a],[b])
     | Abop(o,a,b),Abop(p,c,d) when o=p -> Some([a;b],[c;d])
+    | Atop(o,a,b,c),Atop(p,d,e,f) when o=p -> Some([a;b;c],[d;e;f])
     | Aapp(f,xs),Aapp(g,ys) when indexed_op_index f=indexed_op_index g && Array.length xs=Array.length ys ->
       Some(Array.to_list xs,Array.to_list ys)
     | _ -> None in
@@ -122,7 +123,7 @@ let compress ~premises ~conclusion =
     !nodes <= 64 && match Form.pform f with
     | Fatom a ->
       incr atoms;
-      !atoms <= 12 && (match Atom.atom a with
+      !atoms <= 24 && (match Atom.atom a with
       | Abop ((BO_Zlt | BO_Zle | BO_Zge | BO_Zgt),_,_) -> interpreted := true; true
       | Abop (BO_eq ty,a,b) when SmtBtype.HashedBtype.equal ty SmtBtype.TZ ->
         let ground a = match Atom.atom a with Aapp _ -> false | _ -> true in
@@ -134,5 +135,33 @@ let compress ~premises ~conclusion =
     | _ -> false in
   let conditional = List.sort_uniq (fun a b -> Int.compare (lit a) (lit b))
     (conclusion @ List.map Form.neg ps) in
-  if not (List.for_all supported conditional) || not !interpreted then None else
+  (* Larger proved-operation root vectors still use one arithmetic proof,
+     provided their Boolean expansion has a small explicit branch bound.
+     Ordinary small UF/LIA inputs retain the original path and budget. *)
+  let plus a b=min 129 (a+b) and times a b=min 129 (a*b) in
+  let product xs=List.fold_left times 1 xs and sum xs=List.fold_left plus 0 xs in
+  let rec branches truth f=
+    let truth=if Form.is_pos f then truth else not truth in
+    match Form.pform f with
+    | Fatom _->1
+    | Fapp(Ftrue,_)->if truth then 1 else 0
+    | Fapp(Ffalse,_)->if truth then 0 else 1
+    | Fapp((Fand|For as op),xs)->
+      let counts=Array.to_list(Array.map(branches truth)xs) in
+      if (op=Fand)=truth then product counts else sum counts
+    | Fapp(Fimp,xs)->
+      let counts=Array.to_list(Array.mapi(fun i f->branches (if i=Array.length xs-1 then truth else not truth) f)xs) in
+      if truth then sum counts else product counts
+    | Fapp((Fiff|Fxor as op),xs) when Array.length xs=2->
+      let a=xs.(0) and b=xs.(1) in
+      let same=(op=Fiff)=truth in
+      plus(times(branches true a)(branches same b))
+          (times(branches false a)(branches (not same) b))
+    | Fapp(Fite,xs) when Array.length xs=3->
+      plus(times(branches true xs.(0))(branches truth xs.(1)))
+          (times(branches false xs.(0))(branches truth xs.(2)))
+    | Fapp(Fnot2 _,xs) when Array.length xs=1->branches truth xs.(0)
+    | _->129 in
+  if not (List.for_all supported conditional) || not !interpreted ||
+     (!atoms>12 && product(List.map(branches false)conditional)>128) then None else
     Stdlib.Option.map (fun proof -> Linear proof) (Lia.build_lia_certif conditional)

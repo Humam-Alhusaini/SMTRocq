@@ -21,6 +21,7 @@ type proof = { roots : (int * term) list; steps : step list; trace : trace;
 exception Error of string
 let fail fmt = Format.kasprintf (fun s -> raise (Error s)) fmt
 let builtins = ["Type"; "Bool"; "Int"; "true"; "false"; "->";
+  "Array"; "select"; "store";
   "="; "not"; "and"; "or"; "xor"; "=>"; "ite"; "distinct";
   "+"; "-"; "*"; "<"; "<="; ">"; ">="]
 let numeral s =

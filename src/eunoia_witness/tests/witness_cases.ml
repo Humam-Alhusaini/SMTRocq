@@ -17,9 +17,10 @@ let run ~check =
   let form forms a = Form.get forms (Fatom a) in
   let bool atoms forms i = form forms (symbol atoms i [||] SmtBtype.Tbool []) in
   let binary forms op a b = Form.get forms (Fapp (op,[|a;b|])) in
-  let positive ?limits ?(pure_uf=false) ?(whole_uf=false) name atoms forms premises conclusion =
+  let positive ?limits ?(pure_uf=false) ?(whole_uf=false) ?(whole_arrays=false) name atoms forms premises conclusion =
     let premises = List.map sorted premises and conclusion = sorted conclusion in
-    let result = if whole_uf then Search.compress_uf ~atoms ~forms ~premises ~conclusion ()
+    let result = if whole_arrays then Search.compress_arrays ~atoms ~forms ~premises ~conclusion ()
+      else if whole_uf then Search.compress_uf ~atoms ~forms ~premises ~conclusion ()
       else Search.produce ?limits ~atoms ~forms ~premises ~conclusion () in
     match result with
     | Error e -> failwith (name ^ ": " ^ Search.string_of_failure e)
@@ -33,9 +34,12 @@ let run ~check =
       incr count;
       Printf.printf "PASS %s (%d roots, %d commands)\n%!" name
         (List.length w.root_claims) (List.length w.program) in
-  let negative ?limits name atoms forms premises conclusion =
-    match Search.produce ?limits ~atoms ~forms ~premises:(List.map sorted premises)
-      ~conclusion:(sorted conclusion) () with
+  let negative ?limits ?(whole_arrays=false) name atoms forms premises conclusion =
+    let result=if whole_arrays then Search.compress_arrays ~atoms ~forms
+        ~premises:(List.map sorted premises) ~conclusion:(sorted conclusion) ()
+      else Search.produce ?limits ~atoms ~forms ~premises:(List.map sorted premises)
+        ~conclusion:(sorted conclusion) () in
+    match result with
     | Error _ -> incr count; Printf.printf "PASS %s (rejected)\n%!" name
     | Ok _ -> failwith (name ^ ": unexpected candidate") in
   let atoms,forms = fresh () in
@@ -261,6 +265,32 @@ let run ~check =
   negative "lia-reversed-bound" atoms forms [[x1]] [x0];
   negative "lia-missing-premise" atoms forms [] [x0];
   negative "lia-satisfiable-roots" atoms forms [[x0]] [];
+  let atoms,forms = fresh () in
+  let ti = SmtBtype.TZ and te = SmtBtype.TZ in
+  let ta = SmtBtype.TFArray(ti,te) in
+  let a = symbol atoms 0 [||] ta [] and b = symbol atoms 1 [||] ta [] in
+  let i = symbol atoms 2 [||] ti [] and j = symbol atoms 3 [||] ti [] in
+  let v = symbol atoms 4 [||] te [] and w = symbol atoms 5 [||] te [] in
+  let select a i = Atom.mk_select atoms ti te a i in
+  let store a i v = Atom.mk_store atoms ti te a i v in
+  let equal a b = form forms (Atom.get atoms (Abop(BO_eq (Atom.type_of a),a,b))) in
+  let array = positive ~whole_arrays:true in
+  array "array-read-same" atoms forms [] [equal (select (store a i v) i) v];
+  array "array-read-other" atoms forms [[Form.neg(equal i j)]]
+    [equal (select (store a i v) j) (select a j)];
+  array "array-store-overwrite" atoms forms [] [equal (store (store a i v) i w) (store a i w)];
+  array "array-store-original" atoms forms [] [equal (store a i (select a i)) a];
+  array "array-store-commute" atoms forms [[Form.neg(equal i j)]]
+    [equal (store (store a i v) j w) (store (store a j w) i v)];
+  let commute=equal (store (store a i v) j w) (store (store a j w) i v) in
+  let wrapped=binary forms Fiff commute (Form.get forms Form.pform_true) in
+  array "array-commute-public-boolean-roots" atoms forms
+    [[Form.neg wrapped];[Form.neg(equal i j)]] [];
+  array "array-alias" atoms forms [[equal a b];[equal i j]] [equal (select (store a i v) j) v];
+  negative ~whole_arrays:true "array-missing-disequality" atoms forms []
+    [equal (select (store a i v) j) (select a j)];
+  negative ~whole_arrays:true "array-single-read-is-not-extensional" atoms forms [[equal (select a i) (select b i)]] [equal a b];
+  negative ~whole_arrays:true "array-wrong-value" atoms forms [] [equal (select (store a i v) i) w];
   Printf.printf "%d witness search cases passed\n%!" !count
 
 let check_shape _name _atoms _forms _premises _conclusion (w:Certificate.witness) =

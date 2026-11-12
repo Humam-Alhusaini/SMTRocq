@@ -17,7 +17,7 @@ def main():
     parser.add_argument("--modes", nargs="+", choices=("Reference", "Shared", "Helpers", "Conclusions", "Indexed", "Staged", "Direct", "DirectShared", "DirectReference", "IndexedAdaptive", "IndexedReference", "Specialized", "SpecializedShared", "SpecializedReference", "Model", "ModelShared", "ModelReference", "Certificates", "CertificatesShared", "CertificatesModel", "Theory", "TheoryShared", "TheoryReference", "TheoryModel", "Compiled"),
                         default=("Reference", "Shared", "Helpers", "Conclusions", "Indexed", "Staged", "Direct", "Specialized", "Theory", "Compiled"))
     parser.add_argument("--fixtures", nargs="+",
-                        choices=("Proof", "Lia", "IntegerCasts", "Division",
+                        choices=("Proof", "Lia", "IntegerCasts", "Division", "Arrays", "IntegerOperations",
                                  "Uf", "UfBool", "Purification", "PublicLia", "PublicTactics"))
     args = parser.parse_args()
     out = args.output.resolve() if args.output else Path(tempfile.mkdtemp(prefix="eunoia-mode-replay-"))
@@ -73,6 +73,9 @@ def main():
                              (("Uf", "eunoia_uf"), ("UfBool", "eunoia_uf_bool"),
                               ("Purification", "eunoia_purification"), ("PublicLia", "eunoia_lia"),
                               ("PublicTactics", "eunoia_tactics"))]
+            if mode == "Compiled":
+                fixtures += [("Arrays", ROOT / "unit-tests/smtrocq_arrays.v"),
+                             ("IntegerOperations", ROOT / "unit-tests/smtrocq_integer_operations.v")]
             if args.fixtures:
                 available = {name for name, _ in fixtures}
                 if not set(args.fixtures) <= available:

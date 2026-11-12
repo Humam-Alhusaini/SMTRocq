@@ -21,6 +21,9 @@ type action =
   | BoolCongr of clause_id * literal * literal option list
   | EqCgrP of clause_id * literal * literal * literal option list
   | LiaMicromega of clause_id * clause * lia_proof
+  | ArrayReadSame of clause_id * literal
+  | ArrayReadOther of clause_id * clause
+  | ArrayExtensionality of clause_id * literal
 type command = { action : action; expected : clause }
 type witness = {
   capacity : int;
@@ -32,7 +35,8 @@ type witness = {
 let output = function
   | Res (p,_,_) | CFalse p | CTrue p | BuildDef (p,_) | BuildDef2 (p,_)
   | BuildProj (p,_,_) | ImmFlatten (p,_,_) | EqTr (p,_,_) | EqCgr (p,_,_)
-  | BoolCongr (p,_,_) | EqCgrP (p,_,_,_) | LiaMicromega (p,_,_) -> p
+  | BoolCongr (p,_,_) | EqCgrP (p,_,_,_) | LiaMicromega (p,_,_)
+  | ArrayReadSame (p,_) | ArrayReadOther (p,_) | ArrayExtensionality (p,_) -> p
 let reads = function Res (_,a,b) -> [a;b] | ImmFlatten (_,a,_) -> [a] | _ -> []
 let canonical c = List.sort_uniq Int.compare c
 
@@ -73,6 +77,8 @@ let to_coq ~local ~step w =
     | EqCgr (p,l,ls) -> app (step "EqCgr")
         [int p;int l;list option_ty option ls]
     | BoolCongr _ -> invalid_arg "BoolCongr is a local command"
+    | ArrayReadSame _ | ArrayReadOther _ | ArrayExtensionality _ ->
+      invalid_arg "Array evidence is a local command"
     | EqCgrP (p,a,b,ls) -> app (step "EqCgrP")
         [int p;int a;int b;list option_ty option ls]
     | LiaMicromega (p,c,proof) -> app (step "LiaMicromega")
@@ -84,6 +90,12 @@ let to_coq ~local ~step w =
   let command cmd = match cmd.action with
     | BoolCongr (p,l,ls) -> app (local "BoolCongrCommand")
         [int p;int l;list option_ty option ls;clause cmd.expected]
+    | ArrayReadSame (p,l) -> app (local "ArrayCommand")
+        [int p;app (local "ArrayReadSame") [int l];clause cmd.expected]
+    | ArrayReadOther (p,c) -> app (local "ArrayCommand")
+        [int p;app (local "ArrayReadOther") [clause c];clause cmd.expected]
+    | ArrayExtensionality (p,l) -> app (local "ArrayCommand")
+        [int p;app (local "ArrayExtensionality") [int l];clause cmd.expected]
     | a -> app (local "Command") [act a;clause cmd.expected] in
   app (local "Witness") [int w.capacity;list pair_ty root w.root_claims;
     list (local "command") command w.program;int w.conflict]

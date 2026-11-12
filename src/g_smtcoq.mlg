@@ -145,8 +145,29 @@ let compress_goal ~atoms ~forms ~premises ~conclusion =
   match Eunoia_witness.Theory.compress ~premises ~conclusion with
   | Some candidate -> Ok (compact_theory_candidate candidate)
   | None ->
-    match Eunoia_witness.Search.compress_uf ~atoms ~forms ~premises ~conclusion () with
-    | Error error -> Error (Eunoia_witness.Search.string_of_failure error)
+    let uf = Eunoia_witness.Search.compress_uf ~atoms ~forms ~premises ~conclusion () in
+    let candidate = match uf with
+      | Ok _ -> uf
+      | Error _ ->
+        let rec has_array a = match SmtAtom.Atom.atom a with
+          | SmtAtom.Abop((SmtAtom.BO_select _ | SmtAtom.BO_diffarray _ | SmtAtom.BO_eq(SmtBtype.TFArray _)),_,_)
+          | SmtAtom.Atop(SmtAtom.TO_store _,_,_,_) -> true
+          | SmtAtom.Aapp(_,xs) | SmtAtom.Anop(_,xs) -> Array.exists has_array xs
+          | SmtAtom.Auop(_,a) -> has_array a
+          | SmtAtom.Abop(_,a,b) -> has_array a || has_array b
+          | SmtAtom.Acop _ -> false in
+        let rec formula f = match SmtAtom.Form.pform f with
+          | SmtForm.Fatom a -> has_array a
+          | SmtForm.Fapp(_,xs) -> Array.exists formula xs
+          | _ -> false in
+        if List.exists(List.exists formula)(conclusion::premises) then
+          Eunoia_witness.Search.compress_arrays ~atoms ~forms ~premises ~conclusion ()
+        else uf in
+    match candidate with
+    | Error error ->
+      if Sys.getenv_opt "EUNOIA_PROFILE_PHASES"=Some "1" then
+        Printf.eprintf "SMTROCQ_COMPRESSION rejected=%s\n%!" (Eunoia_witness.Search.string_of_failure error);
+      Error (Eunoia_witness.Search.string_of_failure error)
     | Ok witness ->
       let data = Eunoia_witness.Certificate.to_coq
         ~local:(fun name -> Eunoia_backend.EunoiaRocq.global

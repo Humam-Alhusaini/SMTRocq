@@ -81,7 +81,7 @@ def main():
         "EunoiaScopedAdapter": ["checker_correct", "checker_b_correct", "checker_eq_correct",
                                 "scope_assumption_binding", "scope_eval_with_binding",
                                 "cached_scope_eval_with_refinement", "prepared_scope_eval_with_refinement"],
-        "EunoiaLocal": ["gate_correct"],
+        "EunoiaLocal": ["gate_correct", "array_clause_valid", "execute_array_binding"],
         "EunoiaLocalDirect": ["gate_correct"],
         "EunoiaCertificate": ["checker_tables", "checker_correct", "checker_b_correct", "checker_eq_correct"],
         "EunoiaTheory": ["units_exact", "units_valid", "negations_false",
@@ -97,6 +97,9 @@ def main():
                                    "fraction_eq_cross", "fraction_le_cross", "fraction_lt_cross",
                                    "fraction_eq_same", "fraction_le_same", "fraction_lt_same",
                                    "floor_integer", "fraction_add", "fraction_mul", "fraction_neg"],
+        "EunoiaIntegerFacts": ["abs_laws", "min_laws", "max_laws", "sign_laws",
+          "symbolic_positive_modulo", "symbolic_negative_modulo", "symbolic_zero_division",
+          "known_quotient_divisor", "known_remainder_divisor"],
         "EunoiaDivision": ["positive_laws", "negative_laws", "zero_laws",
           "shift_laws", "positive_shift_laws", "negative_shift_laws",
           "positive_division_shift", "positive_modulo_shift",
@@ -122,16 +125,16 @@ def main():
         for name in names:
             audit += ["--theorem", module + "." + name]
     audit += ["--import", "SMTCoq.utils.PArray", "--theorem", "SMTCoq.utils.PArray.IntOrderedType.compare_gt"]
-    for test_module in ("EunoiaModelDagTests", "EunoiaLocalDirectTests", "EunoiaTheoryTests", "EunoiaCertificateTests"):
+    for test_module in ("EunoiaArrayTests", "EunoiaModelDagTests", "EunoiaLocalDirectTests", "EunoiaTheoryTests", "EunoiaCertificateTests"):
         test_import = "SMTCoq.checker.eunoia." + test_module
         audit += ["--import", test_import]
         for name in re.findall(r"^\s*(?:Lemma|Theorem|Example)\s+(\w+)",
                 (ROOT / "theories/checker/eunoia" / (test_module + ".v")).read_text(), re.M):
-            audit += ["--theorem", test_import + ("." + test_module if test_module in ("EunoiaLocalDirectTests", "EunoiaTheoryTests", "EunoiaCertificateTests") else "") + "." + name]
+            audit += ["--theorem", test_import + ("." + test_module if test_module in ("EunoiaArrayTests", "EunoiaLocalDirectTests", "EunoiaTheoryTests", "EunoiaCertificateTests") else "") + "." + name]
     for name in ("and_iff", "or_iff", "impl_iff", "iff_iff", "not_iff", "bool_true_iff"):
         audit += ["--import", "SMTCoq.tactics.preproc.EunoiaFrontend",
                   "--theorem", "SMTCoq.tactics.preproc.EunoiaFrontend.EunoiaFrontend." + name]
-    public_modules = ("smtrocq", "eunoia_tactics", "eunoia_uf", "eunoia_uf_bool", "eunoia_lia", "eunoia_purification", "eunoia_integer_casts", "eunoia_division")
+    public_modules = ("smtrocq_arrays", "smtrocq_integer_operations", "smtrocq", "eunoia_tactics", "eunoia_uf", "eunoia_uf_bool", "eunoia_lia", "eunoia_purification", "eunoia_integer_casts", "eunoia_division")
     for module in public_modules:
         public = "SMTCoq.tests." + module
         audit += ["--import", public]
@@ -164,6 +167,7 @@ def main():
                   "SMTCoq.eunoia_runtime_profile.SurfaceOutRefinement",
                   "SMTCoq.checker.eunoia.EunoiaMemoTests",
                   "SMTCoq.checker.eunoia.EunoiaModelDagTests",
+                  "SMTCoq.checker.eunoia.EunoiaArrayTests",
                   "SMTCoq.checker.eunoia.EunoiaLocalDirectTests",
                   "SMTCoq.checker.eunoia.EunoiaTheoryTests",
                   "SMTCoq.checker.eunoia.EunoiaCertificateTests",

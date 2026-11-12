@@ -4,6 +4,7 @@
 From Stdlib Require Import Bool ZArith.
 From Ltac2 Require Import Ltac2.
 From SMTCoq.utils Require Import Misc CompDec.
+From SMTCoq.structures Require Import FArray.
 Require Import ReflectFacts.
 Set Default Proof Mode "Classic".
 Module EunoiaFrontend.
@@ -46,14 +47,16 @@ Ltac2 rec reflect_prop p :=
  | ?a -> ?b =>
    let(x,hx):=reflect_prop a in let(y,hy):=reflect_prop b in
    ('(implb $x $y),'(@impl_iff $a $b $x $y $hx $hy))
- | @eq bool ?a true => (a,'(bool_true_iff $a))
- | @eq bool ?a ?b => ('(Bool.eqb $a $b),'(reflect_iff _ _ (eqP $a $b)))
- | @eq Z ?a ?b => ('(Z.eqb $a $b),'(iff_sym (Z.eqb_eq $a $b)))
+ | @Logic.eq bool ?a true => (a,'(bool_true_iff $a))
+ | @Logic.eq bool ?a ?b => ('(Bool.eqb $a $b),'(reflect_iff _ _ (eqP $a $b)))
+ | @Logic.eq Z ?a ?b => ('(Z.eqb $a $b),'(iff_sym (Z.eqb_eq $a $b)))
  | Z.le ?a ?b => ('(Z.leb $a $b),'(iff_sym (Z.leb_le $a $b)))
  | Z.lt ?a ?b => ('(Z.ltb $a $b),'(iff_sym (Z.ltb_lt $a $b)))
  | Z.ge ?a ?b => ('(Z.leb $b $a),'(iff_sym (Z.leb_le $b $a)))
  | Z.gt ?a ?b => ('(Z.ltb $b $a),'(iff_sym (Z.ltb_lt $b $a)))
- | @eq ?a ?x ?y =>
+ | @Logic.eq (@FArray.farray ?key ?elt ?key_ord ?elt_inh) ?x ?y =>
+   ('(FArray.equal $x $y),'(iff_sym (FArray.equal_iff_eq $x $y)))
+ | @Logic.eq ?a ?x ?y =>
    let c:=find_compdec a (Control.hyps ()) in
    ('(@CompDec.eqb_of_compdec $a $c $x $y),'(@CompDec.compdec_eq_eqb $a $c $x $y))
  | _ => unsupported ()

@@ -1,4 +1,5 @@
 From Stdlib Require Import Bool ZArith Lia.
+From SMTCoq.checker.eunoia Require Import EunoiaIntegerFacts.
 Local Open Scope Z_scope.
 Module EunoiaDivision.
 Lemma positive_laws : forall x (p : positive),
