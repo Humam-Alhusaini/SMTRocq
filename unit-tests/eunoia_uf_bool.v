@@ -1,7 +1,7 @@
 (**************************************************************************)
 (* Typed Boolean UF public integration. Every positive uses cvc5_eunoia. *)
 (**************************************************************************)
-From SMTCoq Require Import SMTCoq.
+From SMTCoq Require Import SMTRocq.
 From Stdlib Require Import Bool ZArith.
 Local Open Scope Z_scope.
 

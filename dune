@@ -1,0 +1,3 @@
+; External repositories are source dependencies, not nested Dune projects.
+
+(data_only_dirs external)

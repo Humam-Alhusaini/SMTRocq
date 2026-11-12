@@ -10,8 +10,8 @@
 (**************************************************************************)
 
 
-(* Lean public entry point. Optional signature-interpreter experiments remain
-   available through SMTCoq.v; default tactics retain their complete checks. *)
+(* SMTRocq extends the inherited SMTCoq theories with the CVC5 backend.
+   The external Eunoia checker remains a separately maintained dependency. *)
 From Stdlib Require Export Uint63 List.
 From Trakt Require Export Trakt.
 
@@ -20,6 +20,6 @@ From SMTCoq.checker.fol Require Export State Terms.
 From SMTCoq.checker Require Export MainChecker.
 From SMTCoq.checker.eunoia Require Import EunoiaMemo.
 From SMTCoq.checker.eunoia Require Import EunoiaModelDagCheck EunoiaCertificate.
-From SMTCoq.tactics Require Export Tactics DatabaseTrakt Conversion.
+From SMTCoq.tactics Require Export Tactics Cvc5 DatabaseTrakt Conversion.
 
 Export Atom Form Sat_Checker Cnf_Checker Euf_Checker.

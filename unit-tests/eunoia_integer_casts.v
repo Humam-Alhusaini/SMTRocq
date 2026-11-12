@@ -1,5 +1,5 @@
 (* Live integer cuts using CVC5's raw rational/cast intermediates. *)
-From SMTCoq Require Import SMTCoq.
+From SMTCoq Require Import SMTRocq.
 From Stdlib Require Import Bool ZArith.
 Local Open Scope Z_scope.
 

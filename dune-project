@@ -7,7 +7,7 @@
 (generate_opam_files)
 
 (source
- (github smtcoq/smtcoq))
+ (github Humam-Alhusaini/SMTRocq))
 
 (license CECILL-C)
 
@@ -21,17 +21,14 @@
  "Burak Ekici"
  "Alain Mebsout")
 
-(maintainers
- "Chantal Keller <ckeller@lmf.cnrs.fr>"
- "Vincent Lafeychine <vincent.lafeychine@proton.me>")
+(maintainers "Humam-Alhusaini")
 
 (package
  ; Main project
  (name rocq-smtcoq)
- (synopsis
-  "A Rocq plugin that checks proof witnesses coming from external SAT and SMT solvers")
+ (synopsis "SMTRocq: a CVC5-backed SMT tactic built on SMTCoq")
  (description
-  "- a certified checker for proof witnesses coming from the SAT solver ZChaff and the SMT solvers veriT and CVC4. This checker increases the confidence in these tools by checking their answers a posteriori and allows to import new theroems proved by these solvers in Rocq;\n   - decision procedures through new tactics that discharge some Rocq goals to ZChaff, veriT, CVC4, and their combination\n   ")
+  "SMTRocq builds upon SMTCoq's verified theory semantics, reflective proof checkers, and Rocq preprocessing. It adds a CVC5 backend that translates untrusted solver proofs into compact checked certificates. The Eunoia/CPC checker is maintained separately in rocq-eunoia-checker and consumed as a pinned source dependency. Existing SMTCoq logical names are retained for compatibility.")
  (tags
   ("category:Computer Science/Decision Procedures and Certified Algorithms/Decision procedures"
    "category:Miscellaneous/Coq Extensions"
@@ -43,6 +40,6 @@
   conf-python-3
   num
   (rocq-core
-   (>= 9.0.0))
+   (>= 9.2.0))
   rocq-stdlib
   rocq-trakt))

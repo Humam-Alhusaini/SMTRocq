@@ -1,4 +1,4 @@
-From SMTCoq Require Import SMTCoq.
+From SMTCoq Require Import SMTRocq.
 From Stdlib Require Import Bool ZArith.
 Declare ML Module "rocq-smtcoq.eunoia_backend_test".
 Local Open Scope Z_scope.

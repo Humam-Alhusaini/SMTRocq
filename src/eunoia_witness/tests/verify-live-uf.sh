@@ -24,6 +24,6 @@ theorems=()
 while read -r theorem; do
   theorems+=(--theorem "$theorem")
 done < <(sed -n 's/^[[:space:]]*Lemma \([A-Za-z0-9_]*\).*/\1/p' unit-tests/eunoia_uf.v)
-python3 tools/audit-eunoia-assumptions.py \
+python3 tools/audit-assumptions.py \
   --import EunoiaUF.eunoia_uf --loadpath "$scratch" EunoiaUF \
   "${theorems[@]}" --output-dir "$scratch/assumptions"

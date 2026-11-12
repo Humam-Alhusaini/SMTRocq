@@ -1,8 +1,0 @@
-; Extracted without semantic changes from cvc5 1.4.2 CPC. See README.md.
-(declare-parameterized-const = ((A Type :implicit)) (-> A A Bool) :chainable and)
-
-(declare-const => (-> Bool Bool Bool) :right-assoc)
-
-(declare-parameterized-const ite ((A Type :implicit)) (-> Bool A A A))
-
-(declare-const not (-> Bool Bool))

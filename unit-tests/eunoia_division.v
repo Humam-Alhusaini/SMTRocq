@@ -1,4 +1,4 @@
-From SMTCoq Require Import SMTCoq.
+From SMTCoq Require Import SMTRocq.
 From Stdlib Require Import Bool ZArith.
 Local Open Scope Z_scope.
 Lemma positive_remainder : forall x : Z, (0 <=? x mod 3) && (x mod 3 <? 3) = true.

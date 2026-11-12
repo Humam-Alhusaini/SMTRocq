@@ -1,0 +1,47 @@
+; The checker is maintained in the pinned external repository. This adapter
+; builds its unchanged proof modules against SMTRocq's inherited SMTCoq core.
+
+(copy_files
+ ../../../external/rocq-eunoia-checker/theories/checker/eunoia/*.v)
+
+(rocq.theory
+ (name SMTCoq.checker.eunoia)
+ (generate_project_file)
+ (package rocq-smtcoq)
+ (theories
+  Stdlib
+  SMTCoq.utils
+  SMTCoq.structures
+  SMTCoq.checker.fol
+  SMTCoq.checker))
+
+(alias
+ (name runtest)
+ (deps
+  EunoiaCheckerTests.vo
+  EunoiaBridgeTests.vo
+  EunoiaAdapter.vo
+  EunoiaUf.vo
+  EunoiaLiaTests.vo
+  EunoiaLocalTests.vo
+  EunoiaBoolTests.vo
+  EunoiaTacticTests.vo
+  EunoiaScopeTests.vo
+  EunoiaScopedAdapterTests.vo
+  EunoiaContextTests.vo
+  EunoiaMemoTests.vo
+  EunoiaLocalDirectTests.vo
+  EunoiaTheoryTests.vo
+  EunoiaCertificateTests.vo
+  EunoiaModelDagTests.vo
+  EoCheckedMemoTests.vo
+  EunoiaHelperCacheTests.vo
+  EoNameIndexTests.vo
+  EunoiaProgramIndexTests.vo
+  EunoiaStagedTests.vo
+  EunoiaDirectTests.vo
+  EunoiaSpecializedTests.vo
+  EunoiaIntegerEmbeddingTests.vo
+  EoArithmeticTests.vo
+  EoRuntime.vo
+  CpcGenerated.vo))

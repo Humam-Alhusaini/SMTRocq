@@ -1,5 +1,5 @@
 (* Public regressions for CPC purification. Every positive uses the checked tactic. *)
-From SMTCoq Require Import SMTCoq.
+From SMTCoq Require Import SMTRocq.
 From Stdlib Require Import Bool ZArith.
 
 Lemma eunoia_purified_predicate (p : bool -> bool) (a b : bool) :

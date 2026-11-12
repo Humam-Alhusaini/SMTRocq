@@ -1,6 +1,0 @@
-(set-logic QF_UFLIA)
-(declare-fun op_1 () Int)
-(declare-fun op_0 () Int)
-(assert (not (= (= (< op_0 op_1) (<= op_0 (- op_1 1))) true)))
-(check-sat)
-(exit)

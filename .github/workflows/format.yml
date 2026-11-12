@@ -21,7 +21,7 @@ jobs:
 
       - name: Verify dune style
         run: |
-          find . -name dune -o -name dune-project | \
+          git ls-files '*dune' 'dune-project' 'dune-workspace' | \
             nix shell nixpkgs#dune -c xargs -I {} bash -c 'diff -u {} <(dune format-dune-file {})'
 
       - name: Verify Nix style
