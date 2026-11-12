@@ -44,3 +44,9 @@ report is retained here; its measurements apply to its recorded checkpoint.
 CI belongs to this fork: the pinned SMTRocq workflow checks its own code and
 initializes the checker dependency. Upstream-only Sniper update and downstream
 Nix matrix workflows are not inherited by this repository.
+
+The [repository-split validation record](repository-split-validation-2026-11-12.json)
+contains exact commands, source hashes, fresh proof replays, and assumption/kernel
+results. The pre-existing 454 targets and three new import-compatibility targets
+passed with no added assumptions. Hosted CI could not start because GitHub
+reported an account billing lock; those checks are not reported as passing.

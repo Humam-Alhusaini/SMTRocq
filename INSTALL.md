@@ -40,3 +40,8 @@ From SMTCoq Require Import SMTRocq.
 See [development and validation](docs/development.md) for tests. Checker-only
 builds and benchmarks belong in the separate
 [Rocq Eunoia Checker repository](https://github.com/Humam-Alhusaini/rocq-eunoia-checker).
+
+The inherited Nix flake is retained. Git-based Nix flake URLs must include
+`submodules=1` to supply the pinned checker sources. The repository-split
+validation uses the documented Dune/Rocq toolchain; it does not claim a Nix
+platform-matrix validation.

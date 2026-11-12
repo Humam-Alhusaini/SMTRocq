@@ -1,4 +1,6 @@
 {
+  description = "SMTRocq: a CVC5-backed extension of SMTCoq";
+
   inputs = {
     trakt.url = "github:rocq-trakt/trakt";
 
