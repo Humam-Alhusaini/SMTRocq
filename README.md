@@ -29,7 +29,8 @@ Goal forall x y : Z, x <= y -> y < x + 1 -> x = y.
 Proof. smtrocq. Qed.
 ```
 
-See the [tactic guide](docs/eunoia/smtrocq-tactic-2026-11-11.md) for coverage,
+See the [array/integer extension](docs/eunoia/array-integer-coverage-2026-11-12.md)
+and [tactic guide](docs/eunoia/smtrocq-tactic-2026-11-11.md) for coverage,
 the checking contract and validation. `smtrocq` proves the actual theorem;
 `cvc5_eunoia` also validates the CPC source derivation. Both use the existing
 SMTCoq semantics and retain kernel-checked proof construction.

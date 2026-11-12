@@ -268,3 +268,10 @@ It includes unfavorable results and whole-compiler timing, which remains about
 5% slower than veriT despite the faster tactic-plus-`Qed` measurements.
 Metadata records the checking contracts and effective compact-theory defaults.
 The exact source/native/proof fingerprint must remain unchanged within each run.
+
+The [November 12 coverage extension](../../docs/eunoia/array-integer-coverage-2026-11-12.md)
+adds separate `arrays.json` and `integer-operations.json` manifests with actual
+Rocq array/integer semantics and false-goal controls. Array runs require
+`--extra-import SMTCoq.structures.FArray`. Keep those extensions separate from
+the standard UF/LIA speed comparison; a backend's missing operation semantics
+is a coverage failure, not a successful timed result.
