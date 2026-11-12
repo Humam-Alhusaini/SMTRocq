@@ -1,0 +1,4 @@
+#!/bin/sh
+# Use the caller's activated Rocq/OCaml toolchain without machine-specific paths.
+set -eu
+exec "$@"

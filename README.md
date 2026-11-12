@@ -15,6 +15,70 @@ See [the examples](https://github.com/smtcoq/smtcoq/blob/main/examples/Example.v
 
 SMTCoq is distributed under the CeCILL-C license.
 
+## Development cvc5 / Eunoia backend
+
+The new `smtrocq` tactic compiles CVC5 Eunoia proofs into compact certificates
+checked by verified SMTCoq operations. Use the lean entry point:
+
+```coq
+From SMTCoq Require Import SMTRocq.
+From Stdlib Require Import ZArith.
+Local Open Scope Z_scope.
+
+Goal forall x y : Z, x <= y -> y < x + 1 -> x = y.
+Proof. smtrocq. Qed.
+```
+
+See the [tactic guide](docs/eunoia/smtrocq-tactic-2026-11-11.md) for coverage,
+the checking contract and validation. `smtrocq` proves the actual theorem;
+`cvc5_eunoia` also validates the CPC source derivation. Both use the existing
+SMTCoq semantics and retain kernel-checked proof construction.
+
+The frozen comparison measures 38% less tactic-plus-`Qed` time than `verit` on
+the standard UF/LIA suite, and about 2× faster proof construction on shared
+scaling cases.
+Fresh whole-compiler processes remain about 5% slower. The guide retains all
+coverage failures and the exact timing boundaries.
+
+`cvc5_eunoia` invokes the pinned private cvc5 1.4.2 installation, computes its
+CPC proof rules from the Eunoia signature, and checks every inference using
+SMTCoq's existing semantics and reflective checkers. For example:
+
+```coq
+From SMTCoq Require Import SMTCoq.
+From Stdlib Require Import ZArith.
+Local Open Scope Z_scope.
+
+Lemma cvc5_congruence :
+  forall (A : Type) (HA : CompDec A) (f : A -> A) (x y : A),
+    x = y -> f x = f y.
+Proof. cvc5_eunoia. Qed.
+
+Lemma cvc5_bounds (x : Z) : x <= 0 -> x >= 1 -> False.
+Proof. cvc5_eunoia. Qed.
+```
+
+The current fragment covers tested UF and integer arithmetic goals, including
+[proved facts for Rocq division/modulo by constants](docs/eunoia/division.md); unsupported
+source rules and exhausted certificate search reject. Broader coverage and
+performance work are in progress. See the [backend guide](docs/eunoia/README.md),
+[implementation status](docs/eunoia/implementation-plan.md),
+[private solver setup and provenance](scripts/eunoia/README.md),
+[signature regeneration](tools/eunoia/README.md), and
+[checked benchmark protocol](benchmarks/eunoia/README.md).
+The [direct Boolean front end](docs/eunoia/boolean-frontend-2026-11-09.md) builds
+checked reflection proofs and retains the existing preprocessing as a fallback.
+For the strict CPC tactic, it reduces a 64-link equality-chain diagnostic from 24.9 s to 4.6 s and improves
+the standard proof-construction workload by about 8%; veriT parity remains open.
+
+The earlier [integer-map comparison fix](docs/eunoia/opaque-array-comparison-2026-11-09.md)
+removes repeated arithmetic-proof evaluation from both checkers. It substantially
+reduces strict CPC proof-construction time; that LIA path still trails veriT. Earlier
+[proof-construction measurements](docs/eunoia/construction-bundle.md) retain their
+own checkpoints and timing boundaries.
+The [proof-specific compilation experiment](docs/eunoia/specialized-rules.md)
+generates individually checked rule implementations and remains off by default.
+
 ## Example
 Here is a very small example of the possibilities of SMTCoq: automatic proofs in group theory.
 

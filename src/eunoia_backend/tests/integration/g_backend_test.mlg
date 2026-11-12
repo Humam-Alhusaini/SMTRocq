@@ -1,0 +1,292 @@
+DECLARE PLUGIN "rocq-smtcoq.eunoia_backend_test"
+{
+open Ltac_plugin
+open Stdarg
+open Common
+open SmtAtom
+module B = Eunoia_backend.EunoiaBackend
+module C = Eunoia_backend.EunoiaRocq
+let check_marshalling () =
+  let module E = Eunoia_backend.EunoiaElaborate in
+  let shared = E.app "+" [E.Symbol "-12345678901234567890"; E.Symbol "x"] in
+  let cases = [E.Symbol ""; E.Symbol "quoted \" symbol; λ";
+    E.app "=" [shared;shared]; E.app "@purify" [shared]] in
+  let encode = C.make_term_encoder () in
+  List.iter (fun t ->
+    if not (RocqInterface.eq_constr (encode t) (C.term t)) || C.decode_term (encode t) <> t
+    then failwith "Eunoia: shared encoder changed source syntax") cases;
+  Proofview.tclUNIT ()
+let local s = C.call ("SMTCoq.checker.eunoia.EunoiaLocal.EunoiaLocal." ^ s)
+let action s = C.call ("SMTCoq.checker.MainChecker.Checker_Ext." ^ s)
+let int () = Lazy.force CoqTerms.cint
+let clause xs = C.list (int ()) (List.map RocqInterface.mkInt xs)
+let canonical = List.sort_uniq Int.compare
+let witness_term capacity roots commands conflict =
+  let cty = SmtMisc.mklApp CoqTerms.clist [|int ()|] in
+  let pty = SmtMisc.mklApp CoqTerms.cprod [|int ();cty|] in
+  let claims = C.list pty (List.mapi (fun i c ->
+    SmtMisc.mklApp CoqTerms.cpair [|int ();cty;RocqInterface.mkInt i;clause c|]) roots) in
+  local "Witness" [RocqInterface.mkInt capacity;claims;
+    C.list (C.global "SMTCoq.checker.eunoia.EunoiaLocal.EunoiaLocal.command") commands;
+    RocqInterface.mkInt conflict]
+let command a c = local "Command" [a;clause (canonical c)]
+let res dst a b c = command (action "Res" [RocqInterface.mkInt dst;
+  CoqTerms.mkArray (int (),[|RocqInterface.mkInt a;RocqInterface.mkInt b;RocqInterface.mkInt 0|])]) c
+(* Small test-only local candidates. These do not inspect CPC rule names.
+   The production checker, generated evaluator and local gate accept or reject. *)
+let witness ~atoms:_ ~forms:_ ~premises ~conclusion =
+  let cs = List.map (List.map Form.to_lit) premises in
+  let c = List.map Form.to_lit conclusion in
+  let roots = cs @ List.map (fun l -> [l lxor 1]) c in
+  match cs,conclusion with
+  | [[p];[n]],[] when p lxor 1=n ->
+    Ok (witness_term 3 roots [res 2 0 1 []] 2)
+  | [],[f] ->
+    (match Form.pform f with
+    | SmtForm.Fapp(SmtForm.Fiff,args) when Array.length args=2 && Form.equal args.(0) args.(1) ->
+      let p = Form.to_lit f and a = Form.to_lit args.(0) in
+      let first = command (action "BuildDef" [RocqInterface.mkInt 1;RocqInterface.mkInt p]) [p;a lxor 1] in
+      let second = command (action "BuildDef2" [RocqInterface.mkInt 2;RocqInterface.mkInt p]) [p;a] in
+      Ok (witness_term 5 roots [first;second;res 3 1 2 [p];res 4 0 3 []] 4)
+    | _ -> Error "test candidate only supports Boolean reflexivity")
+  | _ -> Error "test candidate only supports reflexivity/contradiction"
+let parse text = match Eunoia_frontend.EunoiaProof.parse_string text with
+  | Ok p -> p | Error d -> RocqInterface.raise_error "%a" Eunoia_frontend.EunoiaProof.pp_diagnostic d
+let prefix = "(declare-const op_0 Bool)(assume a (not (= op_0 op_0)))"
+let suffix = "(step b :rule refl :args (op_0))(step c false :rule contra :premises (b a))"
+let text = prefix ^ suffix
+let replay () = B.tactic_from_cpc (parse text) ~witness ()
+let bad_declared_rule () = B.tactic_from_cpc
+  (parse (text ^ "(step unused (= op_0 op_0) :rule trust)" ^
+    "(step final false :rule contra :premises (b a))")) ~witness ()
+let bad_declared_result () = B.tactic_from_cpc
+  (parse (text ^ "(step unused (= op_0 op_0) :rule refl :args ((not op_0)))" ^
+    "(step final false :rule contra :premises (b a))")) ~witness ()
+let corrupted () = B.tactic_from_cpc (parse (text ^ "(step unused :rule trust)")) ~witness ()
+let corrupt_witness ~atoms:_ ~forms:_ ~premises:_ ~conclusion:_ =
+  Ok (witness_term 1 [] [] 0)
+let bad_unused () =
+  let calls = ref 0 in
+  let produce ~atoms ~forms ~premises ~conclusion =
+    incr calls;
+    if !calls=2 then corrupt_witness ~atoms ~forms ~premises ~conclusion
+    else witness ~atoms ~forms ~premises ~conclusion in
+  B.tactic_from_cpc (parse (prefix ^
+    "(step b :rule refl :args (op_0))(step unused :rule refl :args (op_0))" ^
+    "(step c false :rule contra :premises (b a))")) ~witness:produce ()
+let bad_gate () = B.tactic_from_cpc (parse text) ~witness:corrupt_witness ()
+let production_witness_with limits ~atoms ~forms ~premises ~conclusion =
+  match Eunoia_witness.Search.produce ~limits ~atoms ~forms ~premises ~conclusion () with
+  | Error error -> Error (Eunoia_witness.Search.string_of_failure error)
+  | Ok candidate -> Ok (Eunoia_witness.Certificate.to_coq
+      ~local:(fun name -> C.global
+        ("SMTCoq.checker.eunoia.EunoiaLocal.EunoiaLocal." ^ name))
+      ~step:(fun name -> C.global
+        ("SMTCoq.checker.MainChecker.Checker_Ext." ^ name)) candidate)
+let production_witness = production_witness_with Eunoia_witness.Search.default_limits
+let lia_branch_order () =
+  let limits = {Eunoia_witness.Search.default_limits with max_boolean_pairs=0} in
+  B.tactic ~witness:(production_witness_with limits) ~lemmas:[RocqInterface.mkVar (RocqInterface.mkId "hp")] ()
+(* A real generated arithmetic derivation followed by the production local gate.
+   Mutations alter source evidence or Micromega evidence, never acceptance. *)
+let lia_prefix = "(declare-const op_0 Int)" ^
+  "(assume a (not (= (+ op_0 0) op_0)))"
+let lia_step = "(step b :rule arith_poly_norm :args ((= (+ op_0 0) op_0)))"
+let lia_final = "(step c false :rule contra :premises (b a))"
+let lia_replay text = B.tactic_from_cpc (parse text) ~witness:production_witness ()
+let lia_valid () = lia_replay (lia_prefix ^ lia_step ^ lia_final)
+let lia_bad_coefficient () = lia_replay (lia_prefix ^
+  "(step b :rule arith_poly_norm :args ((= (+ (* 2 op_0) 0) op_0)))" ^ lia_final)
+let lia_bad_conclusion () = lia_replay (lia_prefix ^
+  "(step b (= (+ op_0 1) op_0) :rule arith_poly_norm :args ((= (+ op_0 0) op_0)))" ^ lia_final)
+let lia_bad_premise () = lia_replay (lia_prefix ^ lia_step ^
+  "(step c false :rule contra :premises (b b))")
+let lia_bad_root () = lia_replay (
+  "(declare-const op_0 Int)(assume a (not (= (+ op_0 1) op_0)))" ^ lia_step ^ lia_final)
+let lia_scale_prefix = "(declare-const op_0 Int)" ^
+  "(assume a (not (=> (and (< -2 0) (>= op_0 0)) (<= (* -2 op_0) (* -2 0)))))"
+let lia_scale_step = "(step b :rule arith_mult_neg :args (-2 (>= op_0 0)))"
+let lia_scale () = lia_replay (lia_scale_prefix ^ lia_scale_step ^ lia_final)
+let lia_positive_prefix = "(declare-const op_0 Int)" ^
+  "(assume a (not (=> (and (> 3 0) (<= op_0 1)) (<= (* 3 op_0) (* 3 1)))))"
+let lia_positive_step = "(step b :rule arith_mult_pos :args (3 (<= op_0 1)))"
+let lia_positive () = lia_replay (lia_positive_prefix ^ lia_positive_step ^ lia_final)
+let lia_positive_bad_unused () = lia_replay (lia_positive_prefix ^ lia_positive_step ^ lia_final ^
+  "(step unused (=> (and (> 4 0) (<= op_0 1)) (<= (* 4 op_0) (* 4 1))) :rule arith_mult_pos :args (3 (<= op_0 1)))")
+let lia_lower_prefix = "(declare-const op_0 Int)" ^
+  "(assume root (not (=> (> op_0 -2) (>= op_0 -1))))" ^
+  "(step a :rule not_implies_elim1 :premises (root))"
+let lia_lower_tail = "(step n :rule not_implies_elim2 :premises (root))" ^
+  "(step c false :rule contra :premises (b n))"
+let lia_lower () = lia_replay (lia_lower_prefix ^
+  "(step b :rule int_tight_lb :premises (a))" ^ lia_lower_tail)
+let lia_lower_bad_premise () = lia_replay (lia_lower_prefix ^
+  "(step b :rule int_tight_lb :premises (root))" ^ lia_lower_tail)
+let lia_lower_bad_result () = lia_replay (lia_lower_prefix ^
+  "(step b (>= op_0 0) :rule int_tight_lb :premises (a))" ^ lia_lower_tail)
+let lia_scoped () = lia_replay (
+  "(declare-const op_0 Int)" ^
+  "(assume root (not (=> (>= op_0 0) (<= (* -2 op_0) (* -2 0)))))" ^
+  "(assume-push a (>= op_0 0))" ^
+  "(step scale :rule arith_mult_neg :args (-2 (>= op_0 0)))" ^
+  "(step negative :rule evaluate :args ((< -2 0)))" ^
+  "(step negative_true :rule true_elim :premises (negative))" ^
+  "(step conditions :rule and_intro :premises (negative_true a))" ^
+  "(step endpoint :rule modus_ponens :premises (conditions scale))" ^
+  "(step-pop exported :rule scope :premises (endpoint))" ^
+  "(step conflict false :rule contra :premises (exported root))")
+let lia_mutated_witness unused =
+  let calls = ref 0 in
+  let produce ~atoms ~forms ~premises ~conclusion =
+    incr calls;
+    match Eunoia_witness.Search.produce ~atoms ~forms ~premises ~conclusion () with
+    | Error e -> Error (Eunoia_witness.Search.string_of_failure e)
+    | Ok candidate ->
+      let module W = Eunoia_witness.Certificate in
+      let candidate = if !calls = (if unused then 2 else 1) then
+        {candidate with W.program=List.map (fun cmd -> match cmd.W.action with
+          | W.LiaMicromega (p,c,_) -> {cmd with W.action=W.LiaMicromega (p,c,[])}
+          | _ -> cmd) candidate.W.program} else candidate in
+      Ok (W.to_coq
+        ~local:(fun name -> C.global ("SMTCoq.checker.eunoia.EunoiaLocal.EunoiaLocal." ^ name))
+        ~step:(fun name -> C.global ("SMTCoq.checker.MainChecker.Checker_Ext." ^ name)) candidate) in
+  let text = lia_scale_prefix ^ lia_scale_step ^
+    (if unused then "(step unused :rule arith_mult_neg :args (-2 (>= op_0 0)))" else "") ^
+    lia_final in
+  B.tactic_from_cpc (parse text) ~witness:produce ()
+
+let scoped_prefix = prefix ^ "(assume-push x op_0)"
+let scoped_body = "(step local :rule refl :args (op_0))" ^
+  "(step endpoint false :rule contra :premises (local a))"
+let scoped_pop = "(step-pop exported :rule scope :premises (endpoint))"
+let scoped_text = scoped_prefix ^ scoped_body ^ scoped_pop ^ suffix
+let scoped_replay text = B.tactic_from_cpc (parse text) ~witness:production_witness ()
+let scoped () = scoped_replay scoped_text
+let metadata_replay () = scoped_replay (prefix ^
+  "(step b :rule refl :args (op_0))" ^
+  "(step c false :rule chain_m_resolution :premises (a b)" ^
+  " :args (false (@list false) (@list (= op_0 op_0))))")
+let nested_text = scoped_prefix ^ "(assume-push y (not op_0))" ^ scoped_body ^
+  "(step-pop inner :rule scope :premises (endpoint))" ^
+  "(step-pop exported :rule scope :premises (inner))" ^ suffix
+let scoped_nested () = scoped_replay nested_text
+let scoped_bad_discharge () =
+  let calls = ref 0 in
+  let produce ~atoms ~forms ~premises ~conclusion =
+    incr calls;
+    if !calls=3 then corrupt_witness ~atoms ~forms ~premises ~conclusion
+    else production_witness ~atoms ~forms ~premises ~conclusion in
+  B.tactic_from_cpc (parse scoped_text) ~witness:produce ()
+
+let scoped_bad_supported_unused () =
+  let calls = ref 0 in
+  let produce ~atoms ~forms ~premises ~conclusion =
+    incr calls;
+    if !calls=1 then corrupt_witness ~atoms ~forms ~premises ~conclusion
+    else production_witness ~atoms ~forms ~premises ~conclusion in
+  let text = scoped_prefix ^ "(step unused :rule refl :args (op_0))" ^
+    scoped_body ^ scoped_pop ^ suffix in
+  B.tactic_from_cpc (parse text) ~witness:produce ()
+
+(* The exported implication is essential to these final refutations. *)
+let scope_required_prefix = "(declare-const op_0 Bool)" ^
+  "(assume a (not (=> op_0 op_0)))"
+let scope_required_pop =
+  "(step-pop exported (=> op_0 op_0) :rule scope :premises (x))"
+let scope_required_suffix = "(step c false :rule contra :premises (exported a))"
+let scope_required = scope_required_prefix ^ "(assume-push x op_0)" ^
+  scope_required_pop ^ scope_required_suffix
+let scope_required_nested = "(declare-const op_0 Bool)(declare-const op_1 Bool)" ^
+  "(assume a (not (=> op_0 (=> op_1 op_0))))" ^
+  "(assume-push x op_0)(assume-push y op_1)" ^
+  "(step-pop inner :rule scope :premises (x))" ^
+  "(step-pop exported :rule scope :premises (inner))" ^ scope_required_suffix
+let scope_bad_assumption = scope_required_prefix ^ "(assume-push x (not op_0))" ^
+  scope_required_pop ^ scope_required_suffix
+let scope_bad_root = "(declare-const op_0 Bool)(assume a op_0)" ^
+  "(assume-push x op_0)" ^ scope_required_pop ^ scope_required_suffix
+let scope_leak = scope_required_prefix ^ "(assume-push x op_0)" ^
+  scope_required_pop ^ "(step c false :rule contra :premises (x a))"
+let scope_bad_endpoint = scope_required_prefix ^ "(assume-push x op_0)" ^
+  "(step-pop exported :rule scope :premises (a))" ^ scope_required_suffix
+let scope_bad_unused = scope_required_prefix ^
+  "(assume-push x op_0)(step unused :rule trust)" ^
+  scope_required_pop ^ scope_required_suffix
+
+let with_lemma () = B.tactic_from_cpc
+  (parse (prefix ^ "(assume h op_0)" ^ suffix)) ~witness
+  ~lemmas:[RocqInterface.mkVar (RocqInterface.mkId "hp")] ()
+let no_private_effects () = RocqInterface.mk_tactic (fun _ sigma _ ->
+  if not (Safe_typing.is_empty_private_constants
+      (Evd.seff_private (Evd.eval_side_effects sigma))) then
+    RocqInterface.raise_error "Eunoia test: failed/undone tactic left private proof effects";
+  Proofview.tclUNIT ())
+(* Read-only dependency audit of the actual saved certificate bodies. Rocq
+   inlines private opaque bodies at Qed (polymorphic ones by substitution), so
+   there need not be an exported helper name to pass to Print Assumptions.
+   Use that command's own dependency walker and printer on every saved VM cast.
+   These terms are inspected only; they are never reused to construct proofs. *)
+let helper_assumptions name ~opaque_access =
+  let constant = match Nametab.locate (Libnames.qualid_of_string name) with
+    | Names.GlobRef.ConstRef c -> c
+    | _ -> RocqInterface.raise_error "Eunoia test: expected a proved constant" in
+  let body = match Global.body_of_constant opaque_access constant with
+    | Some (body,_,_) -> body
+    | None -> RocqInterface.raise_error "Eunoia test: theorem has no checked body" in
+  let refs = ref [] and casts = ref 0 in
+  let rec dependencies t =
+    (match Constr.kind t with
+    | Constr.Const(c,_) -> refs := Names.GlobRef.ConstRef c :: !refs
+    | Constr.Ind(i,_) -> refs := Names.GlobRef.IndRef i :: !refs
+    | Constr.Construct(c,_) -> refs := Names.GlobRef.ConstructRef c :: !refs
+    | _ -> ());
+    Constr.iter dependencies t in
+  let rec inspect t = match Constr.kind t with
+    | Constr.Cast(_,Constr.VMcast,_) -> incr casts; dependencies t
+    | _ -> Constr.iter inspect t in
+  inspect body;
+  if !casts=0 then RocqInterface.raise_error "Eunoia test: no saved checker certificate found";
+  Feedback.msg_notice (AssumptionsCompat.print opaque_access !refs)
+}
+VERNAC COMMAND EXTEND EunoiaHelperAssumptions CLASSIFIED AS QUERY STATE opaque_access
+| [ "Eunoia_helper_assumptions" string(name) ] -> { helper_assumptions name }
+END
+TACTIC EXTEND Backend_replay
+| [ "backend_encoding" ] -> { check_marshalling () }
+| [ "backend_replay" ] -> { replay () }
+| [ "backend_corrupted" ] -> { corrupted () }
+| [ "backend_bad_declared_rule" ] -> { bad_declared_rule () }
+| [ "backend_bad_declared_result" ] -> { bad_declared_result () }
+| [ "backend_bad_unused" ] -> { bad_unused () }
+| [ "backend_bad_gate" ] -> { bad_gate () }
+| [ "backend_with_lemma" ] -> { with_lemma () }
+| [ "backend_scoped" ] -> { scoped () }
+| [ "backend_scoped_nested" ] -> { scoped_nested () }
+| [ "backend_scoped_bad_supported_unused" ] -> { scoped_bad_supported_unused () }
+| [ "backend_scoped_bad_discharge" ] -> { scoped_bad_discharge () }
+| [ "backend_scope_required" ] -> { scoped_replay scope_required }
+| [ "backend_scope_required_nested" ] -> { scoped_replay scope_required_nested }
+| [ "backend_scope_bad_assumption" ] -> { scoped_replay scope_bad_assumption }
+| [ "backend_scope_bad_root" ] -> { scoped_replay scope_bad_root }
+| [ "backend_scope_leak" ] -> { scoped_replay scope_leak }
+| [ "backend_scope_bad_endpoint" ] -> { scoped_replay scope_bad_endpoint }
+| [ "backend_scope_bad_unused" ] -> { scoped_replay scope_bad_unused }
+| [ "backend_metadata_replay" ] -> { metadata_replay () }
+| [ "backend_lia_scoped" ] -> { lia_scoped () }
+| [ "backend_lia_replay" ] -> { lia_valid () }
+| [ "backend_lia_bad_coefficient" ] -> { lia_bad_coefficient () }
+| [ "backend_lia_bad_premise" ] -> { lia_bad_premise () }
+| [ "backend_lia_bad_conclusion" ] -> { lia_bad_conclusion () }
+| [ "backend_lia_bad_root" ] -> { lia_bad_root () }
+| [ "backend_lia_scale_replay" ] -> { lia_scale () }
+| [ "backend_lia_missing_certificate" ] -> { lia_mutated_witness false }
+| [ "backend_lia_bad_unused" ] -> { lia_mutated_witness true }
+| [ "backend_lia_branch_order" ] -> { lia_branch_order () }
+| [ "backend_lia_positive" ] -> { lia_positive () }
+| [ "backend_lia_positive_bad_unused" ] -> { lia_positive_bad_unused () }
+| [ "backend_lia_lower" ] -> { lia_lower () }
+| [ "backend_lia_lower_bad_premise" ] -> { lia_lower_bad_premise () }
+| [ "backend_lia_lower_bad_result" ] -> { lia_lower_bad_result () }
+| [ "backend_live" ] -> { B.tactic ~witness:production_witness () }
+| [ "backend_no_private_effects" ] -> { no_private_effects () }
+END

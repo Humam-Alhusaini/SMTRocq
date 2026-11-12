@@ -1,0 +1,11 @@
+(library
+ (name eunoia_backend)
+ (public_name rocq-smtcoq.eunoia_backend)
+ (libraries common eunoia_frontend unix))
+
+(rule
+ (target signatureNames.ml)
+ (deps gen_signature_names.py ../../theories/checker/eunoia/CpcGenerated.v)
+ (action
+  (run python3 %{dep:gen_signature_names.py}
+   %{dep:../../theories/checker/eunoia/CpcGenerated.v} %{target})))

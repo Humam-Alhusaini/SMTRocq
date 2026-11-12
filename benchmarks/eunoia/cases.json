@@ -1,0 +1,142 @@
+[
+  {
+    "id": "uf_congruence",
+    "theory": "UF",
+    "expected": "proved",
+    "source": "unit-tests/verit_tactics.v: EqualityOnUninterpretedType; Z carrier as in uf3",
+    "statement": "forall (f : Z -> Z) (x y : Z), x = y -> f x = f y"
+  },
+  {
+    "id": "uf_transitive_congruence",
+    "theory": "UF",
+    "expected": "proved",
+    "source": "unit-tests/verit_tactics.v: uf3.smt",
+    "statement": "forall (x y z : Z) (f : Z -> Z), (x =? y) && (y =? z) && negb (f x =? f z) = false"
+  },
+  {
+    "id": "uf_nested_congruence",
+    "theory": "UF",
+    "expected": "proved",
+    "source": "unit-tests/verit_tactics.v: uf4.smt",
+    "statement": "forall (x y z : Z) (f : Z -> Z), negb (f x =? f y) && (y =? z) && (f x =? f (f z)) && (x =? y) = false"
+  },
+  {
+    "id": "uf_equality_chain",
+    "theory": "UF",
+    "expected": "proved",
+    "source": "unit-tests/verit_tactics.v: uf5.smt",
+    "statement": "forall (a b c d e f : Z), (a =? b) && (b =? c) && (c =? d) && (c =? e) && (e =? f) && negb (a =? f) = false"
+  },
+  {
+    "id": "uf_binary_congruence",
+    "theory": "UF",
+    "expected": "proved",
+    "source": "unit-tests/verit_tactics.v: Congruence in which some premises are REFL",
+    "statement": "forall (f : Z -> Z -> Z) (x y z : Z), implb (x =? y) (f z x =? f z y)"
+  },
+  {
+    "id": "uf_predicate_congruence",
+    "theory": "UF",
+    "expected": "proved",
+    "source": "unit-tests/verit_tactics.v: Congruence in which some premises are REFL",
+    "statement": "forall (p : Z -> Z -> bool) (x y z : Z), implb (x =? y) (implb (p z x) (p z y))"
+  },
+  {
+    "id": "uf_abstract_congruence",
+    "theory": "UF",
+    "expected": "proved",
+    "source": "Abstract-carrier UF integration suite; unit-tests/eunoia_uf.v and backend Public.v",
+    "statement": "forall (A : Type) (HA : CompDec A) (f : A -> A) (x y : A), x = y -> f x = f y"
+  },
+  {
+    "id": "uf_abstract_chain",
+    "theory": "UF",
+    "expected": "proved",
+    "source": "Abstract-carrier UF integration suite; unit-tests/eunoia_uf.v and backend Public.v",
+    "statement": "forall (A : Type) (HA : CompDec A) (f : A -> A) (x y z : A), x = y -> y = z -> f x = f z"
+  },
+  {
+    "id": "uf_abstract_binary",
+    "theory": "UF",
+    "expected": "proved",
+    "source": "Abstract-carrier UF integration suite; unit-tests/eunoia_uf.v and backend Public.v",
+    "statement": "forall (A : Type) (HA : CompDec A) (f : A -> A -> A) (x y z : A), x = y -> f z x = f z y"
+  },
+  {
+    "id": "uf_abstract_predicate",
+    "theory": "UF",
+    "expected": "proved",
+    "source": "Abstract-carrier UF integration suite; unit-tests/eunoia_uf.v and backend Public.v",
+    "statement": "forall (A : Type) (HA : CompDec A) (p : A -> bool) (x y : A), x = y -> p x = true -> p y = true"
+  },
+  {
+    "id": "uf_abstract_disjunctive",
+    "theory": "UF",
+    "expected": "proved",
+    "source": "Abstract-carrier UF integration suite; unit-tests/eunoia_uf.v and backend Public.v",
+    "statement": "forall (A : Type) (HA : CompDec A) (f : A -> A) (x y z : A), x = y \\/ x = z -> f x = f y \\/ f x = f z"
+  },
+  {
+    "id": "uf_abstract_multiple_sorts",
+    "theory": "UF",
+    "expected": "proved",
+    "source": "Abstract-carrier UF integration suite; unit-tests/eunoia_uf.v and backend Public.v",
+    "statement": "forall (A B : Type) (HA : CompDec A) (HB : CompDec B) (f : A -> B) (g : B -> A) (x y : A), x = y -> g (f x) = g (f y)"
+  },
+  {
+    "id": "lia_disjunctive_bounds",
+    "theory": "LIA",
+    "expected": "proved",
+    "source": "unit-tests/verit_tactics.v: lia1.smt",
+    "statement": "forall (x y z : Z), implb ((x <=? 3) && ((y <=? 7) || (z <=? 9))) ((x + y <=? 10) || (x + z <=? 12)) = true"
+  },
+  {
+    "id": "lia_equality_bound",
+    "theory": "LIA",
+    "expected": "proved",
+    "source": "unit-tests/verit_tactics.v: lia2.smt",
+    "statement": "forall (x : Z), implb (x - 3 =? 7) (x >=? 10) = true"
+  },
+  {
+    "id": "lia_integer_gap",
+    "theory": "LIA",
+    "expected": "proved",
+    "source": "unit-tests/verit_tactics.v: lia3.smt",
+    "statement": "forall (x y : Z), implb (x >? y) (y + 1 <=? x) = true"
+  },
+  {
+    "id": "lia_strict_shift",
+    "theory": "LIA",
+    "expected": "proved",
+    "source": "unit-tests/verit_tactics.v: lia4.smt",
+    "statement": "forall (x y : Z), Bool.eqb (x <? y) (x <=? y - 1) = true"
+  },
+  {
+    "id": "lia_inconsistent_bounds",
+    "theory": "LIA",
+    "expected": "proved",
+    "source": "unit-tests/verit_tactics.v: lia5.smt",
+    "statement": "forall (x y : Z), ((x + y <=? -3) && (y >=? 0) || (x <=? -3)) && (x >=? 0) = false"
+  },
+  {
+    "id": "lia_two_sided_bound",
+    "theory": "LIA",
+    "expected": "proved",
+    "source": "unit-tests/verit_tactics.v: lia6.smt",
+    "statement": "forall (x : Z), implb (((x - 3) <=? 7) && (7 <=? (x - 3))) (x >=? 10) = true"
+  },
+  {
+    "id": "negative_uf_injectivity",
+    "theory": "UF",
+    "expected": "rejected",
+    "source": "False converse of congruence; counterexample f := fun _ => 0, x := 0, y := 1",
+    "statement": "forall (f : Z -> Z) (x y : Z), f x = f y -> x = y"
+  },
+  {
+    "id": "negative_lia_missing_gap",
+    "theory": "LIA",
+    "expected": "rejected",
+    "source": "False integer-gap strengthening; counterexample x := 0, y := 0",
+    "statement": "forall (x y : Z), x <= y -> x + 1 <= y"
+  }
+]

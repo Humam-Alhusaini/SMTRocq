@@ -130,15 +130,36 @@ let rec smt_Form_to_coq_micromega_formula tbl l =
       | Fapp (Ffalse, _) -> FF IsProp
       | Fapp (Fand, l) -> binop_array smt_Form_to_coq_micromega_formula tbl (fun x y -> AND (IsProp, x,y)) (TT IsProp) l
       | Fapp (For, l) -> binop_array smt_Form_to_coq_micromega_formula tbl (fun x y -> OR (IsProp, x,y)) (FF IsProp) l
-      | Fapp (Fxor, l) -> failwith "todo:Fxor"
-      | Fapp (Fimp, l) -> binop_array smt_Form_to_coq_micromega_formula tbl (fun x y -> IMPL (IsProp, x,None,y)) (TT IsProp) l
-      | Fapp (Fiff, l) -> failwith "todo:Fiff"
-      | Fapp (Fite, l) -> failwith "todo:Fite"
-      | Fapp (Fnot2 _, l) ->
+      | Fapp (Fxor, l) ->
+          let a = smt_Form_to_coq_micromega_formula tbl l.(0) in
+          let b = smt_Form_to_coq_micromega_formula tbl l.(1) in
+          AND (IsProp,OR (IsProp,a,b),OR (IsProp,NOT (IsProp,a),NOT (IsProp,b)))
+      | Fapp (Fimp, l) ->
+          (* LIA.build_hform traverses this right fold from the last argument,
+             so preserve that variable numbering as well as association. *)
+          let n = Array.length l in
+          if n = 0 then TT IsProp else
+          let tail = ref (smt_Form_to_coq_micromega_formula tbl l.(n-1)) in
+          for i = n-2 downto 0 do
+            let head = smt_Form_to_coq_micromega_formula tbl l.(i) in
+            tail := IMPL (IsProp,head,None,!tail)
+          done; !tail
+      | Fapp (Fiff, l) ->
+          let a = smt_Form_to_coq_micromega_formula tbl l.(0) in
+          let b = smt_Form_to_coq_micromega_formula tbl l.(1) in
+          AND (IsProp,OR (IsProp,a,NOT (IsProp,b)),OR (IsProp,NOT (IsProp,a),b))
+      | Fapp (Fite, l) ->
+          let a = smt_Form_to_coq_micromega_formula tbl l.(0) in
+          let b = smt_Form_to_coq_micromega_formula tbl l.(1) in
+          let c = smt_Form_to_coq_micromega_formula tbl l.(2) in
+          OR (IsProp,AND (IsProp,a,b),AND (IsProp,NOT (IsProp,a),c))
+      | Fapp (Fnot2 n, l) ->
         if Array.length l <> 1 then
           failwith "Lia.smt_Form_to_coq_micromega_formula: wrong number of arguments for Fnot2"
         else
-          smt_Form_to_coq_micromega_formula tbl l.(0)
+          let formula = ref (smt_Form_to_coq_micromega_formula tbl l.(0)) in
+          for _ = 1 to n do formula := NOT (IsProp,NOT (IsProp,!formula)) done;
+          !formula
       | FbbT _ -> assert false
       | Fapp (Fforall _, _) -> assert false
   in
@@ -146,9 +167,14 @@ let rec smt_Form_to_coq_micromega_formula tbl l =
   else NOT(IsProp, v)
 
 let binop_list tbl op def l =
-  match l with
+  (* LIA.build_clause_aux visits literals left-to-right but constructs a
+     right-associated conjunction. Preserve both the variable numbering and
+     formula shape: equivalent associations need not share certificate indices. *)
+  let reversed = List.fold_left (fun acc f ->
+    let formula = smt_Form_to_coq_micromega_formula tbl f in formula::acc) [] l in
+  match reversed with
   | [] -> def
-  | f::l -> List.fold_left (fun x y -> op x (smt_Form_to_coq_micromega_formula tbl y)) (smt_Form_to_coq_micromega_formula tbl f) l
+  | last::rest -> List.fold_left (fun tail head -> op head tail) last rest
 
 let smt_clause_to_coq_micromega_formula tbl cl =
   binop_list tbl (fun x y -> AND (IsProp, x,y)) (TT IsProp) (List.map Form.neg cl)

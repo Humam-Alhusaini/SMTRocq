@@ -1,0 +1,178 @@
+{
+  "checker_commit": "8c95f22",
+  "compiler_timeout_seconds": 30,
+  "known_numerator_case_timings": {
+    "negative_divisor_from_hypothesis": {
+      "current_s": [
+        0.501,
+        0.526
+      ],
+      "previous_s": [
+        13.757
+      ]
+    },
+    "negative_numerator": {
+      "current_s": [
+        0.48,
+        0.621
+      ],
+      "previous_s": [
+        13.329
+      ]
+    },
+    "quotient_from_hypothesis": {
+      "current_s": [
+        0.53,
+        0.539
+      ],
+      "previous_s": [
+        15.576
+      ]
+    }
+  },
+  "notes": [
+    "Serial fresh compilers; two repeats; unchanged manifests and whole-compiler timeout",
+    "Baseline tactics do not receive Eunoia division facts",
+    "Historical 8a5c14b results remain separate"
+  ],
+  "schema_version": 1,
+  "validation": {
+    "added_assumptions": [],
+    "both_modes_kernel_checked": true,
+    "full_repository_runtest": true,
+    "named_assumption_targets": 198
+  },
+  "workloads": {
+    "division": {
+      "artifact_hashes": {
+        "cases.json": "113e7ea76fc1369753c9fdba6d6e4de261463fbb9dcd3a4be74dae13e574d8f3",
+        "integrity.json": "0f9732071aabc96662979198c067859ad0bf8058fe95745ce8da23df1428a44c",
+        "metadata.json": "7df9d26bbd4c2dcf9ad6bad00d7aa7422f000e9919e1c9db5b52755af781127a",
+        "results.json": "6b9f32decf454929d23abdb24d9ebc5a35bbd7301c360315bbf9ff720a227fdf"
+      },
+      "integrity_passed": true,
+      "summary": {
+        "cvc5_eunoia": {
+          "cases_solved_every_repeat": 27,
+          "per_theory": {
+            "LIA": {
+              "positive_attempts": 54,
+              "positive_scheduled": 54,
+              "solved_attempts": 54
+            },
+            "UF": {
+              "positive_attempts": 0,
+              "positive_scheduled": 0,
+              "solved_attempts": 0
+            }
+          },
+          "positive_attempts": 54,
+          "positive_cases": 27,
+          "positive_process_wall_sum_s": 253.88737524505268,
+          "positive_scheduled": 54,
+          "solved_attempts": 54,
+          "solved_qed_wall_sum_s": 1.4819999999999998,
+          "solved_tactic_wall_median_s": 1.5605,
+          "solved_tactic_wall_sum_s": 117.198,
+          "status_counts": {
+            "negative_rejected": 16,
+            "solved": 54
+          }
+        },
+        "verit": {
+          "cases_solved_every_repeat": 1,
+          "per_theory": {
+            "LIA": {
+              "positive_attempts": 54,
+              "positive_scheduled": 54,
+              "solved_attempts": 2
+            },
+            "UF": {
+              "positive_attempts": 0,
+              "positive_scheduled": 0,
+              "solved_attempts": 0
+            }
+          },
+          "positive_attempts": 54,
+          "positive_cases": 27,
+          "positive_process_wall_sum_s": 55.02799326003151,
+          "positive_scheduled": 54,
+          "solved_attempts": 2,
+          "solved_qed_wall_sum_s": 0.122,
+          "solved_tactic_wall_median_s": 0.06,
+          "solved_tactic_wall_sum_s": 0.12,
+          "status_counts": {
+            "error": 52,
+            "negative_rejected": 16,
+            "solved": 2
+          }
+        }
+      }
+    },
+    "known-values": {
+      "artifact_hashes": {
+        "cases.json": "3bcfe5b461e17ca7b54fea5f7754c46a11be41426dbdf15a7cf86df8d8f931b4",
+        "integrity.json": "0f9732071aabc96662979198c067859ad0bf8058fe95745ce8da23df1428a44c",
+        "metadata.json": "250c6b995f08d36d90cbeef22b84644855abe4ffc3208c0b4dd9fba3efa8dab0",
+        "results.json": "725d116021286794fecd253b44176d285c186c03c1aa7c49bc13ebd0c020c2ce"
+      },
+      "integrity_passed": true,
+      "summary": {
+        "cvc5_eunoia": {
+          "cases_solved_every_repeat": 5,
+          "per_theory": {
+            "LIA": {
+              "positive_attempts": 10,
+              "positive_scheduled": 10,
+              "solved_attempts": 10
+            },
+            "UF": {
+              "positive_attempts": 0,
+              "positive_scheduled": 0,
+              "solved_attempts": 0
+            }
+          },
+          "positive_attempts": 10,
+          "positive_cases": 5,
+          "positive_process_wall_sum_s": 62.80413870497432,
+          "positive_scheduled": 10,
+          "solved_attempts": 10,
+          "solved_qed_wall_sum_s": 0.401,
+          "solved_tactic_wall_median_s": 0.5565,
+          "solved_tactic_wall_sum_s": 37.263999999999996,
+          "status_counts": {
+            "negative_rejected": 6,
+            "solved": 10
+          }
+        },
+        "verit": {
+          "cases_solved_every_repeat": 0,
+          "per_theory": {
+            "LIA": {
+              "positive_attempts": 10,
+              "positive_scheduled": 10,
+              "solved_attempts": 0
+            },
+            "UF": {
+              "positive_attempts": 0,
+              "positive_scheduled": 0,
+              "solved_attempts": 0
+            }
+          },
+          "positive_attempts": 10,
+          "positive_cases": 5,
+          "positive_process_wall_sum_s": 10.204854326002533,
+          "positive_scheduled": 10,
+          "solved_attempts": 0,
+          "solved_qed_wall_sum_s": null,
+          "solved_tactic_wall_median_s": null,
+          "solved_tactic_wall_sum_s": null,
+          "status_counts": {
+            "error": 10,
+            "negative_rejected": 6
+          }
+        }
+      }
+    }
+  }
+}

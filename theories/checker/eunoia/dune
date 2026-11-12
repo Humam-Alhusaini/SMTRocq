@@ -1,0 +1,41 @@
+(rocq.theory
+ (name SMTCoq.checker.eunoia)
+ (generate_project_file)
+ (package rocq-smtcoq)
+ (theories
+  Stdlib
+  SMTCoq.utils
+  SMTCoq.structures
+  SMTCoq.checker.fol
+  SMTCoq.checker))
+
+(alias
+ (name runtest)
+ (deps
+  EunoiaCheckerTests.vo
+  EunoiaBridgeTests.vo
+  EunoiaAdapter.vo
+  EunoiaUf.vo
+  EunoiaLiaTests.vo
+  EunoiaLocalTests.vo
+  EunoiaBoolTests.vo
+  EunoiaTacticTests.vo
+  EunoiaScopeTests.vo
+  EunoiaScopedAdapterTests.vo
+  EunoiaContextTests.vo
+  EunoiaMemoTests.vo
+  EunoiaLocalDirectTests.vo
+  EunoiaTheoryTests.vo
+  EunoiaCertificateTests.vo
+  EoCheckedMemoTests.vo
+  EunoiaHelperCacheTests.vo
+  EoNameIndexTests.vo
+  EunoiaProgramIndexTests.vo
+  EunoiaStagedTests.vo
+  EunoiaDirectTests.vo
+  EunoiaSpecializedTests.vo
+  EunoiaModelDagTests.vo
+  EunoiaIntegerEmbeddingTests.vo
+  EoArithmeticTests.vo
+  EoRuntime.vo
+  CpcGenerated.vo))

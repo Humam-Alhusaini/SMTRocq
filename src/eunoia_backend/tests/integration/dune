@@ -1,0 +1,25 @@
+(library
+ (name backend_test_plugin)
+ (public_name rocq-smtcoq.eunoia_backend_test)
+ (libraries eunoia_backend eunoia_witness common rocq-runtime.plugins.ltac)
+ (flags :standard -rectypes))
+
+(rocq.pp
+ (modules g_backend_test))
+
+(rocq.theory
+ (name SMTCoq.eunoia_backend_tests)
+ (package rocq-smtcoq)
+ (modules Proof Public Lia)
+ (theories Stdlib SMTCoq.checker.eunoia SMTCoq)
+ (plugins rocq-smtcoq.eunoia_backend_test))
+
+(alias
+ (name runtest)
+ (deps Proof.vo Public.vo Lia.vo))
+
+(rule
+ (target assumptionsCompat.ml)
+ (deps gen_assumptions_compat.py)
+ (action
+  (run python3 %{dep:gen_assumptions_compat.py} %{target})))

@@ -1,0 +1,688 @@
+{
+  "date": "2026-11-08",
+  "scope": "four diagnostic Eunoia positives and three matching veriT controls; not the broad regression benchmark",
+  "order": [
+    "reference-a",
+    "direct-a",
+    "direct-b",
+    "reference-b"
+  ],
+  "compiler_timeout_s": 30,
+  "independent_kernel_validation": "Separate recursive public/mutation replays and correctness-library audit; no per-measurement recursive check is claimed.",
+  "integrity_passed": true,
+  "groups": {
+    "reference-a": {
+      "rows": [
+        {
+          "case": "congruence",
+          "checked": true,
+          "tactic_wall_s": 0.388,
+          "qed_wall_s": 0.008,
+          "audit_exit_code": 0,
+          "proof_wall_s": 0.396
+        },
+        {
+          "case": "lia_disjunctive_bounds",
+          "checked": true,
+          "tactic_wall_s": 3.13,
+          "qed_wall_s": 0.125,
+          "audit_exit_code": 0,
+          "proof_wall_s": 3.255
+        },
+        {
+          "case": "lia_inconsistent_bounds",
+          "checked": true,
+          "tactic_wall_s": 2.293,
+          "qed_wall_s": 0.067,
+          "audit_exit_code": 0,
+          "proof_wall_s": 2.3600000000000003
+        },
+        {
+          "case": "uf_nested_40",
+          "checked": true,
+          "tactic_wall_s": 2.929,
+          "qed_wall_s": 0.051,
+          "audit_exit_code": 0,
+          "proof_wall_s": 2.98
+        },
+        {
+          "case": "control_uf40",
+          "checked": true,
+          "tactic_wall_s": 0.766,
+          "qed_wall_s": 1.039,
+          "audit_exit_code": 0,
+          "proof_wall_s": 1.805
+        },
+        {
+          "case": "control_lia",
+          "checked": true,
+          "tactic_wall_s": 0.147,
+          "qed_wall_s": 0.057,
+          "audit_exit_code": 0,
+          "proof_wall_s": 0.204
+        },
+        {
+          "case": "control_lia_inconsistent",
+          "checked": true,
+          "tactic_wall_s": 0.193,
+          "qed_wall_s": 0.031,
+          "audit_exit_code": 0,
+          "proof_wall_s": 0.224
+        }
+      ],
+      "source_sha256": {
+        "src/eunoia_backend/eunoiaBackend.ml": "543486570e29c371316cd2aa59c9ccc897eedfbe86dcc3d7541195140c8a29de",
+        "src/eunoia_backend/eunoiaRocq.ml": "ff7fbc631946d55b22fbaee42c0f24191b3049b90491d31227a3619abb0cf94b",
+        "src/eunoia_witness/search.ml": "1c1e1f4ec472aef69d7648bcc349c390e6a1b5fb7372072380d3d9675c47ddfd",
+        "src/g_smtcoq.mlg": "f9987a4c0aa5570efa59f300c5355aafd9dd3685dcc78954504517436d65446c",
+        "theories/checker/eunoia/EunoiaLocalDirect.v": "c5bad8074cc7319db5fef519ef1e4ecdfc2e70dadcabce43528c67bc8628dc4b",
+        "theories/checker/eunoia/EunoiaMemo.v": "762eb25eefb0e441d2787cb8855aed6714f2ce518a1f7473e7d0d856d3856d62",
+        "theories/checker/eunoia/EunoiaTactic.v": "9ff9a60b4943317adaaf0372cfe531cf6613340586521c1650111a77916a6cb8",
+        "tools/eunoia-profile/Controls.v": "14258189483d9f2e2b3f2ca7394c17482b61ef8a37911b6c2118ef9d5e42cfa3",
+        "tools/eunoia-profile/run.py": "5f4dfad23adda6496351f1bfeb4f1a9f3d2fd62bfb9fee2cd74943cc24e25ffe"
+      },
+      "artifact_sha256": {
+        "src/eunoia_backend/eunoia_backend.cmxs": "f42a3e7351ba4b4133dacdb83259b621c6146cd6e96cc21caac627119d4733c8",
+        "src/eunoia_backend/tests/integration/backend_test_plugin.cmxs": "e0637ff396353c4f13b2bd02ac840d8f1cc66b887a29586a8be4fa8bfead6206",
+        "src/eunoia_witness/eunoia_witness.cmxs": "dd95386ad876f385e0f044959a2ecd2ec7d8171c0b0c25f71187875f06ebaf9e",
+        "src/smtcoq.cmxs": "76cbe0b060b7bf1c7c4f3a0a83203a1051d31a5af335986b8e273795b42d40f4"
+      },
+      "direct_certificates": "0",
+      "controls": {
+        "command": [
+          "/workspace/SMTRocq/scripts/eunoia/env",
+          "dune",
+          "exec",
+          "-j2",
+          "--",
+          "rocq",
+          "c",
+          "-q",
+          "-Q",
+          "/workspace/SMTRocq/_build/default/theories",
+          "SMTCoq",
+          "-Q",
+          "/workspace/SMTRocq/_build/default/theories/checker",
+          "SMTCoq.checker",
+          "-Q",
+          "/workspace/SMTRocq/_build/default/theories/structures",
+          "SMTCoq.structures",
+          "-Q",
+          "/workspace/SMTRocq/_build/default/theories/tactics",
+          "SMTCoq.tactics",
+          "-Q",
+          "/workspace/SMTRocq/_build/default/theories/utils",
+          "SMTCoq.utils",
+          "-Q",
+          "/workspace/SMTRocq/_build/default/theories/checker/eunoia",
+          "SMTCoq.checker.eunoia",
+          "-Q",
+          "/workspace/SMTRocq/_build/default/theories/checker/fol",
+          "SMTCoq.checker.fol",
+          "-Q",
+          "/workspace/SMTRocq/_build/default/theories/tactics/preproc",
+          "SMTCoq.tactics.preproc",
+          "-Q",
+          "/workspace/SMTRocq/_build/default/theories/checker/small-checkers/array",
+          "SMTCoq.checker.small_checker.array",
+          "-Q",
+          "/workspace/SMTRocq/_build/default/theories/checker/small-checkers/bva",
+          "SMTCoq.checker.small_checker.bva",
+          "-Q",
+          "/workspace/SMTRocq/_build/default/theories/checker/small-checkers/cnf",
+          "SMTCoq.checker.small_checker.cnf",
+          "-Q",
+          "/workspace/SMTRocq/_build/default/theories/checker/small-checkers/euf",
+          "SMTCoq.checker.small_checker.euf",
+          "-Q",
+          "/workspace/SMTRocq/_build/default/theories/checker/small-checkers/lia",
+          "SMTCoq.checker.small_checker.lia",
+          "-Q",
+          "/workspace/SMTRocq/_build/default/theories/checker/small-checkers/spl",
+          "SMTCoq.checker.small_checker.spl",
+          "-Q",
+          "/tmp/eunoia-direct-abba-2026-11-08/reference-a/controls",
+          "EunoiaProfile",
+          "-I",
+          "/workspace/SMTRocq/_build/install/default/lib",
+          "/tmp/eunoia-direct-abba-2026-11-08/reference-a/controls/Controls.v"
+        ],
+        "cwd": "/workspace/SMTRocq",
+        "exit_code": 0,
+        "process_wall_s": 4.483658576966263,
+        "timeout": false
+      },
+      "artifact_directory": "/tmp/eunoia-direct-abba-2026-11-08/reference-a"
+    },
+    "direct-a": {
+      "rows": [
+        {
+          "case": "congruence",
+          "checked": true,
+          "tactic_wall_s": 0.401,
+          "qed_wall_s": 0.007,
+          "audit_exit_code": 0,
+          "proof_wall_s": 0.40800000000000003
+        },
+        {
+          "case": "lia_disjunctive_bounds",
+          "checked": true,
+          "tactic_wall_s": 3.089,
+          "qed_wall_s": 0.098,
+          "audit_exit_code": 0,
+          "proof_wall_s": 3.187
+        },
+        {
+          "case": "lia_inconsistent_bounds",
+          "checked": true,
+          "tactic_wall_s": 2.13,
+          "qed_wall_s": 0.055,
+          "audit_exit_code": 0,
+          "proof_wall_s": 2.185
+        },
+        {
+          "case": "uf_nested_40",
+          "checked": true,
+          "tactic_wall_s": 3.231,
+          "qed_wall_s": 0.058,
+          "audit_exit_code": 0,
+          "proof_wall_s": 3.2889999999999997
+        },
+        {
+          "case": "control_uf40",
+          "checked": true,
+          "tactic_wall_s": 0.885,
+          "qed_wall_s": 1.194,
+          "audit_exit_code": 0,
+          "proof_wall_s": 2.0789999999999997
+        },
+        {
+          "case": "control_lia",
+          "checked": true,
+          "tactic_wall_s": 0.176,
+          "qed_wall_s": 0.068,
+          "audit_exit_code": 0,
+          "proof_wall_s": 0.244
+        },
+        {
+          "case": "control_lia_inconsistent",
+          "checked": true,
+          "tactic_wall_s": 0.149,
+          "qed_wall_s": 0.031,
+          "audit_exit_code": 0,
+          "proof_wall_s": 0.18
+        }
+      ],
+      "source_sha256": {
+        "src/eunoia_backend/eunoiaBackend.ml": "543486570e29c371316cd2aa59c9ccc897eedfbe86dcc3d7541195140c8a29de",
+        "src/eunoia_backend/eunoiaRocq.ml": "ff7fbc631946d55b22fbaee42c0f24191b3049b90491d31227a3619abb0cf94b",
+        "src/eunoia_witness/search.ml": "1c1e1f4ec472aef69d7648bcc349c390e6a1b5fb7372072380d3d9675c47ddfd",
+        "src/g_smtcoq.mlg": "f9987a4c0aa5570efa59f300c5355aafd9dd3685dcc78954504517436d65446c",
+        "theories/checker/eunoia/EunoiaLocalDirect.v": "c5bad8074cc7319db5fef519ef1e4ecdfc2e70dadcabce43528c67bc8628dc4b",
+        "theories/checker/eunoia/EunoiaMemo.v": "762eb25eefb0e441d2787cb8855aed6714f2ce518a1f7473e7d0d856d3856d62",
+        "theories/checker/eunoia/EunoiaTactic.v": "9ff9a60b4943317adaaf0372cfe531cf6613340586521c1650111a77916a6cb8",
+        "tools/eunoia-profile/Controls.v": "14258189483d9f2e2b3f2ca7394c17482b61ef8a37911b6c2118ef9d5e42cfa3",
+        "tools/eunoia-profile/run.py": "5f4dfad23adda6496351f1bfeb4f1a9f3d2fd62bfb9fee2cd74943cc24e25ffe"
+      },
+      "artifact_sha256": {
+        "src/eunoia_backend/eunoia_backend.cmxs": "f42a3e7351ba4b4133dacdb83259b621c6146cd6e96cc21caac627119d4733c8",
+        "src/eunoia_backend/tests/integration/backend_test_plugin.cmxs": "e0637ff396353c4f13b2bd02ac840d8f1cc66b887a29586a8be4fa8bfead6206",
+        "src/eunoia_witness/eunoia_witness.cmxs": "dd95386ad876f385e0f044959a2ecd2ec7d8171c0b0c25f71187875f06ebaf9e",
+        "src/smtcoq.cmxs": "76cbe0b060b7bf1c7c4f3a0a83203a1051d31a5af335986b8e273795b42d40f4"
+      },
+      "direct_certificates": "1",
+      "controls": {
+        "command": [
+          "/workspace/SMTRocq/scripts/eunoia/env",
+          "dune",
+          "exec",
+          "-j2",
+          "--",
+          "rocq",
+          "c",
+          "-q",
+          "-Q",
+          "/workspace/SMTRocq/_build/default/theories",
+          "SMTCoq",
+          "-Q",
+          "/workspace/SMTRocq/_build/default/theories/checker",
+          "SMTCoq.checker",
+          "-Q",
+          "/workspace/SMTRocq/_build/default/theories/structures",
+          "SMTCoq.structures",
+          "-Q",
+          "/workspace/SMTRocq/_build/default/theories/tactics",
+          "SMTCoq.tactics",
+          "-Q",
+          "/workspace/SMTRocq/_build/default/theories/utils",
+          "SMTCoq.utils",
+          "-Q",
+          "/workspace/SMTRocq/_build/default/theories/checker/eunoia",
+          "SMTCoq.checker.eunoia",
+          "-Q",
+          "/workspace/SMTRocq/_build/default/theories/checker/fol",
+          "SMTCoq.checker.fol",
+          "-Q",
+          "/workspace/SMTRocq/_build/default/theories/tactics/preproc",
+          "SMTCoq.tactics.preproc",
+          "-Q",
+          "/workspace/SMTRocq/_build/default/theories/checker/small-checkers/array",
+          "SMTCoq.checker.small_checker.array",
+          "-Q",
+          "/workspace/SMTRocq/_build/default/theories/checker/small-checkers/bva",
+          "SMTCoq.checker.small_checker.bva",
+          "-Q",
+          "/workspace/SMTRocq/_build/default/theories/checker/small-checkers/cnf",
+          "SMTCoq.checker.small_checker.cnf",
+          "-Q",
+          "/workspace/SMTRocq/_build/default/theories/checker/small-checkers/euf",
+          "SMTCoq.checker.small_checker.euf",
+          "-Q",
+          "/workspace/SMTRocq/_build/default/theories/checker/small-checkers/lia",
+          "SMTCoq.checker.small_checker.lia",
+          "-Q",
+          "/workspace/SMTRocq/_build/default/theories/checker/small-checkers/spl",
+          "SMTCoq.checker.small_checker.spl",
+          "-Q",
+          "/tmp/eunoia-direct-abba-2026-11-08/direct-a/controls",
+          "EunoiaProfile",
+          "-I",
+          "/workspace/SMTRocq/_build/install/default/lib",
+          "/tmp/eunoia-direct-abba-2026-11-08/direct-a/controls/Controls.v"
+        ],
+        "cwd": "/workspace/SMTRocq",
+        "exit_code": 0,
+        "process_wall_s": 5.226656869053841,
+        "timeout": false
+      },
+      "artifact_directory": "/tmp/eunoia-direct-abba-2026-11-08/direct-a"
+    },
+    "direct-b": {
+      "rows": [
+        {
+          "case": "congruence",
+          "checked": true,
+          "tactic_wall_s": 0.474,
+          "qed_wall_s": 0.008,
+          "audit_exit_code": 0,
+          "proof_wall_s": 0.482
+        },
+        {
+          "case": "lia_disjunctive_bounds",
+          "checked": true,
+          "tactic_wall_s": 3.267,
+          "qed_wall_s": 0.106,
+          "audit_exit_code": 0,
+          "proof_wall_s": 3.3729999999999998
+        },
+        {
+          "case": "lia_inconsistent_bounds",
+          "checked": true,
+          "tactic_wall_s": 2.448,
+          "qed_wall_s": 0.061,
+          "audit_exit_code": 0,
+          "proof_wall_s": 2.509
+        },
+        {
+          "case": "uf_nested_40",
+          "checked": true,
+          "tactic_wall_s": 3.196,
+          "qed_wall_s": 0.057,
+          "audit_exit_code": 0,
+          "proof_wall_s": 3.253
+        },
+        {
+          "case": "control_uf40",
+          "checked": true,
+          "tactic_wall_s": 0.857,
+          "qed_wall_s": 1.128,
+          "audit_exit_code": 0,
+          "proof_wall_s": 1.9849999999999999
+        },
+        {
+          "case": "control_lia",
+          "checked": true,
+          "tactic_wall_s": 0.168,
+          "qed_wall_s": 0.071,
+          "audit_exit_code": 0,
+          "proof_wall_s": 0.239
+        },
+        {
+          "case": "control_lia_inconsistent",
+          "checked": true,
+          "tactic_wall_s": 0.153,
+          "qed_wall_s": 0.029,
+          "audit_exit_code": 0,
+          "proof_wall_s": 0.182
+        }
+      ],
+      "source_sha256": {
+        "src/eunoia_backend/eunoiaBackend.ml": "543486570e29c371316cd2aa59c9ccc897eedfbe86dcc3d7541195140c8a29de",
+        "src/eunoia_backend/eunoiaRocq.ml": "ff7fbc631946d55b22fbaee42c0f24191b3049b90491d31227a3619abb0cf94b",
+        "src/eunoia_witness/search.ml": "1c1e1f4ec472aef69d7648bcc349c390e6a1b5fb7372072380d3d9675c47ddfd",
+        "src/g_smtcoq.mlg": "f9987a4c0aa5570efa59f300c5355aafd9dd3685dcc78954504517436d65446c",
+        "theories/checker/eunoia/EunoiaLocalDirect.v": "c5bad8074cc7319db5fef519ef1e4ecdfc2e70dadcabce43528c67bc8628dc4b",
+        "theories/checker/eunoia/EunoiaMemo.v": "762eb25eefb0e441d2787cb8855aed6714f2ce518a1f7473e7d0d856d3856d62",
+        "theories/checker/eunoia/EunoiaTactic.v": "9ff9a60b4943317adaaf0372cfe531cf6613340586521c1650111a77916a6cb8",
+        "tools/eunoia-profile/Controls.v": "14258189483d9f2e2b3f2ca7394c17482b61ef8a37911b6c2118ef9d5e42cfa3",
+        "tools/eunoia-profile/run.py": "5f4dfad23adda6496351f1bfeb4f1a9f3d2fd62bfb9fee2cd74943cc24e25ffe"
+      },
+      "artifact_sha256": {
+        "src/eunoia_backend/eunoia_backend.cmxs": "f42a3e7351ba4b4133dacdb83259b621c6146cd6e96cc21caac627119d4733c8",
+        "src/eunoia_backend/tests/integration/backend_test_plugin.cmxs": "e0637ff396353c4f13b2bd02ac840d8f1cc66b887a29586a8be4fa8bfead6206",
+        "src/eunoia_witness/eunoia_witness.cmxs": "dd95386ad876f385e0f044959a2ecd2ec7d8171c0b0c25f71187875f06ebaf9e",
+        "src/smtcoq.cmxs": "76cbe0b060b7bf1c7c4f3a0a83203a1051d31a5af335986b8e273795b42d40f4"
+      },
+      "direct_certificates": "1",
+      "controls": {
+        "command": [
+          "/workspace/SMTRocq/scripts/eunoia/env",
+          "dune",
+          "exec",
+          "-j2",
+          "--",
+          "rocq",
+          "c",
+          "-q",
+          "-Q",
+          "/workspace/SMTRocq/_build/default/theories",
+          "SMTCoq",
+          "-Q",
+          "/workspace/SMTRocq/_build/default/theories/checker",
+          "SMTCoq.checker",
+          "-Q",
+          "/workspace/SMTRocq/_build/default/theories/structures",
+          "SMTCoq.structures",
+          "-Q",
+          "/workspace/SMTRocq/_build/default/theories/tactics",
+          "SMTCoq.tactics",
+          "-Q",
+          "/workspace/SMTRocq/_build/default/theories/utils",
+          "SMTCoq.utils",
+          "-Q",
+          "/workspace/SMTRocq/_build/default/theories/checker/eunoia",
+          "SMTCoq.checker.eunoia",
+          "-Q",
+          "/workspace/SMTRocq/_build/default/theories/checker/fol",
+          "SMTCoq.checker.fol",
+          "-Q",
+          "/workspace/SMTRocq/_build/default/theories/tactics/preproc",
+          "SMTCoq.tactics.preproc",
+          "-Q",
+          "/workspace/SMTRocq/_build/default/theories/checker/small-checkers/array",
+          "SMTCoq.checker.small_checker.array",
+          "-Q",
+          "/workspace/SMTRocq/_build/default/theories/checker/small-checkers/bva",
+          "SMTCoq.checker.small_checker.bva",
+          "-Q",
+          "/workspace/SMTRocq/_build/default/theories/checker/small-checkers/cnf",
+          "SMTCoq.checker.small_checker.cnf",
+          "-Q",
+          "/workspace/SMTRocq/_build/default/theories/checker/small-checkers/euf",
+          "SMTCoq.checker.small_checker.euf",
+          "-Q",
+          "/workspace/SMTRocq/_build/default/theories/checker/small-checkers/lia",
+          "SMTCoq.checker.small_checker.lia",
+          "-Q",
+          "/workspace/SMTRocq/_build/default/theories/checker/small-checkers/spl",
+          "SMTCoq.checker.small_checker.spl",
+          "-Q",
+          "/tmp/eunoia-direct-abba-2026-11-08/direct-b/controls",
+          "EunoiaProfile",
+          "-I",
+          "/workspace/SMTRocq/_build/install/default/lib",
+          "/tmp/eunoia-direct-abba-2026-11-08/direct-b/controls/Controls.v"
+        ],
+        "cwd": "/workspace/SMTRocq",
+        "exit_code": 0,
+        "process_wall_s": 5.230815578950569,
+        "timeout": false
+      },
+      "artifact_directory": "/tmp/eunoia-direct-abba-2026-11-08/direct-b"
+    },
+    "reference-b": {
+      "rows": [
+        {
+          "case": "congruence",
+          "checked": true,
+          "tactic_wall_s": 0.347,
+          "qed_wall_s": 0.007,
+          "audit_exit_code": 0,
+          "proof_wall_s": 0.354
+        },
+        {
+          "case": "lia_disjunctive_bounds",
+          "checked": true,
+          "tactic_wall_s": 3.439,
+          "qed_wall_s": 0.134,
+          "audit_exit_code": 0,
+          "proof_wall_s": 3.573
+        },
+        {
+          "case": "lia_inconsistent_bounds",
+          "checked": true,
+          "tactic_wall_s": 2.34,
+          "qed_wall_s": 0.067,
+          "audit_exit_code": 0,
+          "proof_wall_s": 2.407
+        },
+        {
+          "case": "uf_nested_40",
+          "checked": true,
+          "tactic_wall_s": 3.013,
+          "qed_wall_s": 0.059,
+          "audit_exit_code": 0,
+          "proof_wall_s": 3.072
+        },
+        {
+          "case": "control_uf40",
+          "checked": true,
+          "tactic_wall_s": 0.785,
+          "qed_wall_s": 1.068,
+          "audit_exit_code": 0,
+          "proof_wall_s": 1.8530000000000002
+        },
+        {
+          "case": "control_lia",
+          "checked": true,
+          "tactic_wall_s": 0.152,
+          "qed_wall_s": 0.057,
+          "audit_exit_code": 0,
+          "proof_wall_s": 0.209
+        },
+        {
+          "case": "control_lia_inconsistent",
+          "checked": true,
+          "tactic_wall_s": 0.13,
+          "qed_wall_s": 0.027,
+          "audit_exit_code": 0,
+          "proof_wall_s": 0.157
+        }
+      ],
+      "source_sha256": {
+        "src/eunoia_backend/eunoiaBackend.ml": "543486570e29c371316cd2aa59c9ccc897eedfbe86dcc3d7541195140c8a29de",
+        "src/eunoia_backend/eunoiaRocq.ml": "ff7fbc631946d55b22fbaee42c0f24191b3049b90491d31227a3619abb0cf94b",
+        "src/eunoia_witness/search.ml": "1c1e1f4ec472aef69d7648bcc349c390e6a1b5fb7372072380d3d9675c47ddfd",
+        "src/g_smtcoq.mlg": "f9987a4c0aa5570efa59f300c5355aafd9dd3685dcc78954504517436d65446c",
+        "theories/checker/eunoia/EunoiaLocalDirect.v": "c5bad8074cc7319db5fef519ef1e4ecdfc2e70dadcabce43528c67bc8628dc4b",
+        "theories/checker/eunoia/EunoiaMemo.v": "762eb25eefb0e441d2787cb8855aed6714f2ce518a1f7473e7d0d856d3856d62",
+        "theories/checker/eunoia/EunoiaTactic.v": "9ff9a60b4943317adaaf0372cfe531cf6613340586521c1650111a77916a6cb8",
+        "tools/eunoia-profile/Controls.v": "14258189483d9f2e2b3f2ca7394c17482b61ef8a37911b6c2118ef9d5e42cfa3",
+        "tools/eunoia-profile/run.py": "5f4dfad23adda6496351f1bfeb4f1a9f3d2fd62bfb9fee2cd74943cc24e25ffe"
+      },
+      "artifact_sha256": {
+        "src/eunoia_backend/eunoia_backend.cmxs": "f42a3e7351ba4b4133dacdb83259b621c6146cd6e96cc21caac627119d4733c8",
+        "src/eunoia_backend/tests/integration/backend_test_plugin.cmxs": "e0637ff396353c4f13b2bd02ac840d8f1cc66b887a29586a8be4fa8bfead6206",
+        "src/eunoia_witness/eunoia_witness.cmxs": "dd95386ad876f385e0f044959a2ecd2ec7d8171c0b0c25f71187875f06ebaf9e",
+        "src/smtcoq.cmxs": "76cbe0b060b7bf1c7c4f3a0a83203a1051d31a5af335986b8e273795b42d40f4"
+      },
+      "direct_certificates": "0",
+      "controls": {
+        "command": [
+          "/workspace/SMTRocq/scripts/eunoia/env",
+          "dune",
+          "exec",
+          "-j2",
+          "--",
+          "rocq",
+          "c",
+          "-q",
+          "-Q",
+          "/workspace/SMTRocq/_build/default/theories",
+          "SMTCoq",
+          "-Q",
+          "/workspace/SMTRocq/_build/default/theories/checker",
+          "SMTCoq.checker",
+          "-Q",
+          "/workspace/SMTRocq/_build/default/theories/structures",
+          "SMTCoq.structures",
+          "-Q",
+          "/workspace/SMTRocq/_build/default/theories/tactics",
+          "SMTCoq.tactics",
+          "-Q",
+          "/workspace/SMTRocq/_build/default/theories/utils",
+          "SMTCoq.utils",
+          "-Q",
+          "/workspace/SMTRocq/_build/default/theories/checker/eunoia",
+          "SMTCoq.checker.eunoia",
+          "-Q",
+          "/workspace/SMTRocq/_build/default/theories/checker/fol",
+          "SMTCoq.checker.fol",
+          "-Q",
+          "/workspace/SMTRocq/_build/default/theories/tactics/preproc",
+          "SMTCoq.tactics.preproc",
+          "-Q",
+          "/workspace/SMTRocq/_build/default/theories/checker/small-checkers/array",
+          "SMTCoq.checker.small_checker.array",
+          "-Q",
+          "/workspace/SMTRocq/_build/default/theories/checker/small-checkers/bva",
+          "SMTCoq.checker.small_checker.bva",
+          "-Q",
+          "/workspace/SMTRocq/_build/default/theories/checker/small-checkers/cnf",
+          "SMTCoq.checker.small_checker.cnf",
+          "-Q",
+          "/workspace/SMTRocq/_build/default/theories/checker/small-checkers/euf",
+          "SMTCoq.checker.small_checker.euf",
+          "-Q",
+          "/workspace/SMTRocq/_build/default/theories/checker/small-checkers/lia",
+          "SMTCoq.checker.small_checker.lia",
+          "-Q",
+          "/workspace/SMTRocq/_build/default/theories/checker/small-checkers/spl",
+          "SMTCoq.checker.small_checker.spl",
+          "-Q",
+          "/tmp/eunoia-direct-abba-2026-11-08/reference-b/controls",
+          "EunoiaProfile",
+          "-I",
+          "/workspace/SMTRocq/_build/install/default/lib",
+          "/tmp/eunoia-direct-abba-2026-11-08/reference-b/controls/Controls.v"
+        ],
+        "cwd": "/workspace/SMTRocq",
+        "exit_code": 0,
+        "process_wall_s": 4.826439999975264,
+        "timeout": false
+      },
+      "artifact_directory": "/tmp/eunoia-direct-abba-2026-11-08/reference-b"
+    }
+  },
+  "summary": {
+    "congruence": {
+      "reference": {
+        "tactic_median_s": 0.3675,
+        "qed_median_s": 0.0075,
+        "proof_median_s": 0.375
+      },
+      "direct": {
+        "tactic_median_s": 0.4375,
+        "qed_median_s": 0.0075,
+        "proof_median_s": 0.445
+      },
+      "direct_change_percent": 19.047619047619047,
+      "direct_proof_change_percent": 18.666666666666675
+    },
+    "control_lia": {
+      "reference": {
+        "tactic_median_s": 0.1495,
+        "qed_median_s": 0.057,
+        "proof_median_s": 0.2065
+      },
+      "direct": {
+        "tactic_median_s": 0.172,
+        "qed_median_s": 0.0695,
+        "proof_median_s": 0.2415
+      },
+      "direct_change_percent": 15.050167224080258,
+      "direct_proof_change_percent": 16.94915254237288
+    },
+    "control_lia_inconsistent": {
+      "reference": {
+        "tactic_median_s": 0.1615,
+        "qed_median_s": 0.028999999999999998,
+        "proof_median_s": 0.1905
+      },
+      "direct": {
+        "tactic_median_s": 0.151,
+        "qed_median_s": 0.03,
+        "proof_median_s": 0.181
+      },
+      "direct_change_percent": -6.5015479876161075,
+      "direct_proof_change_percent": -4.986876640419958
+    },
+    "control_uf40": {
+      "reference": {
+        "tactic_median_s": 0.7755000000000001,
+        "qed_median_s": 1.0535,
+        "proof_median_s": 1.8290000000000002
+      },
+      "direct": {
+        "tactic_median_s": 0.871,
+        "qed_median_s": 1.161,
+        "proof_median_s": 2.032
+      },
+      "direct_change_percent": 12.31463571889102,
+      "direct_proof_change_percent": 11.098961180973198
+    },
+    "lia_disjunctive_bounds": {
+      "reference": {
+        "tactic_median_s": 3.2845,
+        "qed_median_s": 0.1295,
+        "proof_median_s": 3.4139999999999997
+      },
+      "direct": {
+        "tactic_median_s": 3.178,
+        "qed_median_s": 0.10200000000000001,
+        "proof_median_s": 3.28
+      },
+      "direct_change_percent": -3.242502664028013,
+      "direct_proof_change_percent": -3.9250146455770296
+    },
+    "lia_inconsistent_bounds": {
+      "reference": {
+        "tactic_median_s": 2.3165,
+        "qed_median_s": 0.067,
+        "proof_median_s": 2.3835
+      },
+      "direct": {
+        "tactic_median_s": 2.2889999999999997,
+        "qed_median_s": 0.057999999999999996,
+        "proof_median_s": 2.347
+      },
+      "direct_change_percent": -1.1871357651629721,
+      "direct_proof_change_percent": -1.5313614432557299
+    },
+    "uf_nested_40": {
+      "reference": {
+        "tactic_median_s": 2.971,
+        "qed_median_s": 0.05499999999999999,
+        "proof_median_s": 3.026
+      },
+      "direct": {
+        "tactic_median_s": 3.2135,
+        "qed_median_s": 0.0575,
+        "proof_median_s": 3.271
+      },
+      "direct_change_percent": 8.162234937731384,
+      "direct_proof_change_percent": 8.096497025776618
+    }
+  },
+  "stage": "Before sharing the immutable table guard between the two local certificate gates; these timings are not a claim about the later final build."
+}

@@ -1,0 +1,9 @@
+(rocq.theory
+ (name SMTCoq.eunoia_runtime_profile)
+ (package rocq-smtcoq)
+ (modules SurfaceOutRefinement QueryRefinement)
+ (theories Stdlib SMTCoq.checker.eunoia))
+
+(alias
+ (name runtest)
+ (deps SurfaceOutRefinement.vo QueryRefinement.vo))

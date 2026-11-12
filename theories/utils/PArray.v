@@ -46,15 +46,22 @@ Module IntOrderedType <: OrderedType.
   Lemma lt_not_eq x y : lt x y -> ~ eq x y.
   Proof. unfold lt, eq. rewrite ltb_spec, eqb_spec. intros H1 H2. rewrite H2 in H1. lia. Qed.
 
+  (* Keep the arithmetic justification opaque. Evaluating it inside [compare]
+     makes every greater-than branch execute proof computation in the VM. *)
+  Lemma compare_gt x y : (x <? y) = false -> (x =? y) = false -> lt y x.
+  Proof.
+    intros e e2. unfold lt.
+    rewrite <- Bool.not_false_iff_true, <- Bool.not_true_iff_false, ltb_spec, eqb_spec in *; intro e3.
+    apply e2, to_Z_inj; lia.
+  Qed.
+
   Definition compare x y : Compare lt eq x y.
   Proof.
     case_eq (x <? y); intro e.
       exact (LT e).
       case_eq (x =? y); intro e2.
         exact (EQ e2).
-        apply GT. unfold lt.
-        rewrite <- Bool.not_false_iff_true, <- Bool.not_true_iff_false, ltb_spec, eqb_spec in *; intro e3.
-        apply e2, to_Z_inj; lia.
+        apply GT. exact (compare_gt x y e e2).
   Defined.
 
   Definition eq_dec x y : { eq x y } + { ~ eq x y }.

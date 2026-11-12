@@ -1,0 +1,66 @@
+[
+  {
+    "id": "known_value_reverse_equality",
+    "theory": "LIA",
+    "extension": "Rocq-division-known-values",
+    "expected": "proved",
+    "source": "unit-tests/eunoia_division.v: known_value_reverse_equality",
+    "statement": "forall x : Z,   (7 =? x) = true -> (x/3 =? 2) = true"
+  },
+  {
+    "id": "known_value_remainder",
+    "theory": "LIA",
+    "extension": "Rocq-division-known-values",
+    "expected": "proved",
+    "source": "unit-tests/eunoia_division.v: known_value_remainder",
+    "statement": "forall x : Z, x = -7 -> x mod 3 = 2"
+  },
+  {
+    "id": "known_value_negative_remainder",
+    "theory": "LIA",
+    "extension": "Rocq-division-known-values",
+    "expected": "proved",
+    "source": "unit-tests/eunoia_division.v: known_value_negative_remainder",
+    "statement": "forall x : Z, x = 7 -> x mod (-3) = -2"
+  },
+  {
+    "id": "known_value_ground_expression",
+    "theory": "LIA",
+    "extension": "Rocq-division-known-values",
+    "expected": "proved",
+    "source": "unit-tests/eunoia_division.v: known_value_ground_expression",
+    "statement": "forall x : Z, x = 4+3 -> x/(-3) = -3"
+  },
+  {
+    "id": "known_value_uf_result",
+    "theory": "LIA",
+    "extension": "Rocq-division-known-values",
+    "expected": "proved",
+    "source": "unit-tests/eunoia_division.v: known_value_uf_result",
+    "statement": "forall (f : Z -> Z) (x : Z), f x = 7 -> (f x)/3 = 2"
+  },
+  {
+    "id": "wrong_reverse_quotient",
+    "theory": "LIA",
+    "extension": "Rocq-division-known-values",
+    "expected": "rejected",
+    "source": "unit-tests/eunoia_division.v: known_value_false_controls",
+    "statement": "forall x : Z, (7 =? x) = true -> (x/3 =? 3) = true"
+  },
+  {
+    "id": "wrong_negative_remainder",
+    "theory": "LIA",
+    "extension": "Rocq-division-known-values",
+    "expected": "rejected",
+    "source": "unit-tests/eunoia_division.v: known_value_false_controls",
+    "statement": "forall x : Z, x = -7 -> x mod 3 = -1"
+  },
+  {
+    "id": "wrong_uf_result_quotient",
+    "theory": "LIA",
+    "extension": "Rocq-division-known-values",
+    "expected": "rejected",
+    "source": "unit-tests/eunoia_division.v: known_value_false_controls",
+    "statement": "forall (f : Z -> Z) (x : Z), f x = 7 -> (f x)/3 = 3"
+  }
+]

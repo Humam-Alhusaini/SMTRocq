@@ -9,6 +9,7 @@
   SMTCoq.utils
   SMTCoq.structures
   SMTCoq.checker
+  SMTCoq.checker.eunoia
   SMTCoq.tactics.preproc)
  (plugins rocq-smtcoq.smtcoq)
  (flags

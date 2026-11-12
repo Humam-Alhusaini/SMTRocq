@@ -1,0 +1,24 @@
+(** Rocq syntax marshaling. Computed syntax is untrusted candidate data. *)
+open Common
+val global : string -> RocqInterface.constr
+val call : string -> RocqInterface.constr list -> RocqInterface.constr
+val list : RocqInterface.constr -> RocqInterface.constr list -> RocqInterface.constr
+val string : string -> RocqInterface.constr
+val term_type : unit -> RocqInterface.constr
+val term : EunoiaElaborate.term -> RocqInterface.constr
+val term_list : EunoiaElaborate.term list -> RocqInterface.constr
+val make_term_encoder : unit -> (EunoiaElaborate.term -> RocqInterface.constr)
+val decode_term : RocqInterface.constr -> EunoiaElaborate.term
+val compute_term_option :
+  Environ.env -> RocqInterface.constr -> EunoiaElaborate.term option
+val checked_true :
+  ?on_failure:(unit -> unit) -> Environ.env -> RocqInterface.constr -> RocqInterface.constr
+(** Checks VM convertibility to true before constructing an equality proof.
+    The final tactic uses [Tactics.exact_check], so kernel checking is retained. *)
+
+val signature_names : Environ.env -> string list
+(** Compute admitted metadata names/aliases from the loaded CpcGenerated data.
+    Proof text cannot extend this set or select native primitive hooks. *)
+
+val decode_string : RocqInterface.constr -> string
+val decode_list : (RocqInterface.constr -> 'a) -> RocqInterface.constr -> 'a list

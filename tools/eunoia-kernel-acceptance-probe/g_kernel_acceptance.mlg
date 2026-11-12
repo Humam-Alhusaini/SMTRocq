@@ -1,0 +1,45 @@
+DECLARE PLUGIN "rocq-smtcoq.kernel_acceptance_probe"
+{
+open Ltac_plugin
+open Stdarg
+open Common
+let callback_ran = ref false
+let probe accept =
+  callback_ran := false;
+  let value = Lazy.force (if accept then CoqTerms.ctrue else CoqTerms.cfalse) in
+  let ty = SmtMisc.mklApp CoqTerms.ceq
+    [|Lazy.force CoqTerms.cbool;value;Lazy.force CoqTerms.ctrue|] in
+  (* A claimed reflection proof is submitted ONLY inside Abstract. Its opaque
+     private declaration must synchronously kernel-check the complete original
+     type before the callback can run. The false probe detects deferral. *)
+  Abstract.cache_term_by_tactic_then ~opaque:true ~name_op:None
+    ~goal_type:(Some(EConstr.of_constr ty))
+    (Tactics.vm_cast_no_check(EConstr.of_constr(CoqTerms.eq_refl_true())))
+    (fun _ _ ->
+      callback_ran := true;
+      Tactics.exact_check(EConstr.of_constr(CoqTerms.eq_refl_true())))
+let check_callback () =
+  if !callback_ran then failwith "Invalid helper reached the continuation"
+  else Proofview.tclUNIT ()
+let data_probe accept =
+  callback_ran := false;
+  let body = if accept then Lazy.force CoqTerms.ctrue else CoqTerms.eq_refl_true () in
+  Abstract.cache_term_by_tactic_then ~opaque:false ~name_op:None
+    ~goal_type:(Some(EConstr.of_constr(Lazy.force CoqTerms.cbool)))
+    (Tactics.exact_no_check(EConstr.of_constr body))
+    (fun value args -> Proofview.Goal.enter(fun goal ->
+      callback_ran := true;
+      let proof = if accept then
+        let data = EConstr.to_constr (Proofview.Goal.sigma goal)
+          (EConstr.mkApp(value,Array.of_list args)) in
+        SmtMisc.mklApp CoqTerms.crefl_equal [|Lazy.force CoqTerms.cbool;data|]
+        else CoqTerms.eq_refl_true () in
+      Tactics.exact_check(EConstr.of_constr proof)))
+}
+TACTIC EXTEND Kernel_acceptance_probe
+| [ "kernel_acceptance_true" ] -> { probe true }
+| [ "kernel_acceptance_false" ] -> { probe false }
+| [ "kernel_acceptance_callback_not_run" ] -> { check_callback () }
+| [ "kernel_data_true" ] -> { data_probe true }
+| [ "kernel_data_bad_type" ] -> { data_probe false }
+END

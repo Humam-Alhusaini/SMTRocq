@@ -1,0 +1,53 @@
+[
+  {
+    "id": "uf_abstract_congruence",
+    "theory": "UF",
+    "expected": "proved",
+    "source": "Abstract-carrier UF integration suite; unit-tests/eunoia_uf.v and backend Public.v",
+    "statement": "forall (A : Type) (HA : CompDec A) (f : A -> A) (x y : A), x = y -> f x = f y"
+  },
+  {
+    "id": "negative_uf_injectivity",
+    "theory": "UF",
+    "expected": "rejected",
+    "source": "False converse of congruence; counterexample f := fun _ => 0, x := 0, y := 1",
+    "statement": "forall (f : Z -> Z) (x y : Z), f x = f y -> x = y"
+  },
+  {
+    "id": "negative_lia_missing_gap",
+    "theory": "LIA",
+    "expected": "rejected",
+    "source": "False integer-gap strengthening; counterexample x := 0, y := 0",
+    "statement": "forall (x y : Z), x <= y -> x + 1 <= y"
+  },
+  {
+    "id": "coefficient_upper",
+    "theory": "LIA",
+    "expected": "proved",
+    "source": "unit-tests/eunoia_integer_casts.v: eunoia_integer_coefficient_upper",
+    "statement": "forall x : Z, 2*x <= 3 -> x <= 1"
+  },
+  {
+    "id": "lia_cycle_8",
+    "theory": "LIA",
+    "expected": "proved",
+    "source": "parameterized scalability diagnostics; not part of the original workload",
+    "statement": "forall (x0 x1 x2 x3 x4 x5 x6 x7 : Z), x0 <= x1 -> x1 <= x2 -> x2 <= x3 -> x3 <= x4 -> x4 <= x5 -> x5 <= x6 -> x6 <= x7 -> x7 < x0 -> False"
+  },
+  {
+    "id": "quotient_from_hypothesis",
+    "theory": "LIA",
+    "expected": "proved",
+    "source": "unit-tests/eunoia_division.v: quotient_from_hypothesis",
+    "statement": "forall x : Z, x = 7 -> x/3 = 2",
+    "extension": "Rocq-division"
+  },
+  {
+    "id": "large_divisor",
+    "theory": "LIA",
+    "expected": "proved",
+    "source": "unit-tests/eunoia_division.v: large_divisor",
+    "statement": "forall x : Z,   (0 <=? x mod 123456789012345678901234567890) &&   (x mod 123456789012345678901234567890 <? 123456789012345678901234567890) = true",
+    "extension": "Rocq-division"
+  }
+]
