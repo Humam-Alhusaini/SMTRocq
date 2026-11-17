@@ -48,3 +48,8 @@ val compress_arrays :
   atoms:Atom.reify_tbl -> forms:Form.reify ->
   premises:Form.t list list -> conclusion:Form.t list -> unit ->
   (Certificate.witness, failure) result
+
+(** Bounded bit-blasting through existing SMTCoq BVA certificates. *)
+val compress_bitvectors : atoms:Common.SmtAtom.Atom.reify_tbl ->
+  forms:Common.SmtAtom.Form.reify -> premises:Common.SmtAtom.Form.t list list ->
+  conclusion:Common.SmtAtom.Form.t list -> unit -> (Certificate.witness, failure) result

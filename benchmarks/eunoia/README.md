@@ -54,3 +54,14 @@ python3 -B benchmarks/eunoia/run.py --skip-build --entrypoint SMTRocq \
 
 These include 42 positive goals and 17 false-goal controls. The `extension`
 field identifies array workloads in the existing UF/LIA manifest schema.
+
+Bit-vector workloads have their own `BV` theory label:
+
+```sh
+python3 -B benchmarks/eunoia/run.py --skip-build --entrypoint SMTRocq \
+  --cases benchmarks/eunoia/bitvectors.json --extra-import SMTCoq.structures.BVList \
+  --backends verit smtrocq --repeat 3 --output /tmp/smtrocq-bitvectors
+```
+
+The manifest measures bitwise operations and equality at eight bits.
+It is not a benchmark of general bit-vector arithmetic.

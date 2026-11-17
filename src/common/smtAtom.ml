@@ -959,6 +959,7 @@ module Atom =
     type coq_cst =
       | CCxH
       | CCZ0
+      | CCBVzeros
       | CCBV
       | CCxO
       | CCxI
@@ -1017,6 +1018,7 @@ module Atom =
       | CCZge
       | CCZgt -> SL.singleton LLia
 
+      | CCBVzeros
       | CCBV
       | CCBVbitOf
       | CCBVnot
@@ -1048,6 +1050,7 @@ module Atom =
 
 
     let gobble_of_coq_cst = function
+      | CCBVzeros
       | CCBV
       | CCBVbitOf
       | CCBVnot
@@ -1078,7 +1081,7 @@ module Atom =
       let tbl = SmtMisc.ConstrHashtbl.create 40 in
       let add (c1,c2) = SmtMisc.ConstrHashtbl.add tbl (Lazy.force c1) c2 in
       List.iter add
-	[ cxH,CCxH; cZ0,CCZ0; cof_bits, CCBV;
+	[ cxH,CCxH; cZ0,CCZ0; cof_bits, CCBV; cbv_zeros, CCBVzeros;
           cxO,CCxO; cxI,CCxI; cZpos,CCZpos; cZneg,CCZneg; copp,CCZopp;
           cbitOf, CCBVbitOf; cbv_not, CCBVnot; cbv_neg, CCBVneg;
           cbv_extr, CCBVextr; cbv_zextn, CCBVzextn; cbv_sextn, CCBVsextn;
@@ -1127,6 +1130,11 @@ module Atom =
 	match get_cst c with
         | CCxH -> mk_cop CCxH args
         | CCZ0 -> mk_cop CCZ0 args
+        | CCBVzeros -> (match args with
+          | [n] -> let width=mk_bvsize n in
+            if width>65536 then RocqInterface.raise_error "Bit-vector zero constant exceeds the reifier bound";
+            get reify (Acop(CO_BV(List.init width(fun _->false))))
+          | _ -> assert false)
         | CCBV -> mk_cop CCBV args
         | CCxO -> mk_uop UO_xO args
         | CCxI -> mk_uop UO_xI args

@@ -35,7 +35,7 @@ Checker proofs and solver-free corruption controls remain in the pinned
 | Core Boolean reasoning, UF | Existing certificate path; continue combined-theory regressions. |
 | Linear integer arithmetic | Existing certificate path plus proved operation facts. General symbolic division and nonlinear multiplication remain incomplete. |
 | Arrays | Read/write/extensionality certificates; expand tested key/value sorts and scaling workloads. |
-| Fixed-size bit vectors | SMTCoq has bit-vector semantics and a small checker. Add native CPC-to-bit-blasting certificate production and end-to-end tests before claiming CVC5 support. |
+| Fixed-size bit vectors | Semantic certificates for bitwise AND/OR/XOR, NOT, constants, and equality at concrete widths up to 32. Arithmetic, comparisons, extraction, concatenation, extensions, and shifts still need producer support. |
 | Reals and mixed integer/real arithmetic | Need Rocq reification, solver encoding, and verified arithmetic certificates. Existing rational CPC intermediates do not establish native real-goal support. |
 | Nonlinear integer/real arithmetic | Need dedicated verified certificates. A sound tactic must retain failure/unknown outcomes. |
 | Datatypes | Need Rocq constructor/discriminator/selector semantics and verified certificates, including recursive cases. |
@@ -78,3 +78,32 @@ case medians, implementation/checker revisions, audit counts, and evidence
 hashes. Full commands and artifacts remain at the recorded workspace paths.
 Reproduce the proof audit with `python3 -B scripts/eunoia/check_proofs.py`
 after building; benchmark commands are in `benchmarks/eunoia/README.md`.
+
+## Bit-vector certificate path
+
+The `feature/bitvectors` extension uses the existing `BVList.BITVECTOR_LIST`
+semantics and BVA small checker. The local gate admits exactly `BBVar`,
+`BBConst`, `BBNot`, `BBOp`, and `BBEq`, with all premise slots enumerated.
+The existing guards require available premises, fresh bounded destinations,
+bounded literals, exact outputs, and rejection of default-true failure results.
+No new bit-vector semantics or axioms are introduced.
+
+The untrusted producer builds per-term bit lists and uses Boolean CNF and
+resolution certificates to discharge the resulting problem. Per-bit equality
+conjunctions retain their original bit order. Bitwise expression sharing may
+canonicalize commutative operands; the BVA checker independently verifies them.
+Rocq's `zeros` constructor is reified as a concrete zero bit vector and remains
+bound to the original goal by checked conversion.
+
+This path supports concrete positive widths up to 32. Production is bounded
+by 256 terms, 4,096 formulas, 8,192 clause slots, 100,000 resolution pairs,
+and four saturation rounds. These are search bounds, not completeness claims.
+Theory detection memoizes the actual term/formula DAG; it does not expand
+shared UF terms into trees.
+
+The public suite is `unit-tests/smtrocq_bitvectors.v`; solver-free fixtures
+and corruption controls are in the standalone dependency's
+`EunoiaBitvectorTests.v` and native gate replay. The standalone checker still
+owns the verified acceptance layer. This extension certifies semantic proofs
+with `smtrocq`; it does not establish CPC bit-vector rule conformance for
+`cvc5_eunoia`.

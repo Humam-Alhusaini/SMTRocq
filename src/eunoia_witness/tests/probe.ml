@@ -99,6 +99,24 @@ let check name atoms forms premises conclusion w =
     failwith (name ^ ": gate accepted changed premises");
   if conclusion <> [] && eval premises [] w then
     failwith (name ^ ": gate accepted changed conclusion");
+  let bv_commands = List.filter (fun cmd -> match cmd.Certificate.action with
+    | Certificate.BitBlast _ -> true | _ -> false) w.program in
+  List.iter (fun cmd -> match cmd.Certificate.action with
+    | Certificate.BitBlast (p,rule,ids,l) ->
+      let reject label action =
+        let program=List.map(fun old->if old==cmd then {old with Certificate.action=action} else old)w.program in
+        if eval premises conclusion {w with program} then
+          failwith(name ^ ": gate accepted corrupted bit-vector " ^ label) in
+      reject "result polarity" (Certificate.BitBlast(p,rule,ids,l lxor 1));
+      reject "destination" (Certificate.BitBlast(w.capacity,rule,ids,l));
+      if ids<>[] then reject "dependency" (Certificate.BitBlast(p,rule,List.map(fun _->w.capacity)ids,l))
+    | _ -> ()) bv_commands;
+  if bv_commands<>[] then begin
+    let action=Certificate.BitBlast(w.capacity,Certificate.BvVar,[],2*(SmtAtom.Form.nvars forms+1)) in
+    if eval premises conclusion {w with capacity=w.capacity+1;
+        program=w.program@[{Certificate.action;expected=[]}]} then
+      failwith(name ^ ": gate accepted invalid bit-vector command after conflict")
+  end;
   (* Corrupt a theory operation's evidence while preserving its claimed output
      and every root. This must be caught by actual EUF recomputation. *)
   let corrupted = ref false in

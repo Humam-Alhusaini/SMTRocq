@@ -20,7 +20,8 @@ Proof. smtrocq. Qed.
 ```
 
 The current tactic supports tested uninterpreted-function and linear integer
-arithmetic goals, array read/write and extensionality, and proved facts for
+arithmetic goals, array read/write and extensionality, bitwise fixed-size
+bit vectors, and proved facts for
 Rocq division/modulo, absolute value, minimum, maximum, and sign. See the
 [coverage and remaining theory work](docs/theory-coverage.md). Certificates and
 the resulting theorem are checked in Rocq; an UNSAT answer or native compiler result is never sufficient evidence.

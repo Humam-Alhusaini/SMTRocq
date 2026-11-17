@@ -291,6 +291,30 @@ let run ~check =
     [equal (select (store a i v) j) (select a j)];
   negative ~whole_arrays:true "array-single-read-is-not-extensional" atoms forms [[equal (select a i) (select b i)]] [equal a b];
   negative ~whole_arrays:true "array-wrong-value" atoms forms [] [equal (select (store a i v) i) w];
+  let atoms,forms=fresh () in
+  let x=symbol atoms 0 [||] (SmtBtype.TBV 4) []
+  and y=symbol atoms 1 [||] (SmtBtype.TBV 4) [] in
+  let eq a b=form forms(Atom.get atoms(Abop(BO_eq(Atom.type_of a),a,b))) in
+  let band=Atom.mk_bvand atoms 4 and bor=Atom.mk_bvor atoms 4
+  and bxor=Atom.mk_bvxor atoms 4 and bnot=Atom.mk_bvnot atoms 4 in
+  positive "bv-and-commute" atoms forms [] [eq(band x y)(band y x)];
+  positive "bv-or-commute" atoms forms [] [eq(bor x y)(bor y x)];
+  positive "bv-not-involution" atoms forms [] [eq(bnot(bnot x))x];
+  let zero=Atom.mk_bvconst atoms [false;false;false;false] in
+  positive "bv-xor-self" atoms forms [] [eq(bxor x x)zero];
+  negative "bv-wrong-and" atoms forms [] [eq(band x y)x];
+  negative "bv-wrong-not" atoms forms [] [eq(bnot x)x];
+  List.iter(fun width->
+    let atoms,forms=fresh () in
+    let x=symbol atoms 0 [||](SmtBtype.TBV width)[] in
+    let n=Atom.mk_bvnot atoms width in
+    let eq=form forms(Atom.get atoms(Abop(BO_eq(SmtBtype.TBV width),n(n x),x)))in
+    positive ("bv-not-width-" ^ string_of_int width) atoms forms [] [eq]) [1;2;8;16;32];
+  let atoms,forms=fresh () in
+  let c=Atom.mk_bvconst atoms[true;false;true;false] in
+  let d=Atom.mk_bvconst atoms[false;true;false;true] in
+  let eq=form forms(Atom.get atoms(Abop(BO_eq(SmtBtype.TBV 4),Atom.mk_bvnot atoms 4 c,d)))in
+  positive "bv-constant-endianness" atoms forms [] [eq];
   Printf.printf "%d witness search cases passed\n%!" !count
 
 let check_shape _name _atoms _forms _premises _conclusion (w:Certificate.witness) =

@@ -180,7 +180,7 @@ def load_cases(path):
         if not re.fullmatch(r"[a-z][a-z0-9_]*", case["id"]) or case["id"] in ids:
             raise ValueError("Case identifiers must be unique lowercase identifiers")
         ids.add(case["id"])
-        if case["theory"] not in ("UF", "LIA") or case["expected"] not in ("proved", "rejected"):
+        if case["theory"] not in ("UF", "LIA", "BV") or case["expected"] not in ("proved", "rejected"):
             raise ValueError("Invalid case theory or expectation")
         # Fixtures contain only a theorem statement, never vernacular commands.
         if '"' in case["statement"] or re.search(r"\.(?![A-Za-z_])", case["statement"]):
@@ -283,7 +283,7 @@ def summarize(rows):
                          "positive_attempts": sum(r["theory"] == theory and r["status"] != "unavailable"
                                                   for r in positive),
                          "solved_attempts": sum(r["theory"] == theory for r in solved)}
-                for theory in ("UF", "LIA")},
+                for theory in ("UF", "LIA", "BV")},
         }
     return summary
 

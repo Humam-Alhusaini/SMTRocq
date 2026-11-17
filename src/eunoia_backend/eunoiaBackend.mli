@@ -21,6 +21,8 @@ type witness_producer =
     [EunoiaLocalDirect.gate] for the whole trace. *)
 
 val create_tables : unit -> tables
+(** Untrusted theory classification; each shared term/formula is visited once. *)
+val has_bitvectors : SmtAtom.Form.t list -> bool
 val export : ?native:bool -> ?env:Environ.env -> tables -> SmtAtom.Form.t list -> string
 (** By default, export the checked adapter's exact surface syntax.
     [native=true] exports untrusted candidate syntax for the semantic compiler;

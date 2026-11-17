@@ -35,3 +35,19 @@ Proof. smtrocq. Qed.
 
 See [the theory coverage guide](docs/theory-coverage.md) for supported
 combinations and remaining limitations.
+
+Bitwise goals use SMTCoq's existing bit-vector type:
+
+```coq
+From SMTCoq.structures Require Import BVList.
+From Stdlib Require Import NArith.
+Import BITVECTOR_LIST.
+
+Goal forall x y : bitvector 8%N,
+  bv_not (bv_and x y) = bv_or (bv_not x) (bv_not y).
+Proof. smtrocq. Qed.
+```
+
+The current semantic producer supports concrete positive widths up to 32
+for bitwise operations, constants, and equality. See the coverage guide
+for operations still needing certificate production.

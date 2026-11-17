@@ -104,6 +104,7 @@ val micromega_coq_proofTerm : coqTerm
 (* Bit vectors *)
 val cbitvector : coqTerm
 val cof_bits : coqTerm
+val cbv_zeros : coqTerm
 val cbitOf : coqTerm
 val cbv_eq : coqTerm
 val cbv_not : coqTerm

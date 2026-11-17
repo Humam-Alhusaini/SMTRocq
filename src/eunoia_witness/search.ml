@@ -224,6 +224,7 @@ let produce_search ?(derivation=false) ?(eager_theory_units=false) ?(limits=defa
           | BoolCongr (_,l,ls) -> BoolCongr (p,l,ls)
           | EqCgrP (_,a,b,ls) -> EqCgrP (p,a,b,ls)
           | LiaMicromega (_,c,proof) -> LiaMicromega (p,c,proof)
+          | BitBlast (_,rule,ids,l) -> BitBlast(p,rule,List.map slot ids,l)
           | ArrayReadSame (_,l) -> ArrayReadSame(p,l)
           | ArrayReadOther (_,c) -> ArrayReadOther(p,c)
           | ArrayExtensionality (_,l) -> ArrayExtensionality(p,l) in
@@ -479,6 +480,51 @@ let produce_search ?(derivation=false) ?(eager_theory_units=false) ?(limits=defa
       | _ -> ())ts;
         if Hashtbl.length terms > before then rows () in
       rows () in
+    (* Untrusted bit-blasting candidates. Every bit-vector relation and its
+       clause dependencies are recomputed by SMTCoq's verified BVA checker. *)
+    let bv_done = ref false in
+    let bitvectors () =
+      if not !bv_done then begin
+        bv_done := true;
+        let cache = Hashtbl.create 31 in
+        let make ?(ordered=false) op xs =
+          let xs = if not ordered && (op=Fand || op=For || op=Fxor || op=Fiff) then
+            List.sort (fun a b -> Int.compare (lit a) (lit b)) xs else xs in
+          let f=Form.get forms(Fapp(op,Array.of_list xs)) in remember f; cnf f; f in
+        let fact rule ids f =
+          remember f;add(fun p->BitBlast(p,rule,ids,lit f))[lit f];
+          Hashtbl.find known [lit f] in
+        let rec blast a = match Hashtbl.find_opt cache (Atom.index a) with
+          | Some result -> result
+          | None ->
+            let width=match Atom.type_of a with SmtBtype.TBV n when n>0 && n<=32 -> n
+              | _ -> raise(Fail Unsupported) in
+            let bits,rule,ids=match Atom.atom a with
+              | Acop(CO_BV bs) ->
+                List.map(fun b->let f=Form.get forms(if b then Form.pform_true else Form.pform_false) in
+                  remember f;cnf f;f)bs,BvConst,[]
+              | Auop(UO_BVnot _,x) -> let bs,id=blast x in List.map Form.neg bs,BvNot,[id]
+              | Abop((BO_BVand _|BO_BVor _|BO_BVxor _ as op),a,b) ->
+                let xs,ia=blast a and ys,ib=blast b in
+                let op=match op with BO_BVand _->Fand|BO_BVor _->For|_->Fxor in
+                List.map2(fun x y->make op [x;y])xs ys,BvOp,[ia;ib]
+              | Aapp _ ->
+                List.init width(fun i->let bit=Atom.mk_bitof atoms width i a in
+                  let f=Form.get forms(Fatom bit)in remember f;f),BvVar,[]
+              | _ -> raise(Fail Unsupported) in
+            let f=Form.get forms(FbbT(a,bits))in
+            let result=bits,fact rule ids f in Hashtbl.add cache(Atom.index a)result;result in
+        List.iter(fun f->match Form.pform f with
+          | Fatom a -> (match Atom.atom a with
+            | Abop(BO_eq(SmtBtype.TBV _),a,b) ->
+              let xs,ia=blast a and ys,ib=blast b in
+              let eqs=List.map2(fun x y->make Fiff[x;y])xs ys in
+              let all=match eqs with [f]->f|_->make ~ordered:true Fand eqs in
+              let link=Form.get forms(Fapp(Fiff,[|f;all|]))in
+              ignore(fact BvEq [ia;ib] link);cnf link
+            | _ -> ())
+          | _ -> ())(form_list ())
+      end in
     let run () =
       if derivation then begin
         (match Hashtbl.find_opt known cc with Some id -> raise (Conflict id) | None -> ());
@@ -513,6 +559,7 @@ let produce_search ?(derivation=false) ?(eager_theory_units=false) ?(limits=defa
         Some (List.map Form.neg pforms @ conclusion)
       end else None in
       profile "cnf" (fun () -> List.iter cnf (form_list ()));
+      profile "bitvectors" bitvectors;
       let rec rounds n =
         profile "resolve_units" (fun () -> resolve_pending ~units_only:true ());
         if n >= limits.max_theory_rounds then begin
@@ -603,6 +650,7 @@ let produce ?(limits=default_limits) ~atoms ~forms ~premises ~conclusion () =
               | EqCgr (_,l,ls) | BoolCongr (_,l,ls) -> l::List.filter_map Fun.id ls
               | EqCgrP (_,a,b,ls) -> a::b::List.filter_map Fun.id ls
               | LiaMicromega (_,c,_) -> c
+              | BitBlast (_,_,_,l) -> [l]
               | ArrayReadSame (_,l) | ArrayExtensionality (_,l) -> [l]
               | ArrayReadOther (_,c) -> c in
             action @ cmd.expected) w.program in
@@ -701,6 +749,7 @@ let combine_array_branches ~premises ~conclusion split left right =
           | BoolCongr(_,l,ls)->BoolCongr(p,l,ls)
           | EqCgrP(_,a,b,ls)->EqCgrP(p,a,b,ls)
           | LiaMicromega(_,c,proof)->LiaMicromega(p,c,proof)
+          | BitBlast(_,rule,ids,l)->BitBlast(p,rule,List.map actual ids,l)
           | ArrayReadSame(_,l)->ArrayReadSame(p,l)
           | ArrayReadOther(_,c)->ArrayReadOther(p,c)
           | ArrayExtensionality(_,l)->ArrayExtensionality(p,l)
@@ -770,3 +819,11 @@ let compress_arrays ~atoms ~forms ~premises ~conclusion () =
           | Ok right->match combine_array_branches ~premises ~conclusion split left right with
             | None->report "reconstruction failure";failure | Some w->Ok w in
   search 3 premises
+
+(* Bounded whole-goal bit-vector certificate production. Non-BV callers retain
+   their existing producers and budgets. *)
+let compress_bitvectors ~atoms ~forms ~premises ~conclusion () =
+  produce_search ~eager_theory_units:true ~limits:{max_clauses=8192;
+    max_resolution_pairs=100000;max_boolean_pairs=256;max_theory_rounds=4;
+    max_terms=256;max_formulas=4096;max_lia_literals=0}
+    ~atoms ~forms ~premises ~conclusion ()

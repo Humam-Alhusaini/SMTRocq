@@ -16,7 +16,7 @@ def main():
     parser.add_argument("--output", type=Path)
     parser.add_argument("--modes", nargs="+", choices=("Reference", "Compiled"), default=("Reference", "Compiled"))
     parser.add_argument("--fixtures", nargs="+",
-                        choices=("Proof", "Lia", "IntegerCasts", "Division", "Arrays", "IntegerOperations", "TheoryCombinations",
+                        choices=("Proof", "Lia", "IntegerCasts", "Division", "Arrays", "IntegerOperations", "TheoryCombinations", "Bitvectors",
                                  "Uf", "UfBool", "Purification", "PublicLia", "PublicTactics"))
     args = parser.parse_args()
     out = args.output.resolve() if args.output else Path(tempfile.mkdtemp(prefix="eunoia-mode-replay-"))
@@ -47,7 +47,8 @@ def main():
                               ("Purification", "eunoia_purification"), ("PublicLia", "eunoia_lia"),
                               ("PublicTactics", "eunoia_tactics"))]
             if mode == "Compiled":
-                fixtures += [("TheoryCombinations", ROOT / "unit-tests/smtrocq_theory_combinations.v"),
+                fixtures += [("Bitvectors", ROOT / "unit-tests/smtrocq_bitvectors.v"),
+                             ("TheoryCombinations", ROOT / "unit-tests/smtrocq_theory_combinations.v"),
                              ("Arrays", ROOT / "unit-tests/smtrocq_arrays.v"),
                              ("IntegerOperations", ROOT / "unit-tests/smtrocq_integer_operations.v")]
             if args.fixtures:

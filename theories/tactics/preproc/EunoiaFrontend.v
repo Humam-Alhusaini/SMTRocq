@@ -2,6 +2,7 @@
    Proof-producing translation for the quantifier-free UF/LIA front end.
    Unsupported propositions retain the existing Trakt preprocessing path. *)
 From Stdlib Require Import Bool ZArith.
+From SMTCoq.structures Require Import BVList.
 From Ltac2 Require Import Ltac2.
 From SMTCoq.utils Require Import Misc CompDec.
 From SMTCoq.structures Require Import FArray.
@@ -54,6 +55,8 @@ Ltac2 rec reflect_prop p :=
  | Z.lt ?a ?b => ('(Z.ltb $a $b),'(iff_sym (Z.ltb_lt $a $b)))
  | Z.ge ?a ?b => ('(Z.leb $b $a),'(iff_sym (Z.leb_le $b $a)))
  | Z.gt ?a ?b => ('(Z.ltb $b $a),'(iff_sym (Z.ltb_lt $b $a)))
+ | @Logic.eq (BITVECTOR_LIST.bitvector ?_n) ?a ?b =>
+   ('(BITVECTOR_LIST.bv_eq $a $b),'(iff_sym (BITVECTOR_LIST.bv_eq_reflect $a $b)))
  | @Logic.eq (@FArray.farray ?_key ?_elt ?_key_ord ?_elt_inh) ?x ?y =>
    ('(FArray.equal $x $y),'(iff_sym (FArray.equal_iff_eq $x $y)))
  | @Logic.eq ?a ?x ?y =>

@@ -62,6 +62,7 @@ let name_function i = "op_" ^ string_of_int i
 let rec sort ty = match ty with
   | SmtBtype.Tbool -> E.Symbol "Bool"
   | SmtBtype.TZ -> E.Symbol "Int"
+  | SmtBtype.TBV n when n>0 -> E.app "_" [E.Symbol "BitVec";E.Symbol(string_of_int n)]
   | SmtBtype.Tindex i -> E.Symbol (name_sort (SmtBtype.indexed_type_index i))
   | SmtBtype.TFArray (index,value) -> E.app "Array" [sort index;sort value]
   | _ -> R.raise_error "Eunoia: unsupported solver sort"
@@ -112,6 +113,8 @@ let native_root_terms roots =
     | Some result -> result
     | None ->
       let result = match Atom.atom a with
+      | Acop(CO_BV bs) -> E.Symbol("#b" ^ String.concat "" (List.map(fun b->if b then "1" else "0")(List.rev bs)))
+      | Auop(UO_BVnot _,a) -> E.app "bvnot" [atom a]
       | Acop CO_Z0 -> E.Symbol "0"
       | Auop (UO_Zpos,a) -> E.Symbol (Big_int.string_of_big_int (positive a))
       | Auop (UO_Zneg,a) -> E.Symbol (Big_int.string_of_big_int (Big_int.minus_big_int (positive a)))
@@ -122,6 +125,7 @@ let native_root_terms roots =
         let name = match op with
           | BO_Zplus -> "+" | BO_Zminus -> "-" | BO_Zmult -> "*"
           | BO_Zlt -> "<" | BO_Zle -> "<=" | BO_Zge -> ">=" | BO_Zgt -> ">"
+          | BO_BVand _ -> "bvand" | BO_BVor _ -> "bvor" | BO_BVxor _ -> "bvxor"
           | BO_eq _ -> "="
           | _ -> R.raise_error "SMTRocq: unsupported arithmetic operator" in
         E.app name [atom a;atom b]
@@ -148,12 +152,37 @@ let native_root_terms roots =
       Hashtbl.add form_cache (Form.to_lit f) result; result in
   List.map form roots
 
+(* Classification only: cache by table index so shared UF/formula DAGs are
+   visited once. No certificate acceptance depends on this heuristic. *)
+let has_bitvectors roots =
+  let atoms=Hashtbl.create 31 and forms=Hashtbl.create 31 in
+  let rec ty = function SmtBtype.TBV _ -> true
+    | SmtBtype.TFArray(a,b) -> ty a || ty b | _ -> false in
+  let rec atom a = match Hashtbl.find_opt atoms (Atom.index a) with
+    | Some b -> b
+    | None ->
+      let b=ty(Atom.type_of a) || (match Atom.atom a with
+        | Auop(_,a) -> atom a | Abop(_,a,b) -> atom a || atom b
+        | Atop(_,a,b,c) -> atom a || atom b || atom c
+        | Aapp(_,xs) | Anop(_,xs) -> Array.exists atom xs | _ -> false) in
+      Hashtbl.add atoms (Atom.index a) b;b
+  and form f = match Hashtbl.find_opt forms (Form.index f) with
+    | Some b -> b
+    | None ->
+      let b=match Form.pform f with
+        | SmtForm.Fatom a | SmtForm.FbbT(a,_) -> atom a
+        | SmtForm.Fapp(_,xs) -> Array.exists form xs in
+      Hashtbl.add forms (Form.index f) b;b in
+  List.exists form roots
+
 let export ?(native=false) ?(env=Global.env ()) t roots =
   register_instances env t;
   ignore (declarations t);
   let b = Buffer.create 4096 in
   let fmt = Format.formatter_of_buffer b in
-  Format.fprintf fmt "(set-logic %s)@." (if has_array_tables t then "QF_AUFLIA" else "QF_UFLIA");
+  let has_bv = has_bitvectors roots in
+  Format.fprintf fmt "(set-logic %s)@."
+    (if has_bv then "ALL" else if has_array_tables t then "QF_AUFLIA" else "QF_UFLIA");
   List.iter (fun (i,_) -> Format.fprintf fmt "(declare-sort %s 0)@." (name_sort i))
     (SmtBtype.to_list t.sorts);
   List.iter (fun (i,args,ret,_) ->
@@ -712,7 +741,7 @@ let tactic_using ?compression ?(compiled=false) produce ?fuel ?(preprocess=Tacti
       let has_lemmas = supplied <> [] in
       let t = create_tables () in
       let logic = SmtMisc.SL.of_list
-        (if compiled then [SmtMisc.LUF;SmtMisc.LLia;SmtMisc.LArrays]
+        (if compiled then [SmtMisc.LUF;SmtMisc.LLia;SmtMisc.LArrays;SmtMisc.LBitvectors]
          else [SmtMisc.LUF;SmtMisc.LLia]) in
       let reify = Form.of_coq (Atom.of_coq t.sorts t.functions t.atoms logic env sigma) t.forms in
       let fa = reify a and fb = reify b in

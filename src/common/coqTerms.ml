@@ -139,6 +139,7 @@ let bv_prefix = "SMTCoq.structures.BVList.BITVECTOR_LIST"
 let bv_gc = gc bv_prefix
 let cbitvector = bv_gc "bitvector"
 let cof_bits = bv_gc "of_bits"
+let cbv_zeros = bv_gc "zeros"
 let cbitOf = bv_gc "bitOf"
 let cbv_eq = bv_gc "bv_eq"
 let cbv_not = bv_gc "bv_not"

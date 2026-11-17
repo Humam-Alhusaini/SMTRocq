@@ -9,6 +9,7 @@ type clause_id = int
 type lia_proof =
   Common.RocqInterface.Micromega_plugin_Certificate.Mc.zArithProof list
 
+type bv_rule = BvVar | BvConst | BvNot | BvOp | BvEq
 type action =
   | Res of clause_id * clause_id * clause_id
   | CFalse of clause_id
@@ -22,6 +23,7 @@ type action =
   | BoolCongr of clause_id * literal * literal option list
   | EqCgrP of clause_id * literal * literal * literal option list
   | LiaMicromega of clause_id * clause * lia_proof
+  | BitBlast of clause_id * bv_rule * clause_id list * literal
   | ArrayReadSame of clause_id * literal
   | ArrayReadOther of clause_id * clause
   | ArrayExtensionality of clause_id * literal

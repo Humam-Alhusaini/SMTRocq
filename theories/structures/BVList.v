@@ -2523,6 +2523,7 @@ End BITVECTOR_LIST.
 
 (* Register constants for OCaml access *)
 Register BITVECTOR_LIST.bitvector as SMTCoq.structures.BVList.BITVECTOR_LIST.bitvector.
+Register BITVECTOR_LIST.zeros as SMTCoq.structures.BVList.BITVECTOR_LIST.zeros.
 Register BITVECTOR_LIST.of_bits as SMTCoq.structures.BVList.BITVECTOR_LIST.of_bits.
 Register BITVECTOR_LIST.bitOf as SMTCoq.structures.BVList.BITVECTOR_LIST.bitOf.
 Register BITVECTOR_LIST.bv_eq as SMTCoq.structures.BVList.BITVECTOR_LIST.bv_eq.

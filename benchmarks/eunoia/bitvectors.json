@@ -1,0 +1,58 @@
+[
+  {
+    "id": "bv_and_commute",
+    "theory": "BV",
+    "expected": "proved",
+    "source": "unit-tests/smtrocq_bitvectors.v: bv_and_commute",
+    "statement": "forall x y : BITVECTOR_LIST.bitvector 8%N, BITVECTOR_LIST.bv_and x y = BITVECTOR_LIST.bv_and y x"
+  },
+  {
+    "id": "bv_or_commute",
+    "theory": "BV",
+    "expected": "proved",
+    "source": "unit-tests/smtrocq_bitvectors.v: bv_or_commute",
+    "statement": "forall x y : BITVECTOR_LIST.bitvector 8%N, BITVECTOR_LIST.bv_or x y = BITVECTOR_LIST.bv_or y x"
+  },
+  {
+    "id": "bv_not_involution",
+    "theory": "BV",
+    "expected": "proved",
+    "source": "unit-tests/smtrocq_bitvectors.v: bv_not_involution",
+    "statement": "forall x : BITVECTOR_LIST.bitvector 8%N, BITVECTOR_LIST.bv_not (BITVECTOR_LIST.bv_not x) = x"
+  },
+  {
+    "id": "bv_xor_self",
+    "theory": "BV",
+    "expected": "proved",
+    "source": "unit-tests/smtrocq_bitvectors.v: bv_xor_self",
+    "statement": "forall x : BITVECTOR_LIST.bitvector 8%N, BITVECTOR_LIST.bv_xor x x = BITVECTOR_LIST.zeros 8%N"
+  },
+  {
+    "id": "bv_bitwise_congruence",
+    "theory": "BV",
+    "expected": "proved",
+    "source": "unit-tests/smtrocq_bitvectors.v: bv_bitwise_congruence",
+    "statement": "forall x y z : BITVECTOR_LIST.bitvector 8%N, x = y -> BITVECTOR_LIST.bv_and x (BITVECTOR_LIST.bv_not z) = BITVECTOR_LIST.bv_and y (BITVECTOR_LIST.bv_not z)"
+  },
+  {
+    "id": "bv_demorgan",
+    "theory": "BV",
+    "expected": "proved",
+    "source": "unit-tests/smtrocq_bitvectors.v: bv_demorgan",
+    "statement": "forall x y : BITVECTOR_LIST.bitvector 8%N, BITVECTOR_LIST.bv_not (BITVECTOR_LIST.bv_and x y) = BITVECTOR_LIST.bv_or (BITVECTOR_LIST.bv_not x) (BITVECTOR_LIST.bv_not y)"
+  },
+  {
+    "id": "bv_false_and",
+    "theory": "BV",
+    "expected": "rejected",
+    "source": "unit-tests/smtrocq_bitvectors.v",
+    "statement": "forall x y : BITVECTOR_LIST.bitvector 8%N, BITVECTOR_LIST.bv_and x y = x"
+  },
+  {
+    "id": "bv_false_not",
+    "theory": "BV",
+    "expected": "rejected",
+    "source": "unit-tests/smtrocq_bitvectors.v",
+    "statement": "forall x : BITVECTOR_LIST.bitvector 8%N, BITVECTOR_LIST.bv_not x = x"
+  }
+]

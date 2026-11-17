@@ -179,3 +179,25 @@ let () =
   (match q.trace with E.Push(5,_,E.Next(_ ,E.Done),_,E.Next(_,E.Done))->()|_->assert false);
   let q=Slice.compile E.{scoped with conflict=1}in
   assert(q.steps=[] && q.trace=E.Done && q.roots=p.roots)
+
+(* Shared term DAGs must not be expanded into exponentially large trees just
+   to select a producer. Classification is local to the current tables. *)
+let () =
+  let open Common in
+  let open SmtAtom in
+  let atoms=Atom.create () and forms=Form.create () in
+  let z=Atom.get atoms (Aapp(dummy_indexed_op(Index 0)[||]SmtBtype.TZ,[||])) in
+  let op=dummy_indexed_op(Index 1)[|SmtBtype.TZ;SmtBtype.TZ|]SmtBtype.TZ in
+  let x=ref z in
+  for _=1 to 40 do x:=Atom.get atoms(Aapp(op,[|!x;!x|]))done;
+  let f=Form.get forms(SmtForm.Fatom(Atom.get atoms(Abop(BO_eq SmtBtype.TZ,!x,z))))in
+  assert(not(EunoiaBackend.has_bitvectors[f]));
+  let atoms=Atom.create () and forms=Form.create ()in
+  let b=Atom.mk_bvconst atoms[true;false]in
+  let f=Form.get forms(SmtForm.Fatom(Atom.get atoms(Abop(BO_eq(SmtBtype.TBV 2),b,b))))in
+  assert(EunoiaBackend.has_bitvectors[f]);
+  let atoms=Atom.create ()and forms=Form.create ()in
+  let ty=SmtBtype.TFArray(SmtBtype.TZ,SmtBtype.TBV 8)in
+  let a=Atom.get atoms(Aapp(dummy_indexed_op(Index 0)[||]ty,[||]))in
+  let f=Form.get forms(SmtForm.Fatom(Atom.get atoms(Abop(BO_eq ty,a,a))))in
+  assert(EunoiaBackend.has_bitvectors[f])

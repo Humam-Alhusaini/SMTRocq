@@ -8,6 +8,7 @@ type literal = int
 type clause = literal list
 type clause_id = int
 type lia_proof = RocqInterface.Micromega_plugin_Certificate.Mc.zArithProof list
+type bv_rule = BvVar | BvConst | BvNot | BvOp | BvEq
 type action =
   | Res of clause_id * clause_id * clause_id
   | CFalse of clause_id
@@ -21,6 +22,7 @@ type action =
   | BoolCongr of clause_id * literal * literal option list
   | EqCgrP of clause_id * literal * literal * literal option list
   | LiaMicromega of clause_id * clause * lia_proof
+  | BitBlast of clause_id * bv_rule * clause_id list * literal
   | ArrayReadSame of clause_id * literal
   | ArrayReadOther of clause_id * clause
   | ArrayExtensionality of clause_id * literal
@@ -36,8 +38,8 @@ let output = function
   | Res (p,_,_) | CFalse p | CTrue p | BuildDef (p,_) | BuildDef2 (p,_)
   | BuildProj (p,_,_) | ImmFlatten (p,_,_) | EqTr (p,_,_) | EqCgr (p,_,_)
   | BoolCongr (p,_,_) | EqCgrP (p,_,_,_) | LiaMicromega (p,_,_)
-  | ArrayReadSame (p,_) | ArrayReadOther (p,_) | ArrayExtensionality (p,_) -> p
-let reads = function Res (_,a,b) -> [a;b] | ImmFlatten (_,a,_) -> [a] | _ -> []
+  | BitBlast (p,_,_,_) | ArrayReadSame (p,_) | ArrayReadOther (p,_) | ArrayExtensionality (p,_) -> p
+let reads = function BitBlast (_,_,ids,_) -> ids | Res (_,a,b) -> [a;b] | ImmFlatten (_,a,_) -> [a] | _ -> []
 let canonical c = List.sort_uniq Int.compare c
 
 (* State.C.resolve removes the first complementary pair in numeric order.
@@ -76,6 +78,11 @@ let to_coq ~local ~step w =
     | EqTr (p,l,ls) -> app (step "EqTr") [int p;int l;clause ls]
     | EqCgr (p,l,ls) -> app (step "EqCgr")
         [int p;int l;list option_ty option ls]
+    | BitBlast (p,rule,ids,l) ->
+      let name,arity = match rule with BvVar -> "BBVar",0 | BvConst -> "BBConst",0
+        | BvNot -> "BBNot",1 | BvOp -> "BBOp",2 | BvEq -> "BBEq",2 in
+      if List.length ids <> arity then invalid_arg "BitBlast premise arity";
+      app (step name) (List.map int (p::ids @ [l]))
     | BoolCongr _ -> invalid_arg "BoolCongr is a local command"
     | ArrayReadSame _ | ArrayReadOther _ | ArrayExtensionality _ ->
       invalid_arg "Array evidence is a local command"
