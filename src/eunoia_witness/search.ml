@@ -93,7 +93,7 @@ let congr_args a b = match Atom.atom a, Atom.atom b with
     Some (Array.to_list xs,Array.to_list ys)
   | _ -> None
 
-let produce_search ?(derivation=false) ?(eager_theory_units=false) ?(limits=default_limits) ~atoms ~forms ~premises ~conclusion () =
+let rec produce_search ?(derivation=false) ?(eager_theory_units=false) ?(limits=default_limits) ~atoms ~forms ~premises ~conclusion () =
   let profiling = Sys.getenv_opt "EUNOIA_WITNESS_PROFILE" = Some "1" in
   let sequence = if profiling then (incr profile_sequence; !profile_sequence) else 0 in
   let started = if profiling then Sys.time () else 0. in
@@ -514,11 +514,37 @@ let produce_search ?(derivation=false) ?(eager_theory_units=false) ?(limits=defa
               | _ -> raise(Fail Unsupported) in
             let f=Form.get forms(FbbT(a,bits))in
             let result=bits,fact rule ids f in Hashtbl.add cache(Atom.index a)result;result in
+        (* Prove small Boolean bit identities independently, with NO roots.
+           Import ordinary checked CNF/resolution operations, never a Boolean
+           search result or a temporary assumption. This prevents independent
+           bit circuits from sharing an expensive global saturation queue. *)
+        let prove_bit f =
+          if not (Hashtbl.mem known [lit f]) then
+          match produce_search ~derivation:true ~limits:{max_clauses=256;
+            max_resolution_pairs=2048;max_boolean_pairs=0;max_theory_rounds=0;
+            max_terms=32;max_formulas=64;max_lia_literals=0}
+            ~atoms ~forms ~premises:[] ~conclusion:[f] () with
+          | Error _ -> ()
+          | Ok w when w.root_claims=[] ->
+            let slots=Hashtbl.create(List.length w.program) in
+            let slot id=Hashtbl.find slots id in
+            (try List.iter(fun cmd->
+              let mk p=match cmd.action with
+                | Res(_,a,b)->Res(p,slot a,slot b)
+                | CTrue _->CTrue p | CFalse _->CFalse p
+                | BuildDef(_,l)->BuildDef(p,l) | BuildDef2(_,l)->BuildDef2(p,l)
+                | BuildProj(_,l,i)->BuildProj(p,l,i)
+                | _->raise Exit in
+              if not(Hashtbl.mem known cmd.expected)then add mk cmd.expected;
+              Hashtbl.add slots(output cmd.action)(Hashtbl.find known cmd.expected))w.program
+            with Exit | Not_found -> ())
+          | Ok _ -> () in
         List.iter(fun f->match Form.pform f with
           | Fatom a -> (match Atom.atom a with
             | Abop(BO_eq(SmtBtype.TBV _),a,b) ->
               let xs,ia=blast a and ys,ib=blast b in
               let eqs=List.map2(fun x y->make Fiff[x;y])xs ys in
+              List.iter prove_bit eqs;
               let all=match eqs with [f]->f|_->make ~ordered:true Fand eqs in
               let link=Form.get forms(Fapp(Fiff,[|f;all|]))in
               ignore(fact BvEq [ia;ib] link);cnf link

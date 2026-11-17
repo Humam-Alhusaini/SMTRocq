@@ -315,6 +315,14 @@ let run ~check =
   let d=Atom.mk_bvconst atoms[false;true;false;true] in
   let eq=form forms(Atom.get atoms(Abop(BO_eq(SmtBtype.TBV 4),Atom.mk_bvnot atoms 4 c,d)))in
   positive "bv-constant-endianness" atoms forms [] [eq];
+  List.iter(fun width->
+    let atoms,forms=fresh ()in
+    let x=symbol atoms 0 [||](SmtBtype.TBV width)[]
+    and y=symbol atoms 1 [||](SmtBtype.TBV width)[]in
+    let n=Atom.mk_bvnot atoms width and a=Atom.mk_bvand atoms width and o=Atom.mk_bvor atoms width in
+    let eq=form forms(Atom.get atoms(Abop(BO_eq(SmtBtype.TBV width),n(a x y),o(n x)(n y))))in
+    positive ~limits:{Search.default_limits with max_formulas=4096;max_terms=256}
+      ("bv-demorgan-width-" ^ string_of_int width) atoms forms [] [eq]) [8;32];
   Printf.printf "%d witness search cases passed\n%!" !count
 
 let check_shape _name _atoms _forms _premises _conclusion (w:Certificate.witness) =
