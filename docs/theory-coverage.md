@@ -52,3 +52,29 @@ performance and false-goal rejection remain release checks.
 
 Supporting all theory families does not mean deciding every formula.
 Unrestricted integer arithmetic and quantification prevent that guarantee.
+
+## Validation checkpoint: November 17, 2026
+
+The integration on `feature/theory-coverage` passed a clean `@install` build,
+full `@runtest`, and fresh-process replay of all three extension suites.
+The public extension has 46 positive goals and 18 false-goal controls;
+the native witness suite has 110 cases. The 545-target assumption audit
+found no additions to the inherited baseline, and independent recursive
+kernel validation passed. This does not remove SMTCoq's existing UInt63
+and proof-irrelevance assumptions.
+
+Three serial rounds of the standard 18-case UF/LIA workload solved every
+positive goal and rejected both false-goal controls for every backend/run.
+The sum of per-case median tactic-plus-`Qed` times was 1.178 s for merged
+main's implementation, 1.228 s for this extension, and 2.161 s for veriT.
+The extension was 4.2% slower than the baseline and 43.2% faster than veriT
+at that boundary. Summed per-case median whole-compiler times were
+42.834 s, 44.513 s, and 42.996 s respectively: the extension was 3.5%
+slower than veriT for complete compiler processes. These are small-workload
+measurements on this environment, not universal speed claims.
+
+[Machine-readable validation](theory-validation-2026-11-17.json) records
+case medians, implementation/checker revisions, audit counts, and evidence
+hashes. Full commands and artifacts remain at the recorded workspace paths.
+Reproduce the proof audit with `python3 -B scripts/eunoia/check_proofs.py`
+after building; benchmark commands are in `benchmarks/eunoia/README.md`.

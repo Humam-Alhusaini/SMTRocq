@@ -1,0 +1,123 @@
+{
+  "implementation_commit": "eddbf1f",
+  "checker_commit": "161751d",
+  "public_extension": {
+    "positive_goals": 46,
+    "false_goal_controls": 18
+  },
+  "native_witness_cases": 110,
+  "full_build_and_runtest_passed": true,
+  "fresh_compiled_replay_suites": [
+    "Arrays",
+    "IntegerOperations",
+    "TheoryCombinations"
+  ],
+  "proof_audit": {
+    "passed": true,
+    "targets": 545,
+    "unique_targets": 545,
+    "new_assumptions": [],
+    "evidence_sha256": {
+      "theory-coverage-build.log": "aa2f6fbe6a1a2fbe627e32d28e56d3b23a5003ddd71bd703da316784398d6136",
+      "theory-coverage-tests.log": "344bbf38713dafb739b4fedfde718413be07ba61c7361631f0cace139b911599",
+      "kernel-summary.json": "ba1ac943bcd5eb3b4070a405f9b3eeddf6db3b18e7d7c9dda6a25845d131a1a8",
+      "assumptions-summary.json": "d92af55bdd9d4382ba3ee15087002dc1be9ca0ac65602c78f4f0bb63e2629e94"
+    }
+  },
+  "performance": {
+    "date": "2026-11-17",
+    "baseline": {
+      "source": "/workspace/SMTRocq/_build/theory-baseline-2026-11-17",
+      "positive_cases": 18,
+      "positive_attempts": 54,
+      "negative_rejections": 6,
+      "sum_case_median_tactic_and_qed_s": 1.178,
+      "sum_case_median_compiler_s": 42.83440697801416,
+      "case_medians_s": {
+        "lia_disjunctive_bounds": 0.06,
+        "lia_equality_bound": 0.038,
+        "lia_inconsistent_bounds": 0.064,
+        "lia_integer_gap": 0.04,
+        "lia_strict_shift": 0.041,
+        "lia_two_sided_bound": 0.047,
+        "uf_abstract_binary": 0.059,
+        "uf_abstract_chain": 0.07,
+        "uf_abstract_congruence": 0.058,
+        "uf_abstract_disjunctive": 0.163,
+        "uf_abstract_multiple_sorts": 0.185,
+        "uf_abstract_predicate": 0.056,
+        "uf_binary_congruence": 0.060000000000000005,
+        "uf_congruence": 0.051000000000000004,
+        "uf_equality_chain": 0.05,
+        "uf_nested_congruence": 0.046,
+        "uf_predicate_congruence": 0.045,
+        "uf_transitive_congruence": 0.045
+      }
+    },
+    "extended": {
+      "source": "/workspace/SMTRocq/_build/theory-candidate-2026-11-17",
+      "positive_cases": 18,
+      "positive_attempts": 54,
+      "negative_rejections": 6,
+      "sum_case_median_tactic_and_qed_s": 1.228,
+      "sum_case_median_compiler_s": 44.51293283895939,
+      "case_medians_s": {
+        "lia_disjunctive_bounds": 0.062,
+        "lia_equality_bound": 0.044,
+        "lia_inconsistent_bounds": 0.055,
+        "lia_integer_gap": 0.043,
+        "lia_strict_shift": 0.038,
+        "lia_two_sided_bound": 0.053,
+        "uf_abstract_binary": 0.078,
+        "uf_abstract_chain": 0.069,
+        "uf_abstract_congruence": 0.068,
+        "uf_abstract_disjunctive": 0.166,
+        "uf_abstract_multiple_sorts": 0.178,
+        "uf_abstract_predicate": 0.068,
+        "uf_binary_congruence": 0.053,
+        "uf_congruence": 0.058,
+        "uf_equality_chain": 0.058,
+        "uf_nested_congruence": 0.044,
+        "uf_predicate_congruence": 0.048,
+        "uf_transitive_congruence": 0.045
+      }
+    },
+    "verit": {
+      "source": "/workspace/SMTRocq/_build/theory-candidate-2026-11-17",
+      "positive_cases": 18,
+      "positive_attempts": 54,
+      "negative_rejections": 6,
+      "sum_case_median_tactic_and_qed_s": 2.161,
+      "sum_case_median_compiler_s": 42.99595362994296,
+      "case_medians_s": {
+        "lia_disjunctive_bounds": 0.107,
+        "lia_equality_bound": 0.153,
+        "lia_inconsistent_bounds": 0.097,
+        "lia_integer_gap": 0.039,
+        "lia_strict_shift": 0.138,
+        "lia_two_sided_bound": 0.108,
+        "uf_abstract_binary": 0.14,
+        "uf_abstract_chain": 0.129,
+        "uf_abstract_congruence": 0.12000000000000001,
+        "uf_abstract_disjunctive": 0.188,
+        "uf_abstract_multiple_sorts": 0.133,
+        "uf_abstract_predicate": 0.137,
+        "uf_binary_congruence": 0.156,
+        "uf_congruence": 0.10400000000000001,
+        "uf_equality_chain": 0.10700000000000001,
+        "uf_nested_congruence": 0.107,
+        "uf_predicate_congruence": 0.10200000000000001,
+        "uf_transitive_congruence": 0.096
+      }
+    },
+    "extended_over_baseline": 1.0424448217317488,
+    "extended_over_verit": 0.5682554372975475,
+    "extended_compiler_over_baseline": 1.0391863919537108,
+    "extended_compiler_over_verit": 1.0352819063410652
+  },
+  "limitations": [
+    "Integer-key arrays with integer or nested-array values are tested. Boolean-valued array witness production remains incomplete.",
+    "These benchmarks cover 18 UF/LIA cases and do not establish universal performance.",
+    "No new full theory support is claimed for bit vectors, reals, nonlinear arithmetic, strings, datatypes, floating point, or quantified solving."
+  ]
+}
