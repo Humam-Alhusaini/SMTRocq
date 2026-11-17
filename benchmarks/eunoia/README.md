@@ -40,3 +40,17 @@ The [November 11 report](../../docs/benchmarks/smtrocq-tactic-2026-11-11.md)
 contains the previous frozen comparison, including unfavorable outcomes. Its
 JSON evidence is retained unchanged and predates the repository split. No new
 performance result is claimed for a structural cleanup.
+
+The array and integer-operation extension manifests can be replayed separately:
+
+```sh
+python3 -B benchmarks/eunoia/run.py --skip-build --entrypoint SMTRocq \
+  --cases benchmarks/eunoia/arrays.json --extra-import SMTCoq.structures.FArray \
+  --backends verit smtrocq --repeat 3 --output /tmp/smtrocq-arrays
+python3 -B benchmarks/eunoia/run.py --skip-build --entrypoint SMTRocq \
+  --cases benchmarks/eunoia/integer-operations.json \
+  --backends smtrocq --repeat 3 --output /tmp/smtrocq-integer-operations
+```
+
+These include 42 positive goals and 17 false-goal controls. The `extension`
+field identifies array workloads in the existing UF/LIA manifest schema.

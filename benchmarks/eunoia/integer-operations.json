@@ -1,0 +1,314 @@
+[
+  {
+    "id": "abs_nonnegative",
+    "theory": "LIA",
+    "expected": "proved",
+    "source": "unit-tests/smtrocq_integer_operations.v: abs_nonnegative",
+    "statement": "forall x:Z, 0 <= Z.abs x",
+    "extension": "Rocq-integer-operations"
+  },
+  {
+    "id": "abs_opposite",
+    "theory": "LIA",
+    "expected": "proved",
+    "source": "unit-tests/smtrocq_integer_operations.v: abs_opposite",
+    "statement": "forall x:Z, Z.abs (-x) = Z.abs x",
+    "extension": "Rocq-integer-operations"
+  },
+  {
+    "id": "abs_triangle",
+    "theory": "LIA",
+    "expected": "proved",
+    "source": "unit-tests/smtrocq_integer_operations.v: abs_triangle",
+    "statement": "forall x y:Z, Z.abs (x+y) <= Z.abs x + Z.abs y",
+    "extension": "Rocq-integer-operations"
+  },
+  {
+    "id": "min_bound",
+    "theory": "LIA",
+    "expected": "proved",
+    "source": "unit-tests/smtrocq_integer_operations.v: min_bound",
+    "statement": "forall x y:Z, Z.min x y <= x",
+    "extension": "Rocq-integer-operations"
+  },
+  {
+    "id": "max_choice",
+    "theory": "LIA",
+    "expected": "proved",
+    "source": "unit-tests/smtrocq_integer_operations.v: max_choice",
+    "statement": "forall x y:Z, x<=y -> Z.max x y=y",
+    "extension": "Rocq-integer-operations"
+  },
+  {
+    "id": "min_max_sum",
+    "theory": "LIA",
+    "expected": "proved",
+    "source": "unit-tests/smtrocq_integer_operations.v: min_max_sum",
+    "statement": "forall x y:Z, Z.min x y + Z.max x y = x+y",
+    "extension": "Rocq-integer-operations"
+  },
+  {
+    "id": "symbolic_mod_positive",
+    "theory": "LIA",
+    "expected": "proved",
+    "source": "unit-tests/smtrocq_integer_operations.v: symbolic_mod_positive",
+    "statement": "forall x d:Z, 0<d -> 0<=x mod d<d",
+    "extension": "Rocq-integer-operations"
+  },
+  {
+    "id": "symbolic_mod_negative",
+    "theory": "LIA",
+    "expected": "proved",
+    "source": "unit-tests/smtrocq_integer_operations.v: symbolic_mod_negative",
+    "statement": "forall x d:Z, d<0 -> d<x mod d<=0",
+    "extension": "Rocq-integer-operations"
+  },
+  {
+    "id": "symbolic_zero_divisor",
+    "theory": "LIA",
+    "expected": "proved",
+    "source": "unit-tests/smtrocq_integer_operations.v: symbolic_zero_divisor",
+    "statement": "forall x d:Z, d=0 -> x/d=0",
+    "extension": "Rocq-integer-operations"
+  },
+  {
+    "id": "known_divisor",
+    "theory": "LIA",
+    "expected": "proved",
+    "source": "unit-tests/smtrocq_integer_operations.v: known_divisor",
+    "statement": "forall x d:Z, d=3 -> x mod d<3",
+    "extension": "Rocq-integer-operations"
+  },
+  {
+    "id": "abs_zero",
+    "theory": "LIA",
+    "expected": "proved",
+    "source": "unit-tests/smtrocq_integer_operations.v: abs_zero",
+    "statement": "forall x:Z, Z.abs x=0 -> x=0",
+    "extension": "Rocq-integer-operations"
+  },
+  {
+    "id": "abs_bounds",
+    "theory": "LIA",
+    "expected": "proved",
+    "source": "unit-tests/smtrocq_integer_operations.v: abs_bounds",
+    "statement": "forall x:Z, -Z.abs x<=x<=Z.abs x",
+    "extension": "Rocq-integer-operations"
+  },
+  {
+    "id": "abs_distance",
+    "theory": "LIA",
+    "expected": "proved",
+    "source": "unit-tests/smtrocq_integer_operations.v: abs_distance",
+    "statement": "forall x y:Z, Z.abs (x-y)=Z.abs (y-x)",
+    "extension": "Rocq-integer-operations"
+  },
+  {
+    "id": "abs_uf",
+    "theory": "LIA",
+    "expected": "proved",
+    "source": "unit-tests/smtrocq_integer_operations.v: abs_uf",
+    "statement": "forall (f:Z->Z) (x:Z), f (Z.abs (-x))=f (Z.abs x)",
+    "extension": "Rocq-integer-operations"
+  },
+  {
+    "id": "min_commute",
+    "theory": "LIA",
+    "expected": "proved",
+    "source": "unit-tests/smtrocq_integer_operations.v: min_commute",
+    "statement": "forall x y:Z, Z.min x y=Z.min y x",
+    "extension": "Rocq-integer-operations"
+  },
+  {
+    "id": "max_bound",
+    "theory": "LIA",
+    "expected": "proved",
+    "source": "unit-tests/smtrocq_integer_operations.v: max_bound",
+    "statement": "forall x y:Z, y<=Z.max x y",
+    "extension": "Rocq-integer-operations"
+  },
+  {
+    "id": "max_commute",
+    "theory": "LIA",
+    "expected": "proved",
+    "source": "unit-tests/smtrocq_integer_operations.v: max_commute",
+    "statement": "forall x y:Z, Z.max x y=Z.max y x",
+    "extension": "Rocq-integer-operations"
+  },
+  {
+    "id": "min_max_order",
+    "theory": "LIA",
+    "expected": "proved",
+    "source": "unit-tests/smtrocq_integer_operations.v: min_max_order",
+    "statement": "forall x y:Z, Z.min x y<=Z.max x y",
+    "extension": "Rocq-integer-operations"
+  },
+  {
+    "id": "sign_negative",
+    "theory": "LIA",
+    "expected": "proved",
+    "source": "unit-tests/smtrocq_integer_operations.v: sign_negative",
+    "statement": "forall x:Z, x<0 -> Z.sgn x = -1",
+    "extension": "Rocq-integer-operations"
+  },
+  {
+    "id": "sign_zero",
+    "theory": "LIA",
+    "expected": "proved",
+    "source": "unit-tests/smtrocq_integer_operations.v: sign_zero",
+    "statement": "forall x:Z, x=0 -> Z.sgn x=0",
+    "extension": "Rocq-integer-operations"
+  },
+  {
+    "id": "sign_positive",
+    "theory": "LIA",
+    "expected": "proved",
+    "source": "unit-tests/smtrocq_integer_operations.v: sign_positive",
+    "statement": "forall x:Z, 0<x -> Z.sgn x=1",
+    "extension": "Rocq-integer-operations"
+  },
+  {
+    "id": "sign_bounds",
+    "theory": "LIA",
+    "expected": "proved",
+    "source": "unit-tests/smtrocq_integer_operations.v: sign_bounds",
+    "statement": "forall x:Z, -1<=Z.sgn x<=1",
+    "extension": "Rocq-integer-operations"
+  },
+  {
+    "id": "symbolic_zero_remainder",
+    "theory": "LIA",
+    "expected": "proved",
+    "source": "unit-tests/smtrocq_integer_operations.v: symbolic_zero_remainder",
+    "statement": "forall x d:Z, d=0 -> x mod d=x",
+    "extension": "Rocq-integer-operations"
+  },
+  {
+    "id": "known_divisor_reverse",
+    "theory": "LIA",
+    "expected": "proved",
+    "source": "unit-tests/smtrocq_integer_operations.v: known_divisor_reverse",
+    "statement": "forall x d:Z, 3=d -> 0<=x mod d<3",
+    "extension": "Rocq-integer-operations"
+  },
+  {
+    "id": "known_negative_divisor",
+    "theory": "LIA",
+    "expected": "proved",
+    "source": "unit-tests/smtrocq_integer_operations.v: known_negative_divisor",
+    "statement": "forall x d:Z, d= -3 -> -3<x mod d<=0",
+    "extension": "Rocq-integer-operations"
+  },
+  {
+    "id": "known_divisor_expression",
+    "theory": "LIA",
+    "expected": "proved",
+    "source": "unit-tests/smtrocq_integer_operations.v: known_divisor_expression",
+    "statement": "forall x d:Z, d=1+2 -> x mod d<3",
+    "extension": "Rocq-integer-operations"
+  },
+  {
+    "id": "known_divisor_quotient",
+    "theory": "LIA",
+    "expected": "proved",
+    "source": "unit-tests/smtrocq_integer_operations.v: known_divisor_quotient",
+    "statement": "forall x d:Z, d=3 -> x=7 -> x/d=2",
+    "extension": "Rocq-integer-operations"
+  },
+  {
+    "id": "known_divisor_uf",
+    "theory": "LIA",
+    "expected": "proved",
+    "source": "unit-tests/smtrocq_integer_operations.v: known_divisor_uf",
+    "statement": "forall (f:Z->Z) (x d:Z), d=3 -> f (x mod d)=f (x mod 3)",
+    "extension": "Rocq-integer-operations"
+  },
+  {
+    "id": "false_abs_identity",
+    "theory": "LIA",
+    "expected": "rejected",
+    "source": "unit-tests/smtrocq_integer_operations.v: false_abs_identity",
+    "statement": "forall x:Z, Z.abs x=x",
+    "extension": "Rocq-integer-operations"
+  },
+  {
+    "id": "false_abs_strict",
+    "theory": "LIA",
+    "expected": "rejected",
+    "source": "unit-tests/smtrocq_integer_operations.v: false_abs_strict",
+    "statement": "forall x:Z, 0<Z.abs x",
+    "extension": "Rocq-integer-operations"
+  },
+  {
+    "id": "false_min_choice",
+    "theory": "LIA",
+    "expected": "rejected",
+    "source": "unit-tests/smtrocq_integer_operations.v: false_min_choice",
+    "statement": "forall x y:Z, Z.min x y=x",
+    "extension": "Rocq-integer-operations"
+  },
+  {
+    "id": "false_max_choice",
+    "theory": "LIA",
+    "expected": "rejected",
+    "source": "unit-tests/smtrocq_integer_operations.v: false_max_choice",
+    "statement": "forall x y:Z, Z.max x y=x",
+    "extension": "Rocq-integer-operations"
+  },
+  {
+    "id": "false_sign_positive",
+    "theory": "LIA",
+    "expected": "rejected",
+    "source": "unit-tests/smtrocq_integer_operations.v: false_sign_positive",
+    "statement": "forall x:Z, Z.sgn x=1",
+    "extension": "Rocq-integer-operations"
+  },
+  {
+    "id": "false_mod_negative",
+    "theory": "LIA",
+    "expected": "rejected",
+    "source": "unit-tests/smtrocq_integer_operations.v: false_mod_negative",
+    "statement": "forall x d:Z, d<0 -> 0<=x mod d",
+    "extension": "Rocq-integer-operations"
+  },
+  {
+    "id": "false_mod_strict",
+    "theory": "LIA",
+    "expected": "rejected",
+    "source": "unit-tests/smtrocq_integer_operations.v: false_mod_strict",
+    "statement": "forall x d:Z, 0<d -> 0<x mod d",
+    "extension": "Rocq-integer-operations"
+  },
+  {
+    "id": "false_mod_no_sign",
+    "theory": "LIA",
+    "expected": "rejected",
+    "source": "unit-tests/smtrocq_integer_operations.v: false_mod_no_sign",
+    "statement": "forall x d:Z, x mod d<d",
+    "extension": "Rocq-integer-operations"
+  },
+  {
+    "id": "false_zero_mod",
+    "theory": "LIA",
+    "expected": "rejected",
+    "source": "unit-tests/smtrocq_integer_operations.v: false_zero_mod",
+    "statement": "forall x d:Z, d=0 -> x mod d=0",
+    "extension": "Rocq-integer-operations"
+  },
+  {
+    "id": "false_divisor_link",
+    "theory": "LIA",
+    "expected": "rejected",
+    "source": "unit-tests/smtrocq_integer_operations.v: false_divisor_link",
+    "statement": "forall x d e:Z, e=3 -> x mod d<3",
+    "extension": "Rocq-integer-operations"
+  },
+  {
+    "id": "false_known_quotient",
+    "theory": "LIA",
+    "expected": "rejected",
+    "source": "unit-tests/smtrocq_integer_operations.v: false_known_quotient",
+    "statement": "forall x d:Z, d=3 -> x=7 -> x/d=3",
+    "extension": "Rocq-integer-operations"
+  }
+]

@@ -20,6 +20,9 @@
   eunoia_tactics
   smtrocq
   smtrocq_compatibility
+  smtrocq_arrays
+  smtrocq_theory_combinations
+  smtrocq_integer_operations
   eunoia_uf
   eunoia_uf_bool
   eunoia_lia

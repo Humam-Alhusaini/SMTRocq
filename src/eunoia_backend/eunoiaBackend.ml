@@ -59,11 +59,15 @@ let create_tables () = {sorts=SmtBtype.create ();functions=Op.create ();
   atoms=Atom.create ();forms=Form.create ()}
 let name_sort i = "Tindex_" ^ string_of_int i
 let name_function i = "op_" ^ string_of_int i
-let sort ty = match ty with
+let rec sort ty = match ty with
   | SmtBtype.Tbool -> E.Symbol "Bool"
   | SmtBtype.TZ -> E.Symbol "Int"
   | SmtBtype.Tindex i -> E.Symbol (name_sort (SmtBtype.indexed_type_index i))
-  | _ -> R.raise_error "Eunoia: only QF_UF and QF_LIA sorts supported"
+  | SmtBtype.TFArray (index,value) -> E.app "Array" [sort index;sort value]
+  | _ -> R.raise_error "Eunoia: unsupported solver sort"
+let array_sort = function SmtBtype.TFArray _ -> true | _ -> false
+let has_array_tables t = List.exists (fun (_,args,ret,_) ->
+  array_sort ret || Array.exists array_sort args) (Op.to_list t.functions)
 let declarations t =
   List.map (fun (i,_) -> E.{name=name_sort i;typ=Symbol "Type"}) (SmtBtype.to_list t.sorts) @
   List.map (fun (i,args,ret,_) -> E.{name=name_function i;
@@ -112,6 +116,8 @@ let native_root_terms roots =
       | Auop (UO_Zpos,a) -> E.Symbol (Big_int.string_of_big_int (positive a))
       | Auop (UO_Zneg,a) -> E.Symbol (Big_int.string_of_big_int (Big_int.minus_big_int (positive a)))
       | Auop (UO_Zopp,a) -> E.app "-" [atom a]
+      | Abop (BO_select _,a,b) -> E.app "select" [atom a;atom b]
+      | Atop (TO_store _,a,i,v) -> E.app "store" [atom a;atom i;atom v]
       | Abop (op,a,b) ->
         let name = match op with
           | BO_Zplus -> "+" | BO_Zminus -> "-" | BO_Zmult -> "*"
@@ -147,7 +153,7 @@ let export ?(native=false) ?(env=Global.env ()) t roots =
   ignore (declarations t);
   let b = Buffer.create 4096 in
   let fmt = Format.formatter_of_buffer b in
-  Format.fprintf fmt "(set-logic QF_UFLIA)@.";
+  Format.fprintf fmt "(set-logic %s)@." (if has_array_tables t then "QF_AUFLIA" else "QF_UFLIA");
   List.iter (fun (i,_) -> Format.fprintf fmt "(declare-sort %s 0)@." (name_sort i))
     (SmtBtype.to_list t.sorts);
   List.iter (fun (i,args,ret,_) ->
@@ -705,7 +711,9 @@ let tactic_using ?compression ?(compiled=false) produce ?fuel ?(preprocess=Tacti
       let supplied = supplied @ List.map (fun p -> p,lemma_value p) arithmetic in
       let has_lemmas = supplied <> [] in
       let t = create_tables () in
-      let logic = SmtMisc.SL.of_list [SmtMisc.LUF;SmtMisc.LLia] in
+      let logic = SmtMisc.SL.of_list
+        (if compiled then [SmtMisc.LUF;SmtMisc.LLia;SmtMisc.LArrays]
+         else [SmtMisc.LUF;SmtMisc.LLia]) in
       let reify = Form.of_coq (Atom.of_coq t.sorts t.functions t.atoms logic env sigma) t.forms in
       let fa = reify a and fb = reify b in
       let boolean_result = R.eq_constr b (Lazy.force CoqTerms.ctrue) ||

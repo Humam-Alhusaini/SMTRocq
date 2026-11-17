@@ -22,6 +22,9 @@ type action =
   | BoolCongr of clause_id * literal * literal option list
   | EqCgrP of clause_id * literal * literal * literal option list
   | LiaMicromega of clause_id * clause * lia_proof
+  | ArrayReadSame of clause_id * literal
+  | ArrayReadOther of clause_id * clause
+  | ArrayExtensionality of clause_id * literal
 
 type command = { action : action; expected : clause }
 type witness = {

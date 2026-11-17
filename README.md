@@ -20,9 +20,10 @@ Proof. smtrocq. Qed.
 ```
 
 The current tactic supports tested uninterpreted-function and linear integer
-arithmetic goals, including the supported proved facts for Rocq division and
-modulo by constants. Certificates and the resulting theorem are checked in
-Rocq; an UNSAT answer or native compiler result is never sufficient evidence.
+arithmetic goals, array read/write and extensionality, and proved facts for
+Rocq division/modulo, absolute value, minimum, maximum, and sign. See the
+[coverage and remaining theory work](docs/theory-coverage.md). Certificates and
+the resulting theorem are checked in Rocq; an UNSAT answer or native compiler result is never sufficient evidence.
 
 The **Rocq Eunoia Checker lives in its own repository**:
 [Humam-Alhusaini/rocq-eunoia-checker](https://github.com/Humam-Alhusaini/rocq-eunoia-checker).

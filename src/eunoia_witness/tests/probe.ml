@@ -118,6 +118,31 @@ let check name atoms forms premises conclusion w =
     | _ -> cmd) w.program in
   if !corrupted && eval premises conclusion {w with program} then
     failwith (name ^ ": gate accepted corrupted EUF evidence");
+  let corrupted_array = ref false in
+  let program = List.map (fun cmd -> match cmd.Certificate.action with
+    | Certificate.ArrayReadSame (p,l) ->
+      corrupted_array := true; {cmd with action=Certificate.ArrayReadSame(p,l lxor 1)}
+    | Certificate.ArrayReadOther (p,c) ->
+      corrupted_array := true; {cmd with action=Certificate.ArrayReadOther(p,List.rev c)}
+    | Certificate.ArrayExtensionality (p,l) ->
+      corrupted_array := true; {cmd with action=Certificate.ArrayExtensionality(p,l lxor 1)}
+    | _ -> cmd) w.program in
+  if !corrupted_array && eval premises conclusion {w with program} then
+    failwith (name ^ ": gate accepted corrupted array evidence");
+  if !corrupted_array then begin
+    let invalid_literal=2*(SmtAtom.Form.nvars forms+1) in
+    let action=Certificate.ArrayReadSame(w.capacity,invalid_literal) in
+    let injected={Certificate.action;expected=[]} in
+    if eval premises conclusion {w with capacity=w.capacity+1;program=w.program@[injected]} then
+      failwith(name ^ ": gate accepted an invalid array command after conflict");
+    let program=List.map(fun cmd->match cmd.Certificate.action with
+      | Certificate.ArrayReadSame(p,_) -> {cmd with action=Certificate.ArrayReadSame(p,invalid_literal)}
+      | Certificate.ArrayReadOther(p,_) -> {cmd with action=Certificate.ArrayReadOther(p,[invalid_literal])}
+      | Certificate.ArrayExtensionality(p,_) -> {cmd with action=Certificate.ArrayExtensionality(p,invalid_literal)}
+      | _->cmd) w.program in
+    if eval premises conclusion {w with program} then
+      failwith(name ^ ": gate accepted an out-of-bounds array literal")
+  end;
   if name = "lia-scaling" then begin
     let program = List.map (fun cmd -> match cmd.Certificate.action with
       | Certificate.LiaMicromega (p,c,_) ->

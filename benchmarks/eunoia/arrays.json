@@ -1,0 +1,162 @@
+[
+  {
+    "id": "array_read_same",
+    "theory": "UF",
+    "expected": "proved",
+    "source": "unit-tests/smtrocq_arrays.v: array_read_same",
+    "statement": "forall (a:FArray.farray Z Z) (i v:Z), FArray.select (FArray.store a i v) i = v",
+    "extension": "Rocq-arrays"
+  },
+  {
+    "id": "array_read_other",
+    "theory": "UF",
+    "expected": "proved",
+    "source": "unit-tests/smtrocq_arrays.v: array_read_other",
+    "statement": "forall (a:FArray.farray Z Z) (i j v:Z), i<>j -> FArray.select (FArray.store a i v) j = FArray.select a j",
+    "extension": "Rocq-arrays"
+  },
+  {
+    "id": "array_overwrite",
+    "theory": "UF",
+    "expected": "proved",
+    "source": "unit-tests/smtrocq_arrays.v: array_overwrite",
+    "statement": "forall (a:FArray.farray Z Z) (i v w:Z), FArray.store (FArray.store a i v) i w=FArray.store a i w",
+    "extension": "Rocq-arrays"
+  },
+  {
+    "id": "array_store_read",
+    "theory": "UF",
+    "expected": "proved",
+    "source": "unit-tests/smtrocq_arrays.v: array_store_read",
+    "statement": "forall (a:FArray.farray Z Z) (i:Z), FArray.store a i (FArray.select a i)=a",
+    "extension": "Rocq-arrays"
+  },
+  {
+    "id": "array_store_commute",
+    "theory": "UF",
+    "expected": "proved",
+    "source": "unit-tests/smtrocq_arrays.v: array_store_commute",
+    "statement": "forall (a:FArray.farray Z Z) (i j v w:Z), i<>j -> FArray.store (FArray.store a i v) j w=FArray.store (FArray.store a j w) i v",
+    "extension": "Rocq-arrays"
+  },
+  {
+    "id": "array_lia",
+    "theory": "UF",
+    "expected": "proved",
+    "source": "unit-tests/smtrocq_arrays.v: array_lia",
+    "statement": "forall (a:FArray.farray Z Z) (i v:Z), v>=0 -> FArray.select (FArray.store a i v) i>=0",
+    "extension": "Rocq-arrays"
+  },
+  {
+    "id": "array_alias_read",
+    "theory": "UF",
+    "expected": "proved",
+    "source": "unit-tests/smtrocq_arrays.v: array_alias_read",
+    "statement": "forall (a b:FArray.farray Z Z) (i j:Z), a=b -> i=j -> FArray.select a i=FArray.select b j",
+    "extension": "Rocq-arrays"
+  },
+  {
+    "id": "array_index_arithmetic",
+    "theory": "UF",
+    "expected": "proved",
+    "source": "unit-tests/smtrocq_arrays.v: array_index_arithmetic",
+    "statement": "forall (a:FArray.farray Z Z) (i j v:Z), i+1<=j -> FArray.select (FArray.store a i v) j=FArray.select a j",
+    "extension": "Rocq-arrays"
+  },
+  {
+    "id": "array_arithmetic_alias",
+    "theory": "UF",
+    "expected": "proved",
+    "source": "unit-tests/smtrocq_arrays.v: array_arithmetic_alias",
+    "statement": "forall (a:FArray.farray Z Z) (i j v:Z), i<=j -> j<=i -> FArray.select (FArray.store a i v) j=v",
+    "extension": "Rocq-arrays"
+  },
+  {
+    "id": "array_two_writes_read",
+    "theory": "UF",
+    "expected": "proved",
+    "source": "unit-tests/smtrocq_arrays.v: array_two_writes_read",
+    "statement": "forall (a:FArray.farray Z Z) (i j v w:Z), i<>j -> FArray.select (FArray.store (FArray.store a i v) j w) i=v",
+    "extension": "Rocq-arrays"
+  },
+  {
+    "id": "array_value_arithmetic",
+    "theory": "UF",
+    "expected": "proved",
+    "source": "unit-tests/smtrocq_arrays.v: array_value_arithmetic",
+    "statement": "forall (a:FArray.farray Z Z) (i x y:Z), x<=y -> FArray.select (FArray.store a i x) i<=y",
+    "extension": "Rocq-arrays"
+  },
+  {
+    "id": "array_distinct_indices",
+    "theory": "UF",
+    "expected": "proved",
+    "source": "unit-tests/smtrocq_arrays.v: array_distinct_indices",
+    "statement": "forall (a:FArray.farray Z Z) (i v:Z), FArray.select (FArray.store a i v) (i+1)=FArray.select a (i+1)",
+    "extension": "Rocq-arrays"
+  },
+  {
+    "id": "array_uf",
+    "theory": "UF",
+    "expected": "proved",
+    "source": "unit-tests/smtrocq_arrays.v: array_uf",
+    "statement": "forall (a:FArray.farray Z Z) (f:Z->Z) (i v:Z), f (FArray.select (FArray.store a i v) i)=f v",
+    "extension": "Rocq-arrays"
+  },
+  {
+    "id": "array_nested_read",
+    "theory": "UF",
+    "expected": "proved",
+    "source": "unit-tests/smtrocq_arrays.v: array_nested_read",
+    "statement": "forall (a:FArray.farray Z (FArray.farray Z Z)) (b:FArray.farray Z Z) (i j:Z), FArray.select (FArray.select (FArray.store a i b) i) j=FArray.select b j",
+    "extension": "Rocq-arrays"
+  },
+  {
+    "id": "array_false_missing_disequality",
+    "theory": "UF",
+    "expected": "rejected",
+    "source": "unit-tests/smtrocq_arrays.v: array_false_missing_disequality",
+    "statement": "forall (a:FArray.farray Z Z) (i j v:Z), FArray.select (FArray.store a i v) j=FArray.select a j",
+    "extension": "Rocq-arrays"
+  },
+  {
+    "id": "array_false_value",
+    "theory": "UF",
+    "expected": "rejected",
+    "source": "unit-tests/smtrocq_arrays.v: array_false_value",
+    "statement": "forall (a:FArray.farray Z Z) (i v w:Z), FArray.select (FArray.store a i v) i=w",
+    "extension": "Rocq-arrays"
+  },
+  {
+    "id": "array_false_single_read",
+    "theory": "UF",
+    "expected": "rejected",
+    "source": "unit-tests/smtrocq_arrays.v: array_false_single_read",
+    "statement": "forall (a b:FArray.farray Z Z) (i:Z), FArray.select a i=FArray.select b i -> a=b",
+    "extension": "Rocq-arrays"
+  },
+  {
+    "id": "array_false_original",
+    "theory": "UF",
+    "expected": "rejected",
+    "source": "unit-tests/smtrocq_arrays.v: array_false_original",
+    "statement": "forall (a:FArray.farray Z Z) (i v:Z), FArray.store a i v=a",
+    "extension": "Rocq-arrays"
+  },
+  {
+    "id": "array_false_commute_alias",
+    "theory": "UF",
+    "expected": "rejected",
+    "source": "unit-tests/smtrocq_arrays.v: array_false_commute_alias",
+    "statement": "forall (a:FArray.farray Z Z) (i v w:Z), FArray.store (FArray.store a i v) i w=FArray.store (FArray.store a i w) i v",
+    "extension": "Rocq-arrays"
+  },
+  {
+    "id": "array_false_arithmetic_index",
+    "theory": "UF",
+    "expected": "rejected",
+    "source": "unit-tests/smtrocq_arrays.v: array_false_arithmetic_index",
+    "statement": "forall (a:FArray.farray Z Z) (i j v:Z), i<=j -> FArray.select (FArray.store a i v) j=FArray.select a j",
+    "extension": "Rocq-arrays"
+  }
+]

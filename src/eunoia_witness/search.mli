@@ -41,3 +41,10 @@ val compress_uf :
   atoms:Atom.reify_tbl -> forms:Form.reify ->
   premises:Form.t list list -> conclusion:Form.t list -> unit ->
   (Certificate.witness, failure) result
+
+(** Bounded array candidate using existing verified read/write and
+    extensionality operations. The complete candidate must pass the local gate. *)
+val compress_arrays :
+  atoms:Atom.reify_tbl -> forms:Form.reify ->
+  premises:Form.t list list -> conclusion:Form.t list -> unit ->
+  (Certificate.witness, failure) result
