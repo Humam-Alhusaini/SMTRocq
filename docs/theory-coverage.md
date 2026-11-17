@@ -107,3 +107,47 @@ and corruption controls are in the standalone dependency's
 owns the verified acceptance layer. This extension certifies semantic proofs
 with `smtrocq`; it does not establish CPC bit-vector rule conformance for
 `cvc5_eunoia`.
+
+### Bit-vector validation: November 17, 2026
+
+Seven positive public goals and three false-goal controls pass. Native
+certificate replay covers 124 cases, including bitwise identities at widths
+1, 2, 4, 8, 16, and 32 and De Morgan identities at widths 8 and 32.
+Fixed solver-free fixtures check valid constant/NOT certificates and reject
+missing dependencies, invalid destinations/results, default-true failures,
+and invalid operations after a conflict.
+
+The complete regression suite and 564-target assumptions/kernel audit passed
+at the initial implementation. After the final producer-only optimization,
+all affected suites passed again, the ten public bit-vector proofs were
+re-audited without additional assumptions, and fresh independent recursive
+kernel replay passed. The verified checker was unchanged by that optimization.
+No new axioms or admitted proofs were introduced; the inherited assumptions
+remain as documented in `checker-assumptions.txt`.
+
+The producer now proves small Boolean bit identities independently with no
+roots and imports their ordinary CNF/resolution operations into the main
+certificate. Every imported step is checked by the unchanged gate. This avoids
+mixing independent bit circuits in global resolution search. On the eight-bit
+De Morgan benchmark, the three-round median tactic-plus-`Qed` time fell from
+3.696 s to 0.264 s, a 14x improvement.
+
+All six positive bitwise benchmark cases passed in every round, with a sum
+of per-case median tactic-plus-`Qed` times of 0.638 s. Both false-goal cases
+were rejected in all rounds. The installed veriT tactic returned `unknown`
+on five positive cases. The installed CVC4 tactic left unfinished goals on
+those cases. Each completed only the congruence case; these failures prevent
+an overall bitwise speed comparison with either backend.
+
+The final standard 18-case UF/LIA benchmark passed all positives and false-goal
+controls for both SMTRocq and veriT across three rounds. Summed per-case median
+tactic-plus-`Qed` times were 1.135 s and 1.980 s respectively: SMTRocq used
+42.7% less time at that boundary. Complete compiler processes were 5.4% slower
+for SMTRocq. These small-workload results do not establish universal speed or
+coverage across bit-vector operations.
+
+[Machine-readable bit-vector validation](bitvector-validation-2026-11-17.json)
+records revisions, evidence hashes, per-case medians, backend failures, and
+raw artifact locations. The benchmark commands are in
+`benchmarks/eunoia/README.md`. Arithmetic, comparisons, extraction,
+concatenation, extensions, and shifts still need native producer support.
