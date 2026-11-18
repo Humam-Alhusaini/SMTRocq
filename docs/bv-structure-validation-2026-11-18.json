@@ -1,0 +1,152 @@
+{
+  "date": "2026-11-18",
+  "implementation_commit": "26c4cc4af8f9b0b09e88c0a55d933c2cf5ec5a2f",
+  "width_normalization_commit": "bc4627d21e479203f011e5ef1fce146d1c3d4411",
+  "checker_commit": "0bed3c2d709692dda8fa87157d0ddd9360c1b76c",
+  "supported_concrete_positive_widths_up_to": 64,
+  "public_structure_positive_goals": 15,
+  "public_structure_false_goal_controls": 4,
+  "public_structure_unsupported_extraction_controls": 1,
+  "native_witness_cases": 140,
+  "full_build_and_regressions_passed": true,
+  "assumptions": {
+    "passed": true,
+    "targets": 594,
+    "unique_targets": 594,
+    "new_assumptions": []
+  },
+  "independent_kernel_passed": true,
+  "fresh_public_replay_passed": true,
+  "evidence_sha256": {
+    "kernel-summary.json": "7831ecbb9639a746913a8f42c8fa5fe2db32974d7262256df30382d01ba2831d",
+    "bv-structure-width-build.log": "02e4e34033dee5d6942ea88393e91ce2a21e3df6cd141dac015be5caf08eebc0",
+    "replay-summary.json": "9a8d30985165645f6f3200f70b3c81e0584ef22474ab17e427366ec974f74743",
+    "assumptions-summary.json": "a4126d487a66bdb7f7a29eaa6dad2f0970f8f996b0a54003825420b1c83ce493",
+    "bv-structure-regressions.log": "67188b80c029acde871e4d36f918ca45e4807fdfa12b5ac91ec7f6e3f13fb66f"
+  },
+  "structural_benchmark": {
+    "path": "/workspace/SMTRocq/_build/bv-structure-benchmark-2026-11-18",
+    "integrity_passed": true,
+    "backends": {
+      "smtrocq": {
+        "positive_cases": 15,
+        "positive_attempts": 45,
+        "status_counts": {
+          "solved": 45,
+          "negative_rejected": 12
+        },
+        "case_median_tactic_and_qed_s": {
+          "concat_high": 0.058,
+          "concat_low": 0.065,
+          "concat_negation": 0.068,
+          "extract_bitwise": 0.061,
+          "extract_negation": 0.046,
+          "reconstruct_32": 0.251,
+          "reconstruct_64": 0.369,
+          "reconstruct_word": 0.07300000000000001,
+          "sign_extend_composition": 0.055,
+          "sign_extend_identity": 0.059000000000000004,
+          "sign_extend_low": 0.051000000000000004,
+          "sign_extend_negation": 0.061000000000000006,
+          "zero_extend_high": 0.048,
+          "zero_extend_identity": 0.054,
+          "zero_extend_low": 0.051000000000000004
+        },
+        "sum_case_median_tactic_and_qed_s": 1.37,
+        "sum_case_median_whole_compiler_s": 36.6899602158519
+      }
+    }
+  },
+  "bitwise_benchmark": {
+    "path": "/workspace/SMTRocq/_build/bv-structure-bitwise-2026-11-18",
+    "integrity_passed": true,
+    "backends": {
+      "smtrocq": {
+        "positive_cases": 6,
+        "positive_attempts": 18,
+        "status_counts": {
+          "solved": 18,
+          "negative_rejected": 6
+        },
+        "case_median_tactic_and_qed_s": {
+          "bv_and_commute": 0.057,
+          "bv_bitwise_congruence": 0.178,
+          "bv_demorgan": 0.249,
+          "bv_not_involution": 0.053,
+          "bv_or_commute": 0.057,
+          "bv_xor_self": 0.056
+        },
+        "sum_case_median_tactic_and_qed_s": 0.65,
+        "sum_case_median_whole_compiler_s": 14.533390152995707
+      }
+    }
+  },
+  "uflia_benchmark": {
+    "path": "/workspace/SMTRocq/_build/bv-structure-uflia-2026-11-18",
+    "integrity_passed": true,
+    "backends": {
+      "smtrocq": {
+        "positive_cases": 18,
+        "positive_attempts": 54,
+        "status_counts": {
+          "solved": 54,
+          "negative_rejected": 6
+        },
+        "case_median_tactic_and_qed_s": {
+          "lia_disjunctive_bounds": 0.073,
+          "lia_equality_bound": 0.047,
+          "lia_inconsistent_bounds": 0.046,
+          "lia_integer_gap": 0.05,
+          "lia_strict_shift": 0.053,
+          "lia_two_sided_bound": 0.054000000000000006,
+          "uf_abstract_binary": 0.063,
+          "uf_abstract_chain": 0.066,
+          "uf_abstract_congruence": 0.057,
+          "uf_abstract_disjunctive": 0.178,
+          "uf_abstract_multiple_sorts": 0.151,
+          "uf_abstract_predicate": 0.063,
+          "uf_binary_congruence": 0.044,
+          "uf_congruence": 0.044,
+          "uf_equality_chain": 0.051000000000000004,
+          "uf_nested_congruence": 0.046,
+          "uf_predicate_congruence": 0.05,
+          "uf_transitive_congruence": 0.046
+        },
+        "sum_case_median_tactic_and_qed_s": 1.182,
+        "sum_case_median_whole_compiler_s": 42.49727409001207
+      },
+      "verit": {
+        "positive_cases": 18,
+        "positive_attempts": 54,
+        "status_counts": {
+          "solved": 54,
+          "negative_rejected": 6
+        },
+        "case_median_tactic_and_qed_s": {
+          "lia_disjunctive_bounds": 0.107,
+          "lia_equality_bound": 0.1,
+          "lia_inconsistent_bounds": 0.106,
+          "lia_integer_gap": 0.04,
+          "lia_strict_shift": 0.099,
+          "lia_two_sided_bound": 0.105,
+          "uf_abstract_binary": 0.11,
+          "uf_abstract_chain": 0.125,
+          "uf_abstract_congruence": 0.18,
+          "uf_abstract_disjunctive": 0.122,
+          "uf_abstract_multiple_sorts": 0.11900000000000001,
+          "uf_abstract_predicate": 0.129,
+          "uf_binary_congruence": 0.113,
+          "uf_congruence": 0.154,
+          "uf_equality_chain": 0.13,
+          "uf_nested_congruence": 0.098,
+          "uf_predicate_congruence": 0.111,
+          "uf_transitive_congruence": 0.10300000000000001
+        },
+        "sum_case_median_tactic_and_qed_s": 2.051,
+        "sum_case_median_whole_compiler_s": 41.28351648594253
+      }
+    }
+  },
+  "uflia_tactic_and_qed_reduction_vs_verit": 0.423695758166748,
+  "uflia_whole_compiler_ratio_vs_verit": 1.0294005382143945
+}

@@ -185,3 +185,36 @@ The benchmark manifest `benchmarks/eunoia/bitvector-structure.json` covers
 reconstruction through 64 bits, mixed bitwise operations, extension
 composition, and false-goal controls. This does not extend the strict
 `cvc5_eunoia` CPC source-conformance contract to these rules.
+
+### Structural validation: November 18, 2026
+
+The complete `@install` and `@runtest` build passed, including inherited
+SMTCoq tactics. The public structural suite has 15 positive proofs, four
+false-goal controls, and a separate rejection control for valid but unsupported
+out-of-range Rocq extraction. All 140 native witness cases passed verified
+replay and corruption checks. The expanded 594-target assumption audit found
+no additions to the inherited baseline; independent recursive kernel checking
+and fresh-process public replay passed. No new axioms or admitted proofs were
+introduced.
+
+Three serial benchmark rounds solved every structural positive and rejected
+every false case, with unchanged source/artifact fingerprints. Per-case median
+tactic-plus-`Qed` times ranged from 0.046 s to 0.369 s. Word reconstruction
+medians were 0.073 s at 16 bits, 0.251 s at 32 bits, and 0.369 s at 64 bits.
+Native reconstruction certificates had 138 commands at 32 bits and 266 at
+64 bits. The existing bitwise suite also passed every round; eight-bit
+De Morgan's law had a median of 0.249 s.
+
+The standard 18-case UF/LIA comparison passed all positive and false-goal
+controls for both SMTRocq and veriT across three rounds. Summed per-case
+median tactic-plus-`Qed` times were 1.182 s and 2.051 s: SMTRocq used 42.4%
+less time at that boundary. Whole-compiler time was 2.9% higher for SMTRocq.
+These measurements describe this workload and environment, not universal
+performance across theories.
+
+[Machine-readable structural validation](bv-structure-validation-2026-11-18.json)
+records implementation/checker revisions, audit and evidence hashes, exact
+case medians, and retained raw artifact paths. Reproduce with
+`python3 -B scripts/eunoia/check_proofs.py` after building and the benchmark
+commands in `benchmarks/eunoia/README.md`. Bit-vector arithmetic, comparisons,
+and shifts still need native producer support.
