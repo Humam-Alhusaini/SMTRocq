@@ -528,20 +528,24 @@ let mk_Z n =
   else assert false
 
 
-(* size of bivectors are either N.of_nat (length l) or an N *)
+(* Preserve literal widths cheaply; normalize closed expressions such as
+   concat's [n+m] and extension's [i+n] before decoding their N value.
+   This produces syntax only; checked goal conversion still binds the width. *)
 let mk_bvsize n =
-  let c, args = RocqInterface.decompose_app_list n in
-  if RocqInterface.eq_constr c (Lazy.force cof_nat) then
-    match args with
-    | [nl] ->
-      let c, args = RocqInterface.decompose_app_list nl in
-      if RocqInterface.eq_constr c (Lazy.force clength) then
-        match args with
-        | [_; l] -> List.length (mk_bool_list l)
-        | _ -> assert false
-      else assert false
-    | _ -> assert false
-  else mk_N n
+  let rec literal n =
+    let c,args=RocqInterface.decompose_app_list n in
+    if RocqInterface.eq_constr c (Lazy.force cN0) then true
+    else if RocqInterface.eq_constr c (Lazy.force cNpos) then
+      (match args with [p] -> positive p | _ -> false)
+    else false
+  and positive p =
+    let c,args=RocqInterface.decompose_app_list p in
+    if RocqInterface.eq_constr c (Lazy.force cxH) then true
+    else if RocqInterface.eq_constr c (Lazy.force cxO) || RocqInterface.eq_constr c (Lazy.force cxI)
+    then (match args with [p]->positive p|_->false) else false in
+  let n=if literal n then n else RocqInterface.cbv_vm (Global.env ()) n (Lazy.force cN) in
+  if literal n then mk_N n
+  else RocqInterface.raise_error "SMTCoq: expected a concrete bit-vector width"
 
 (** Switches between constr and OCaml *)
 (* Transform a option constr into a constr option *)
