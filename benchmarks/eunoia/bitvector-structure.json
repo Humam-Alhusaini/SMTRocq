@@ -1,0 +1,135 @@
+[
+  {
+    "id": "concat_low",
+    "theory": "BV",
+    "expected": "proved",
+    "source": "unit-tests/smtrocq_bitvector_structure.v: concat_low",
+    "statement": "forall x y : BITVECTOR_LIST.bitvector 8%N, @BITVECTOR_LIST.bv_extr 0%N 8%N 16%N (BITVECTOR_LIST.bv_concat x y) = y"
+  },
+  {
+    "id": "concat_high",
+    "theory": "BV",
+    "expected": "proved",
+    "source": "unit-tests/smtrocq_bitvector_structure.v: concat_high",
+    "statement": "forall x y : BITVECTOR_LIST.bitvector 8%N, @BITVECTOR_LIST.bv_extr 8%N 8%N 16%N (BITVECTOR_LIST.bv_concat x y) = x"
+  },
+  {
+    "id": "reconstruct_word",
+    "theory": "BV",
+    "expected": "proved",
+    "source": "unit-tests/smtrocq_bitvector_structure.v: reconstruct_word",
+    "statement": "forall x : BITVECTOR_LIST.bitvector 16%N, BITVECTOR_LIST.bv_concat (@BITVECTOR_LIST.bv_extr 8%N 8%N 16%N x) (@BITVECTOR_LIST.bv_extr 0%N 8%N 16%N x) = x"
+  },
+  {
+    "id": "zero_extend_low",
+    "theory": "BV",
+    "expected": "proved",
+    "source": "unit-tests/smtrocq_bitvector_structure.v: zero_extend_low",
+    "statement": "forall x : BITVECTOR_LIST.bitvector 8%N, @BITVECTOR_LIST.bv_extr 0%N 8%N 16%N (@BITVECTOR_LIST.bv_zextn 8%N 8%N x) = x"
+  },
+  {
+    "id": "zero_extend_high",
+    "theory": "BV",
+    "expected": "proved",
+    "source": "unit-tests/smtrocq_bitvector_structure.v: zero_extend_high",
+    "statement": "forall x : BITVECTOR_LIST.bitvector 8%N, @BITVECTOR_LIST.bv_extr 8%N 8%N 16%N (@BITVECTOR_LIST.bv_zextn 8%N 8%N x) = BITVECTOR_LIST.zeros 8%N"
+  },
+  {
+    "id": "sign_extend_low",
+    "theory": "BV",
+    "expected": "proved",
+    "source": "unit-tests/smtrocq_bitvector_structure.v: sign_extend_low",
+    "statement": "forall x : BITVECTOR_LIST.bitvector 8%N, @BITVECTOR_LIST.bv_extr 0%N 8%N 16%N (@BITVECTOR_LIST.bv_sextn 8%N 8%N x) = x"
+  },
+  {
+    "id": "zero_extend_identity",
+    "theory": "BV",
+    "expected": "proved",
+    "source": "unit-tests/smtrocq_bitvector_structure.v: zero_extend_identity",
+    "statement": "forall x : BITVECTOR_LIST.bitvector 8%N, @BITVECTOR_LIST.bv_zextn 8%N 0%N x = x"
+  },
+  {
+    "id": "sign_extend_identity",
+    "theory": "BV",
+    "expected": "proved",
+    "source": "unit-tests/smtrocq_bitvector_structure.v: sign_extend_identity",
+    "statement": "forall x : BITVECTOR_LIST.bitvector 8%N, @BITVECTOR_LIST.bv_sextn 8%N 0%N x = x"
+  },
+  {
+    "id": "sign_extend_composition",
+    "theory": "BV",
+    "expected": "proved",
+    "source": "unit-tests/smtrocq_bitvector_structure.v: sign_extend_composition",
+    "statement": "forall x : BITVECTOR_LIST.bitvector 8%N, @BITVECTOR_LIST.bv_sextn 16%N 4%N (@BITVECTOR_LIST.bv_sextn 8%N 8%N x) = @BITVECTOR_LIST.bv_sextn 8%N 12%N x"
+  },
+  {
+    "id": "extract_bitwise",
+    "theory": "BV",
+    "expected": "proved",
+    "source": "unit-tests/smtrocq_bitvector_structure.v: extract_bitwise",
+    "statement": "forall x y : BITVECTOR_LIST.bitvector 8%N, @BITVECTOR_LIST.bv_extr 2%N 4%N 8%N (BITVECTOR_LIST.bv_and x y) = BITVECTOR_LIST.bv_and (@BITVECTOR_LIST.bv_extr 2%N 4%N 8%N x) (@BITVECTOR_LIST.bv_extr 2%N 4%N 8%N y)"
+  },
+  {
+    "id": "concat_negation",
+    "theory": "BV",
+    "expected": "proved",
+    "source": "unit-tests/smtrocq_bitvector_structure.v: concat_negation",
+    "statement": "forall x y : BITVECTOR_LIST.bitvector 8%N, BITVECTOR_LIST.bv_not (BITVECTOR_LIST.bv_concat x y) = BITVECTOR_LIST.bv_concat (BITVECTOR_LIST.bv_not x) (BITVECTOR_LIST.bv_not y)"
+  },
+  {
+    "id": "sign_extend_negation",
+    "theory": "BV",
+    "expected": "proved",
+    "source": "unit-tests/smtrocq_bitvector_structure.v: sign_extend_negation",
+    "statement": "forall x : BITVECTOR_LIST.bitvector 8%N, BITVECTOR_LIST.bv_not (@BITVECTOR_LIST.bv_sextn 8%N 8%N x) = @BITVECTOR_LIST.bv_sextn 8%N 8%N (BITVECTOR_LIST.bv_not x)"
+  },
+  {
+    "id": "reject_concat_commutation",
+    "theory": "BV",
+    "expected": "rejected",
+    "source": "unit-tests/smtrocq_bitvector_structure.v: reject_concat_commutation",
+    "statement": "forall x y : BITVECTOR_LIST.bitvector 8%N, BITVECTOR_LIST.bv_concat x y = BITVECTOR_LIST.bv_concat y x"
+  },
+  {
+    "id": "reject_wrong_half",
+    "theory": "BV",
+    "expected": "rejected",
+    "source": "unit-tests/smtrocq_bitvector_structure.v: reject_wrong_half",
+    "statement": "forall x y : BITVECTOR_LIST.bitvector 8%N, @BITVECTOR_LIST.bv_extr 0%N 8%N 16%N (BITVECTOR_LIST.bv_concat x y) = x"
+  },
+  {
+    "id": "reject_sign_as_zero_extension",
+    "theory": "BV",
+    "expected": "rejected",
+    "source": "unit-tests/smtrocq_bitvector_structure.v: reject_sign_as_zero_extension",
+    "statement": "forall x : BITVECTOR_LIST.bitvector 8%N, @BITVECTOR_LIST.bv_sextn 8%N 8%N x = @BITVECTOR_LIST.bv_zextn 8%N 8%N x"
+  },
+  {
+    "id": "reject_zero_extension_negation",
+    "theory": "BV",
+    "expected": "rejected",
+    "source": "unit-tests/smtrocq_bitvector_structure.v: reject_zero_extension_negation",
+    "statement": "forall x : BITVECTOR_LIST.bitvector 8%N, BITVECTOR_LIST.bv_not (@BITVECTOR_LIST.bv_zextn 8%N 8%N x) = @BITVECTOR_LIST.bv_zextn 8%N 8%N (BITVECTOR_LIST.bv_not x)"
+  },
+  {
+    "id": "reconstruct_32",
+    "theory": "BV",
+    "expected": "proved",
+    "source": "unit-tests/smtrocq_bitvector_structure.v: reconstruct_32",
+    "statement": "forall x : BITVECTOR_LIST.bitvector 32%N, BITVECTOR_LIST.bv_concat (@BITVECTOR_LIST.bv_extr 16%N 16%N 32%N x) (@BITVECTOR_LIST.bv_extr 0%N 16%N 32%N x) = x"
+  },
+  {
+    "id": "extract_negation",
+    "theory": "BV",
+    "expected": "proved",
+    "source": "unit-tests/smtrocq_bitvector_structure.v: extract_negation",
+    "statement": "forall x : BITVECTOR_LIST.bitvector 8%N, @BITVECTOR_LIST.bv_extr 2%N 4%N 8%N (BITVECTOR_LIST.bv_not x) = BITVECTOR_LIST.bv_not (@BITVECTOR_LIST.bv_extr 2%N 4%N 8%N x)"
+  },
+  {
+    "id": "reconstruct_64",
+    "theory": "BV",
+    "expected": "proved",
+    "source": "unit-tests/smtrocq_bitvector_structure.v: reconstruct_64",
+    "statement": "forall x : BITVECTOR_LIST.bitvector 64%N, BITVECTOR_LIST.bv_concat (@BITVECTOR_LIST.bv_extr 32%N 32%N 64%N x) (@BITVECTOR_LIST.bv_extr 0%N 32%N 64%N x) = x"
+  }
+]

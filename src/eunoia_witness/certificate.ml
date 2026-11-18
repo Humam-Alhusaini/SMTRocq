@@ -8,7 +8,7 @@ type literal = int
 type clause = literal list
 type clause_id = int
 type lia_proof = RocqInterface.Micromega_plugin_Certificate.Mc.zArithProof list
-type bv_rule = BvVar | BvConst | BvNot | BvOp | BvEq
+type bv_rule = BvVar | BvConst | BvNot | BvOp | BvEq | BvConcat | BvExtract | BvZextend | BvSextend
 type action =
   | Res of clause_id * clause_id * clause_id
   | CFalse of clause_id
@@ -80,7 +80,9 @@ let to_coq ~local ~step w =
         [int p;int l;list option_ty option ls]
     | BitBlast (p,rule,ids,l) ->
       let name,arity = match rule with BvVar -> "BBVar",0 | BvConst -> "BBConst",0
-        | BvNot -> "BBNot",1 | BvOp -> "BBOp",2 | BvEq -> "BBEq",2 in
+        | BvNot -> "BBNot",1 | BvOp -> "BBOp",2 | BvEq -> "BBEq",2
+        | BvConcat -> "BBConcat",2 | BvExtract -> "BBExtract",1
+        | BvZextend -> "BBZextend",1 | BvSextend -> "BBSextend",1 in
       if List.length ids <> arity then invalid_arg "BitBlast premise arity";
       app (step name) (List.map int (p::ids @ [l]))
     | BoolCongr _ -> invalid_arg "BoolCongr is a local command"

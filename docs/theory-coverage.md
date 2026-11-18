@@ -35,7 +35,7 @@ Checker proofs and solver-free corruption controls remain in the pinned
 | Core Boolean reasoning, UF | Existing certificate path; continue combined-theory regressions. |
 | Linear integer arithmetic | Existing certificate path plus proved operation facts. General symbolic division and nonlinear multiplication remain incomplete. |
 | Arrays | Read/write/extensionality certificates; expand tested key/value sorts and scaling workloads. |
-| Fixed-size bit vectors | Semantic certificates for bitwise AND/OR/XOR, NOT, constants, and equality at concrete widths up to 32. Arithmetic, comparisons, extraction, concatenation, extensions, and shifts still need producer support. |
+| Fixed-size bit vectors | Semantic certificates for bitwise AND/OR/XOR, NOT, constants, equality, concatenation, extraction, and zero/sign extension at concrete positive widths up to 64. Arithmetic, comparisons, and shifts still need producer support. |
 | Reals and mixed integer/real arithmetic | Need Rocq reification, solver encoding, and verified arithmetic certificates. Existing rational CPC intermediates do not establish native real-goal support. |
 | Nonlinear integer/real arithmetic | Need dedicated verified certificates. A sound tactic must retain failure/unknown outcomes. |
 | Datatypes | Need Rocq constructor/discriminator/selector semantics and verified certificates, including recursive cases. |
@@ -151,3 +151,37 @@ records revisions, evidence hashes, per-case medians, backend failures, and
 raw artifact locations. The benchmark commands are in
 `benchmarks/eunoia/README.md`. Arithmetic, comparisons, extraction,
 concatenation, extensions, and shifts still need native producer support.
+
+## Structural bit-vector operations
+
+The `feature/bitvector-structure` extension adds concatenation, extraction,
+zero extension, and sign extension to the semantic producer. It reuses
+SMTCoq's existing `BBConcat`, `BBExtract`, `BBZextend`, and `BBSextend`
+small-checker steps. The local gate enumerates all reads and retains its
+freshness, bounds, typing, exact-result, and failure-result checks.
+The checker implementation remains in the standalone dependency.
+
+The producer preserves little-endian bit-list order: concatenation puts the
+right operand's low bits first, extraction selects the specified contiguous
+range, and signed extension repeats the most significant input bit.
+These are untrusted candidate computations, all independently checked by
+SMTCoq's BVA rules. Indexed SMT-LIB operators are emitted as indexed heads,
+including their nested parentheses.
+
+The inherited reifier now normalizes concrete width expressions such as
+`8 + 8` before decoding their N value. Final checked conversion still binds
+the resulting model to the original Rocq expressions. Symbolic widths are
+not supported by this extension.
+
+Concrete positive widths up to 64 are enabled, including intermediate words.
+Extraction requires a positive result width and a range wholly inside the
+source. Rocq defines total out-of-range extraction, but that behavior is
+outside this SMT-LIB path and is explicitly rejected. Zero-length extensions
+are supported. Other search budgets remain unchanged.
+
+Public regressions are in `unit-tests/smtrocq_bitvector_structure.v`.
+The new standalone fixed certificates are in `EunoiaBitvectorStructureTests.v`.
+The benchmark manifest `benchmarks/eunoia/bitvector-structure.json` covers
+reconstruction through 64 bits, mixed bitwise operations, extension
+composition, and false-goal controls. This does not extend the strict
+`cvc5_eunoia` CPC source-conformance contract to these rules.

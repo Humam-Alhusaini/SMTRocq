@@ -25,6 +25,7 @@
   EunoiaLiaTests.vo
   EunoiaArrayTests.vo
   EunoiaBitvectorTests.vo
+  EunoiaBitvectorStructureTests.vo
   EunoiaLocalTests.vo
   EunoiaBoolTests.vo
   EunoiaTacticTests.vo

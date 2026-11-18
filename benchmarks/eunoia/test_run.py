@@ -141,7 +141,7 @@ class BenchmarkIntegrity(unittest.TestCase):
             self.assertFalse(marker.exists())
 
     def test_manifest_has_valid_positive_and_negative_cases(self):
-        cases = [case for name in ("cases.json", "arrays.json", "integer-operations.json", "bitvectors.json")
+        cases = [case for name in ("cases.json", "arrays.json", "integer-operations.json", "bitvectors.json", "bitvector-structure.json")
                  for case in run.load_cases(run.HERE / name)]
         self.assertEqual({c["theory"] for c in cases if c["expected"] == "proved"}, {"UF", "LIA", "BV"})
         self.assertEqual({c["theory"] for c in cases if c["expected"] == "rejected"}, {"UF", "LIA", "BV"})

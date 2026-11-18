@@ -22,6 +22,7 @@
   smtrocq_compatibility
   smtrocq_arrays
   smtrocq_bitvectors
+  smtrocq_bitvector_structure
   smtrocq_theory_combinations
   smtrocq_integer_operations
   eunoia_uf

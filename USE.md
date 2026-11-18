@@ -48,6 +48,19 @@ Goal forall x y : bitvector 8%N,
 Proof. smtrocq. Qed.
 ```
 
-The current semantic producer supports concrete positive widths up to 32
-for bitwise operations, constants, and equality. See the coverage guide
+The current semantic producer supports concrete positive widths up to 64
+for bitwise operations, constants, equality, concatenation, extraction, and
+zero/sign extension. See the coverage guide
 for operations still needing certificate production.
+
+For example, reconstruct a 64-bit word from its two halves:
+
+```coq
+Local Open Scope N_scope.
+Goal forall x : bitvector 64,
+  bv_concat (@bv_extr 32 32 64 x) (@bv_extr 0 32 64 x) = x.
+Proof. smtrocq. Qed.
+```
+
+Extraction ranges must be within the source word. These examples use the
+`BITVECTOR_LIST` import from the preceding example.

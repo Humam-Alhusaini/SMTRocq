@@ -115,6 +115,13 @@ let native_root_terms roots =
       let result = match Atom.atom a with
       | Acop(CO_BV bs) -> E.Symbol("#b" ^ String.concat "" (List.map(fun b->if b then "1" else "0")(List.rev bs)))
       | Auop(UO_BVnot _,a) -> E.app "bvnot" [atom a]
+      (* Indexed SMT-LIB heads are atomic here: the CPC term printer flattens application spines. *)
+      | Auop(UO_BVextr(i,n,source),a) ->
+        if i<0 || n<=0 || n>source || i>source-n then R.raise_error "SMTRocq: extraction exceeds the source width";
+        E.app (Printf.sprintf "(_ extract %d %d)" (i+n-1) i) [atom a]
+      | Auop((UO_BVzextn(_,n)|UO_BVsextn(_,n) as op),a) ->
+        let name=match op with UO_BVzextn _->"zero_extend"|_->"sign_extend"in
+        E.app (Printf.sprintf "(_ %s %d)" name n) [atom a]
       | Acop CO_Z0 -> E.Symbol "0"
       | Auop (UO_Zpos,a) -> E.Symbol (Big_int.string_of_big_int (positive a))
       | Auop (UO_Zneg,a) -> E.Symbol (Big_int.string_of_big_int (Big_int.minus_big_int (positive a)))
@@ -125,6 +132,7 @@ let native_root_terms roots =
         let name = match op with
           | BO_Zplus -> "+" | BO_Zminus -> "-" | BO_Zmult -> "*"
           | BO_Zlt -> "<" | BO_Zle -> "<=" | BO_Zge -> ">=" | BO_Zgt -> ">"
+          | BO_BVconcat _ -> "concat"
           | BO_BVand _ -> "bvand" | BO_BVor _ -> "bvor" | BO_BVxor _ -> "bvxor"
           | BO_eq _ -> "="
           | _ -> R.raise_error "SMTRocq: unsupported arithmetic operator" in

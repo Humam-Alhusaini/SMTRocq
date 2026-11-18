@@ -323,6 +323,49 @@ let run ~check =
     let eq=form forms(Atom.get atoms(Abop(BO_eq(SmtBtype.TBV width),n(a x y),o(n x)(n y))))in
     positive ~limits:{Search.default_limits with max_formulas=4096;max_terms=256}
       ("bv-demorgan-width-" ^ string_of_int width) atoms forms [] [eq]) [8;32];
+  let atoms,forms=fresh ()in
+  let x=symbol atoms 0 [||](SmtBtype.TBV 8)[]and y=symbol atoms 1 [||](SmtBtype.TBV 8)[]
+  and word=symbol atoms 2 [||](SmtBtype.TBV 16)[]in
+  let equal a b=form forms(Atom.get atoms(Abop(BO_eq(Atom.type_of a),a,b)))in
+  let cat=Atom.mk_bvconcat atoms 8 8 in
+  let low=Atom.mk_bvextr atoms ~i:0 ~n:8 ~s:16
+  and high=Atom.mk_bvextr atoms ~i:8 ~n:8 ~s:16 in
+  let z=Atom.mk_bvzextn atoms ~s:8 ~n:8 and sign=Atom.mk_bvsextn atoms ~s:8 ~n:8 in
+  let zero=Atom.mk_bvconst atoms(List.init 8(fun _->false))in
+  positive "bv-concat-low" atoms forms [] [equal(low(cat x y))y];
+  positive "bv-concat-high" atoms forms [] [equal(high(cat x y))x];
+  positive "bv-concat-reconstruct" atoms forms [] [equal(cat(high word)(low word))word];
+  positive "bv-zero-extend-low" atoms forms [] [equal(low(z x))x];
+  positive "bv-zero-extend-high" atoms forms [] [equal(high(z x))zero];
+  positive "bv-sign-extend-low" atoms forms [] [equal(low(sign x))x];
+  positive "bv-concat-negative-bits" atoms forms []
+    [equal(Atom.mk_bvnot atoms 16(cat x y))(cat(Atom.mk_bvnot atoms 8 x)(Atom.mk_bvnot atoms 8 y))];
+  positive "bv-sign-negative-bits" atoms forms []
+    [equal(Atom.mk_bvnot atoms 16(sign x))(sign(Atom.mk_bvnot atoms 8 x))];
+  negative "bv-concat-order" atoms forms [] [equal(cat x y)(cat y x)];
+  negative "bv-extract-wrong-half" atoms forms [] [equal(low(cat x y))x];
+  negative "bv-sign-is-not-zero-extension" atoms forms [] [equal(sign x)(z x)];
+  negative "bv-extract-outside-source" atoms forms []
+    [equal(Atom.mk_bvextr atoms ~i:12 ~n:8 ~s:16 word)zero];
+  let cut=Atom.mk_bvextr atoms ~i:2 ~n:4 ~s:8 in
+  positive "bv-extract-negative-bits" atoms forms []
+    [equal(cut(Atom.mk_bvnot atoms 8 x))(Atom.mk_bvnot atoms 4(cut x))];
+  let atoms,forms=fresh ()in
+  let word=symbol atoms 0 [||](SmtBtype.TBV 32)[]in
+  let low=Atom.mk_bvextr atoms ~i:0 ~n:16 ~s:32 word
+  and high=Atom.mk_bvextr atoms ~i:16 ~n:16 ~s:32 word in
+  let reconstructed=Atom.mk_bvconcat atoms 16 16 high low in
+  let eq=form forms(Atom.get atoms(Abop(BO_eq(SmtBtype.TBV 32),reconstructed,word)))in
+  positive "bv-reconstruct-32" atoms forms [] [eq];
+  let atoms,forms=fresh ()in
+  let word=symbol atoms 0 [||](SmtBtype.TBV 64)[]in
+  let low=Atom.mk_bvextr atoms ~i:0 ~n:32 ~s:64 word
+  and high=Atom.mk_bvextr atoms ~i:32 ~n:32 ~s:64 word in
+  let reconstructed=Atom.mk_bvconcat atoms 32 32 high low in
+  let eq a b=form forms(Atom.get atoms(Abop(BO_eq(SmtBtype.TBV 64),a,b)))in
+  positive "bv-reconstruct-64" atoms forms [] [eq reconstructed word];
+  positive "bv-not-width-64" atoms forms []
+    [eq(Atom.mk_bvnot atoms 64(Atom.mk_bvnot atoms 64 word))word];
   Printf.printf "%d witness search cases passed\n%!" !count
 
 let check_shape _name _atoms _forms _premises _conclusion (w:Certificate.witness) =

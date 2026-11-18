@@ -65,3 +65,17 @@ python3 -B benchmarks/eunoia/run.py --skip-build --entrypoint SMTRocq \
 
 The manifest measures bitwise operations and equality at eight bits.
 It is not a benchmark of general bit-vector arithmetic.
+
+Structural bit-vector operations and machine-word reconstruction have a
+separate manifest:
+
+```sh
+python3 -B benchmarks/eunoia/run.py --skip-build --entrypoint SMTRocq \
+  --cases benchmarks/eunoia/bitvector-structure.json \
+  --extra-import SMTCoq.structures.BVList --backends smtrocq \
+  --repeat 3 --output /tmp/smtrocq-bitvector-structure
+```
+
+This workload includes 15 positive goals and four false-goal controls.
+The public suite separately checks rejection of unsupported out-of-range
+Rocq extraction; that valid-but-unsupported goal is not a false benchmark case.

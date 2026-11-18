@@ -497,7 +497,7 @@ let rec produce_search ?(derivation=false) ?(eager_theory_units=false) ?(limits=
         let rec blast a = match Hashtbl.find_opt cache (Atom.index a) with
           | Some result -> result
           | None ->
-            let width=match Atom.type_of a with SmtBtype.TBV n when n>0 && n<=32 -> n
+            let width=match Atom.type_of a with SmtBtype.TBV n when n>0 && n<=64 -> n
               | _ -> raise(Fail Unsupported) in
             let bits,rule,ids=match Atom.atom a with
               | Acop(CO_BV bs) ->
@@ -508,6 +508,20 @@ let rec produce_search ?(derivation=false) ?(eager_theory_units=false) ?(limits=
                 let xs,ia=blast a and ys,ib=blast b in
                 let op=match op with BO_BVand _->Fand|BO_BVor _->For|_->Fxor in
                 List.map2(fun x y->make op [x;y])xs ys,BvOp,[ia;ib]
+              | Abop(BO_BVconcat _,a,b) ->
+                let xs,ia=blast a and ys,ib=blast b in ys@xs,BvConcat,[ia;ib]
+              | Auop(UO_BVextr(i,n,source),x) ->
+                if i<0 || n<=0 || n>source || i>source-n then raise(Fail Unsupported);
+                let bs,id=blast x in
+                let rec drop n xs=if n=0 then xs else match xs with _::xs->drop(n-1)xs|[]->raise(Fail Unsupported)in
+                let rec take n xs=if n=0 then [] else match xs with x::xs->x::take(n-1)xs|[]->raise(Fail Unsupported)in
+                take n (drop i bs),BvExtract,[id]
+              | Auop((UO_BVzextn(_,n)|UO_BVsextn(_,n) as op),x) ->
+                let bs,id=blast x in
+                let bit,rule=match op with
+                  | UO_BVzextn _ -> let f=Form.get forms Form.pform_false in remember f;cnf f;f,BvZextend
+                  | _ -> (match List.rev bs with b::_->b|[]->raise(Fail Unsupported)),BvSextend in
+                bs@List.init n(fun _->bit),rule,[id]
               | Aapp _ ->
                 List.init width(fun i->let bit=Atom.mk_bitof atoms width i a in
                   let f=Form.get forms(Fatom bit)in remember f;f),BvVar,[]

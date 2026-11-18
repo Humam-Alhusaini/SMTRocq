@@ -120,16 +120,16 @@ def main():
         for name in names:
             audit += ["--theorem", module + "." + name]
     audit += ["--import", "SMTCoq.utils.PArray", "--theorem", "SMTCoq.utils.PArray.IntOrderedType.compare_gt"]
-    for test_module in ("EunoiaBitvectorTests", "EunoiaArrayTests", "EunoiaModelDagTests", "EunoiaLocalDirectTests", "EunoiaTheoryTests", "EunoiaCertificateTests"):
+    for test_module in ("EunoiaBitvectorStructureTests", "EunoiaBitvectorTests", "EunoiaArrayTests", "EunoiaModelDagTests", "EunoiaLocalDirectTests", "EunoiaTheoryTests", "EunoiaCertificateTests"):
         test_import = "SMTCoq.checker.eunoia." + test_module
         audit += ["--import", test_import]
         for name in re.findall(r"^\s*(?:Lemma|Theorem|Example)\s+(\w+)",
                 (ROOT / "external/rocq-eunoia-checker/theories/checker/eunoia" / (test_module + ".v")).read_text(), re.M):
-            audit += ["--theorem", test_import + ("." + test_module if test_module in ("EunoiaBitvectorTests", "EunoiaArrayTests", "EunoiaLocalDirectTests", "EunoiaTheoryTests", "EunoiaCertificateTests") else "") + "." + name]
+            audit += ["--theorem", test_import + ("." + test_module if test_module in ("EunoiaBitvectorStructureTests", "EunoiaBitvectorTests", "EunoiaArrayTests", "EunoiaLocalDirectTests", "EunoiaTheoryTests", "EunoiaCertificateTests") else "") + "." + name]
     for name in ("and_iff", "or_iff", "impl_iff", "iff_iff", "not_iff", "bool_true_iff"):
         audit += ["--import", "SMTCoq.tactics.preproc.EunoiaFrontend",
                   "--theorem", "SMTCoq.tactics.preproc.EunoiaFrontend.EunoiaFrontend." + name]
-    public_modules = ("smtrocq_bitvectors", "smtrocq_theory_combinations", "smtrocq_arrays", "smtrocq_integer_operations", "smtrocq", "smtrocq_compatibility", "eunoia_tactics", "eunoia_uf", "eunoia_uf_bool", "eunoia_lia", "eunoia_purification", "eunoia_integer_casts", "eunoia_division")
+    public_modules = ("smtrocq_bitvector_structure", "smtrocq_bitvectors", "smtrocq_theory_combinations", "smtrocq_arrays", "smtrocq_integer_operations", "smtrocq", "smtrocq_compatibility", "eunoia_tactics", "eunoia_uf", "eunoia_uf_bool", "eunoia_lia", "eunoia_purification", "eunoia_integer_casts", "eunoia_division")
     for module in public_modules:
         public = "SMTCoq.tests." + module
         audit += ["--import", public]
@@ -162,6 +162,7 @@ def main():
                   "SMTCoq.checker.eunoia.EunoiaModelDagTests",
                   "SMTCoq.checker.eunoia.EunoiaArrayTests",
                   "SMTCoq.checker.eunoia.EunoiaBitvectorTests",
+                  "SMTCoq.checker.eunoia.EunoiaBitvectorStructureTests",
                   "SMTCoq.checker.eunoia.EunoiaLocalDirectTests",
                   "SMTCoq.checker.eunoia.EunoiaTheoryTests",
                   "SMTCoq.checker.eunoia.EunoiaCertificateTests",

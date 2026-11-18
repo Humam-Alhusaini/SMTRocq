@@ -6,6 +6,7 @@
   cases.json
   arrays.json
   bitvectors.json
+  bitvector-structure.json
   integer-operations.json
   test_run.py
   test_report.py
